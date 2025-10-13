@@ -1,6 +1,27 @@
 import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 
+// Definir tipos para las tablas
+interface Tenant {
+  id: string
+  name: string
+  slug: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+interface User {
+  id: string
+  tenant_id: string
+  email: string
+  full_name: string
+  is_admin: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export async function POST(request: Request) {
   try {
     const { email, password, fullName, tenantName } = await request.json()
@@ -39,7 +60,7 @@ export async function POST(request: Request) {
         name: tenantName,
         slug: tenantName.toLowerCase().replace(/\s+/g, "-"),
         is_active: true,
-      })
+      } as Partial<Tenant>)
       .select()
       .single()
 
@@ -91,7 +112,7 @@ export async function POST(request: Request) {
         full_name: fullName,
         is_admin: true, // El primer usuario del tenant es siempre admin
         is_active: true,
-      })
+      } as Partial<User>)
 
       if (userError) {
         console.error("[v0] Error creating user record:", userError)

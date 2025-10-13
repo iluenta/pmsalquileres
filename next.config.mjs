@@ -10,9 +10,7 @@ const nextConfig = {
     unoptimized: true,
     domains: ['localhost'],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js', '@supabase/ssr'],
-  },
+  serverExternalPackages: ['@supabase/supabase-js', '@supabase/ssr'],
   output: 'standalone',
   env: {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',

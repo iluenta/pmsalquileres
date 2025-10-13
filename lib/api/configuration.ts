@@ -37,7 +37,7 @@ export async function getConfigurationTypes(tenantId: string): Promise<Configura
 
   // Get count of values for each type
   const typesWithCounts = await Promise.all(
-    (data || []).map(async (type) => {
+    (data || []).map(async (type: any) => {
       const { count } = await supabase
         .from("configuration_values")
         .select("*", { count: "exact", head: true })

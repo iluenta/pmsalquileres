@@ -1,27 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 
-// Definir tipos para las tablas
-interface Tenant {
-  id: string
-  name: string
-  slug: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
-
-interface User {
-  id: string
-  tenant_id: string
-  email: string
-  full_name: string
-  is_admin: boolean
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
-
 export async function POST(request: Request) {
   try {
     const { email, password, fullName, tenantName } = await request.json()
@@ -54,20 +33,22 @@ export async function POST(request: Request) {
     }
 
     // 1. Crear el tenant (usando admin client que bypasea RLS)
-    const { data: tenantData, error: tenantError } = await supabaseAdmin
+    const tenantResult = await supabaseAdmin
       .from("tenants")
       .insert({
         name: tenantName,
         slug: tenantName.toLowerCase().replace(/\s+/g, "-"),
         is_active: true,
-      } as Partial<Tenant>)
+      } as any)
       .select()
       .single()
 
-    if (tenantError) {
-      console.error("[v0] Error creating tenant:", tenantError)
-      return NextResponse.json({ error: "Error al crear la organización: " + tenantError.message }, { status: 500 })
+    if (tenantResult.error) {
+      console.error("[v0] Error creating tenant:", tenantResult.error)
+      return NextResponse.json({ error: "Error al crear la organización: " + tenantResult.error.message }, { status: 500 })
     }
+
+    const tenantData = tenantResult.data as any
 
     // 2. Crear el usuario en Supabase Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -112,7 +93,7 @@ export async function POST(request: Request) {
         full_name: fullName,
         is_admin: true, // El primer usuario del tenant es siempre admin
         is_active: true,
-      } as Partial<User>)
+      } as any)
 
       if (userError) {
         console.error("[v0] Error creating user record:", userError)

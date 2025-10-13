@@ -60,7 +60,7 @@ export async function getDashboardStats(tenantId: string): Promise<DashboardStat
     .eq("tenant_id", tenantId)
     .gte("payment_date", firstDayOfMonth)
 
-  const monthlyRevenue = paymentsData?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0
+  const monthlyRevenue = paymentsData?.reduce((sum: number, payment: any) => sum + Number(payment.amount), 0) || 0
 
   // Occupancy rate (simplified calculation)
   const { data: bookingsData } = await supabase
@@ -72,7 +72,7 @@ export async function getDashboardStats(tenantId: string): Promise<DashboardStat
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
   const totalPossibleDays = (totalProperties || 1) * daysInMonth
   const bookedDays =
-    bookingsData?.reduce((sum, booking) => {
+    bookingsData?.reduce((sum: number, booking: any) => {
       const checkIn = new Date(booking.check_in_date)
       const checkOut = new Date(booking.check_out_date)
       const days = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
@@ -89,7 +89,7 @@ export async function getDashboardStats(tenantId: string): Promise<DashboardStat
     .gte("check_out_date", today)
 
   const pendingPayments =
-    bookingsWithPending?.reduce((sum, booking) => {
+    bookingsWithPending?.reduce((sum: number, booking: any) => {
       const pending = Number(booking.total_amount) - Number(booking.paid_amount || 0)
       return sum + (pending > 0 ? pending : 0)
     }, 0) || 0
@@ -156,7 +156,7 @@ export async function getPropertyOccupancy(tenantId: string, limit = 5): Promise
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
 
   const occupancyData = await Promise.all(
-    properties.map(async (property) => {
+    properties.map(async (property: any) => {
       const { data: bookings } = await supabase
         .from("bookings")
         .select("check_in_date, check_out_date")
@@ -164,7 +164,7 @@ export async function getPropertyOccupancy(tenantId: string, limit = 5): Promise
         .gte("check_out_date", today)
 
       const bookedDays =
-        bookings?.reduce((sum, booking) => {
+        bookings?.reduce((sum: number, booking: any) => {
           const checkIn = new Date(booking.check_in_date)
           const checkOut = new Date(booking.check_out_date)
           const days = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))

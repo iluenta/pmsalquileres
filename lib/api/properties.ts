@@ -22,7 +22,7 @@ export interface Property {
   created_at: string
 }
 
-export async function getProperties(tenantId: string): Promise<Property[]> {
+export async function getProperties(): Promise<Property[]> {
   const supabase = await getSupabaseServerClient()
 
   const { data, error } = await supabase
@@ -33,7 +33,6 @@ export async function getProperties(tenantId: string): Promise<Property[]> {
       property_type:configuration_values!properties_property_type_id_fkey(label, color)
     `,
     )
-    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
 
   if (error) {
@@ -42,6 +41,28 @@ export async function getProperties(tenantId: string): Promise<Property[]> {
   }
 
   return data || []
+}
+
+export async function getProperty(propertyId: string): Promise<Property | null> {
+  const supabase = await getSupabaseServerClient()
+
+  const { data, error } = await supabase
+    .from("properties")
+    .select(
+      `
+      *,
+      property_type:configuration_values!properties_property_type_id_fkey(label, color)
+    `,
+    )
+    .eq("id", propertyId)
+    .single()
+
+  if (error) {
+    console.error("[v0] Error fetching property:", error)
+    return null
+  }
+
+  return data
 }
 
 export async function getPropertyById(propertyId: string, tenantId: string) {

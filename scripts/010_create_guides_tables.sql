@@ -128,27 +128,27 @@ ALTER TABLE guide_contact_info ENABLE ROW LEVEL SECURITY;
 ALTER TABLE practical_info ENABLE ROW LEVEL SECURITY;
 
 -- Crear políticas RLS para aislamiento por tenant
--- Usando la función get_user_tenant_id() existente
+-- Usando la función user_tenant_id() existente
 CREATE POLICY tenant_isolation_property_guides ON property_guides
-  FOR ALL USING (tenant_id = (SELECT get_user_tenant_id()));
+  FOR ALL USING (tenant_id = public.user_tenant_id());
 
 CREATE POLICY tenant_isolation_guide_sections ON guide_sections
-  FOR ALL USING (tenant_id = (SELECT get_user_tenant_id()));
+  FOR ALL USING (tenant_id = public.user_tenant_id());
 
 CREATE POLICY tenant_isolation_guide_places ON guide_places
-  FOR ALL USING (tenant_id = (SELECT get_user_tenant_id()));
+  FOR ALL USING (tenant_id = public.user_tenant_id());
 
 CREATE POLICY tenant_isolation_house_rules ON house_rules
-  FOR ALL USING (tenant_id = (SELECT get_user_tenant_id()));
+  FOR ALL USING (tenant_id = public.user_tenant_id());
 
 CREATE POLICY tenant_isolation_house_guide_items ON house_guide_items
-  FOR ALL USING (tenant_id = (SELECT get_user_tenant_id()));
+  FOR ALL USING (tenant_id = public.user_tenant_id());
 
 CREATE POLICY tenant_isolation_guide_contact_info ON guide_contact_info
-  FOR ALL USING (tenant_id = (SELECT get_user_tenant_id()));
+  FOR ALL USING (tenant_id = public.user_tenant_id());
 
 CREATE POLICY tenant_isolation_practical_info ON practical_info
-  FOR ALL USING (tenant_id = (SELECT get_user_tenant_id()));
+  FOR ALL USING (tenant_id = public.user_tenant_id());
 
 -- Crear triggers para updated_at
 CREATE TRIGGER update_property_guides_updated_at BEFORE UPDATE ON property_guides

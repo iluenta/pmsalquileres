@@ -1,8 +1,14 @@
 # 🚀 Guía de Deployment en Vercel
 
+## ⚠️ **IMPORTANTE: Configurar Variables de Entorno ANTES del Deployment**
+
+El build fallará si las variables de entorno de Supabase no están configuradas **ANTES** de hacer el deploy.
+
 ## 📋 Configuración de Variables de Entorno
 
-### 1. **Variables Requeridas en Vercel**
+### 1. **Variables Requeridas en Vercel Dashboard**
+
+**🔴 CRÍTICO: Configura estas variables ANTES de hacer deploy:**
 
 Ve a tu proyecto en Vercel Dashboard → Settings → Environment Variables y agrega:
 
@@ -11,6 +17,11 @@ NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima_aqui
 SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key_aqui
 ```
+
+**IMPORTANTE:** 
+- ✅ Selecciona **Production**, **Preview**, y **Development** para cada variable
+- ✅ NO uses valores placeholder - deben ser tus credenciales reales de Supabase
+- ✅ Verifica que los valores sean correctos antes de guardar
 
 ### 2. **Cómo Obtener los Valores de Supabase**
 

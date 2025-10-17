@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Building2, MapPin, Users, Bed, Bath, Euro, Pencil, Trash2, Search, Plus } from "lucide-react"
+import { Building2, MapPin, Users, Bed, Bath, Euro, Pencil, Trash2, Search, Plus, Eye } from "lucide-react"
 import type { Property } from "@/lib/api/properties"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
@@ -185,6 +185,15 @@ export function PropertiesTable({ properties }: PropertiesTableProps) {
                         >
                           <Pencil className="mr-2 h-4 w-4" />
                           Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-transparent"
+                          onClick={() => window.open(`/guides/${property.id}/public`, '_blank')}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver Guía
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => setDeleteId(property.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />

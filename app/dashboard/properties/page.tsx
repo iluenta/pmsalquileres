@@ -2,7 +2,7 @@ import { getProperties } from "@/lib/api/properties"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, Book } from "lucide-react"
 import Link from "next/link"
 import { PropertiesTable } from "@/components/properties/properties-table"
 
@@ -25,8 +25,7 @@ export default async function PropertiesPage() {
     redirect("/login")
   }
 
-  const tenantId = userInfo[0].tenant_id
-  const properties = await getProperties(tenantId)
+  const properties = await getProperties()
 
   return (
     <div className="space-y-6">
@@ -35,12 +34,20 @@ export default async function PropertiesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Propiedades</h1>
           <p className="text-muted-foreground">Gestiona tus propiedades vacacionales</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/properties/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Propiedad
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href="/dashboard/guides">
+              <Book className="mr-2 h-4 w-4" />
+              Ver Guías
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/properties/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva Propiedad
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <PropertiesTable properties={properties} />

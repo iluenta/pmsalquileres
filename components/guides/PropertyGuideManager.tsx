@@ -1,356 +1,830 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, useRef } from "react"
+import { useGuideData } from "@/hooks/useGuideData"
+import { BeachesEditForm } from "@/components/admin/BeachesEditForm"
+import { RestaurantsEditForm } from "@/components/admin/RestaurantsEditForm"
+import { ActivitiesEditForm } from "@/components/admin/ActivitiesEditForm"
+import { createGuideSection, updateGuideSection, deleteGuideSection, createGuide, updateGuide } from "@/lib/api/guides-client"
+import { SectionManager } from "@/components/admin/SectionManager"
+import { HouseRulesManager } from "@/components/admin/HouseRulesManager"
+import { HouseGuideManager } from "@/components/admin/HouseGuideManager"
+import { TipsManager } from "@/components/admin/TipsManager"
+import { ApartmentSectionsManager } from "@/components/admin/ApartmentSectionsManager"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus, Edit, Trash2, Eye, Settings, MapPin, Home, Phone, Info } from "lucide-react"
-import type { PropertyGuide, GuideData } from "@/types/guides"
-import { getPropertyGuide, createPropertyGuide, updatePropertyGuide } from "@/lib/api/guides"
+import Link from "next/link"
+import type { Guide, GuideSection } from "@/types/guides"
 
 interface PropertyGuideManagerProps {
   propertyId: string
-  propertyName: string
 }
 
-export function PropertyGuideManager({ propertyId, propertyName }: PropertyGuideManagerProps) {
-  const [guide, setGuide] = useState<PropertyGuide | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(false)
+export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) {
+  const [activeTab, setActiveTab] = useState("overview")
   const [formData, setFormData] = useState({
     title: "",
     welcome_message: "",
     host_names: "",
     host_signature: "",
+    latitude: "",
+    longitude: "",
   })
+  const [sections, setSections] = useState<GuideSection[]>([])
+  const [beaches, setBeaches] = useState<any[]>([])
+  const [restaurants, setRestaurants] = useState<any[]>([])
+  const [activities, setActivities] = useState<any[]>([])
+  const [showAddSection, setShowAddSection] = useState(false)
+  const [editingSection, setEditingSection] = useState<GuideSection | null>(null)
+  const [newSection, setNewSection] = useState<{
+    section_type: "apartment" | "rules" | "house_guide" | "tips" | "contact"
+    title: string
+    content: string
+    icon: string
+  }>({
+    section_type: "apartment",
+    title: "",
+    content: "",
+    icon: "fas fa-home"
+  })
+  const isInitialLoad = useRef(true)
 
+  const { data, loading, error, refetch } = useGuideData(propertyId)
+
+  // Actualizar formData cuando se cargan los datos
   useEffect(() => {
-    loadGuide()
-  }, [propertyId])
+    if (data?.guide) {
+      setFormData({
+        title: data.guide.title || "",
+        welcome_message: data.guide.welcome_message || "",
+        host_names: data.guide.host_names || "",
+        host_signature: data.guide.host_signature || "",
+        latitude: data.guide.latitude?.toString() || "",
+        longitude: data.guide.longitude?.toString() || "",
+      })
+    }
+    if (data?.sections) {
+      console.log('Updating sections from data.sections:', data.sections)
+      setSections(data.sections)
+      if (isInitialLoad.current) {
+        isInitialLoad.current = false
+      }
+    }
+    if (data?.beaches) {
+      setBeaches(data.beaches)
+    }
+    if (data?.restaurants) {
+      setRestaurants(data.restaurants)
+    }
+    if (data?.activities) {
+      setActivities(data.activities)
+    }
+  }, [data])
 
-  const loadGuide = async () => {
+  // Funciones para verificar si existe una sección de cada tipo
+  const hasSectionType = (type: string) => {
+    return sections.some(section => section.section_type === type)
+  }
+
+  const getSectionByType = (type: string): GuideSection | null => {
+    return sections.find(section => section.section_type === type) || null
+  }
+
+  const handleSectionChange = async (updatedSection: GuideSection) => {
+    if (!data?.guide?.id) return
+    
     try {
-      setLoading(true)
-      const guideData = await getPropertyGuide(propertyId)
-      setGuide(guideData)
-      
-      if (guideData) {
-        setFormData({
-          title: guideData.title,
-          welcome_message: guideData.welcome_message || "",
-          host_names: guideData.host_names || "",
-          host_signature: guideData.host_signature || "",
+      if (updatedSection.id) {
+        // Actualizar sección existente
+        const result = await updateGuideSection(updatedSection.id, {
+          title: updatedSection.title,
+          content: updatedSection.content,
+          icon: updatedSection.icon
         })
+        
+        if (result) {
+          setSections(prevSections => 
+            prevSections.map(section => 
+              section.id === updatedSection.id ? { ...section, ...updatedSection } : section
+            )
+          )
+        }
       } else {
-        // Set default values for new guide
-        setFormData({
-          title: `Guía del Huésped - ${propertyName}`,
-          welcome_message: "",
-          host_names: "",
-          host_signature: "",
+        // Crear nueva sección
+        const result = await createGuideSection({
+          guide_id: data.guide.id,
+          section_type: updatedSection.section_type,
+          title: updatedSection.title,
+          content: updatedSection.content,
+          icon: updatedSection.icon,
+          order_index: sections.length + 1
         })
+        
+        if (result) {
+          setSections(prevSections => [...prevSections, result])
+        }
       }
     } catch (error) {
-      console.error("Error loading guide:", error)
-    } finally {
-      setLoading(false)
+      console.error('Error saving section:', error)
     }
   }
 
-  const handleSave = async () => {
+  const handleAddSection = async () => {
+    if (!data?.guide?.id) return
+    
+    // Si estamos editando, usar la función de actualización
+    if (editingSection) {
+      await handleUpdateSection()
+      return
+    }
+    
     try {
-      let result: PropertyGuide | null = null
-
-      if (guide) {
-        // Update existing guide
-        result = await updatePropertyGuide(guide.id, formData)
-      } else {
-        // Create new guide
-        result = await createPropertyGuide({
-          property_id: propertyId,
-          ...formData,
-        })
+      console.log('Creating new section:', newSection)
+      
+      const sectionData = {
+        guide_id: data.guide.id,
+        section_type: newSection.section_type,
+        title: newSection.title,
+        content: newSection.content,
+        order_index: sections.length,
+        is_active: true,
       }
+      
+      const createdSection = await createGuideSection(sectionData)
+      
+      if (createdSection) {
+        console.log('Section created successfully:', createdSection)
+        
+        setSections(prevSections => {
+          const newSections = [...prevSections, createdSection]
+          console.log('Previous sections:', prevSections)
+          console.log('New sections after adding:', newSections)
+          return newSections
+        })
+        
+        setNewSection({
+          section_type: "apartment",
+          title: "",
+          content: "",
+          icon: "",
+        })
+        setShowAddSection(false)
+      }
+    } catch (error) {
+      console.error('Error creating section:', error)
+    }
+  }
 
-      if (result) {
-        setGuide(result)
-        setEditing(false)
+  const handleEditSection = (section: GuideSection) => {
+    setEditingSection(section)
+    setNewSection({
+      section_type: section.section_type,
+      title: section.title || "",
+      content: section.content || "",
+      icon: section.icon || "fas fa-home"
+    })
+    setShowAddSection(true)
+  }
+
+  const handleUpdateSection = async () => {
+    if (!editingSection) return
+    
+    try {
+      console.log('Updating section:', editingSection.id, newSection)
+      
+      const updatedSection = await updateGuideSection(editingSection.id, {
+        section_type: newSection.section_type,
+        title: newSection.title,
+        content: newSection.content,
+      })
+      
+      if (updatedSection) {
+        console.log('Section updated successfully:', updatedSection)
+        
+        setSections(prevSections => 
+          prevSections.map(section => 
+            section.id === editingSection.id ? updatedSection : section
+          )
+        )
+        
+        setEditingSection(null)
+        setNewSection({
+          section_type: "apartment",
+          title: "",
+          content: "",
+          icon: "",
+        })
+        setShowAddSection(false)
+      }
+    } catch (error) {
+      console.error('Error updating section:', error)
+    }
+  }
+
+  const handleDeleteSection = async (sectionId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta sección?')) return
+    
+    try {
+      console.log('Deleting section:', sectionId)
+      
+      await deleteGuideSection(sectionId)
+      
+      setSections(prevSections => 
+        prevSections.filter(section => section.id !== sectionId)
+      )
+    } catch (error) {
+      console.error('Error deleting section:', error)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    try {
+      console.log("Saving guide:", formData)
+      
+      if (data?.guide?.id) {
+        // Actualizar guía existente
+        const updatedGuide = await updateGuide(data.guide.id, {
+          title: formData.title,
+          welcome_message: formData.welcome_message,
+          host_names: formData.host_names,
+          host_signature: formData.host_signature,
+          latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+          longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+        })
+        
+        if (updatedGuide) {
+          console.log("Guide updated successfully:", updatedGuide)
+          alert("Guía actualizada correctamente")
+          refetch()
+        } else {
+          throw new Error("No se pudo actualizar la guía")
+        }
+      } else {
+        // Crear nueva guía
+        const newGuide = await createGuide({
+          property_id: propertyId,
+          title: formData.title,
+          welcome_message: formData.welcome_message,
+          host_names: formData.host_names,
+          host_signature: formData.host_signature,
+          latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+          longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+        })
+        
+        if (newGuide) {
+          console.log("Guide created successfully:", newGuide)
+          alert("Guía creada correctamente")
+          refetch()
+        } else {
+          throw new Error("No se pudo crear la guía")
+        }
       }
     } catch (error) {
       console.error("Error saving guide:", error)
+      alert("Error al guardar la guía: " + (error instanceof Error ? error.message : 'Error desconocido'))
     }
-  }
-
-  const handleCancel = () => {
-    if (guide) {
-      setFormData({
-        title: guide.title,
-        welcome_message: guide.welcome_message || "",
-        host_names: guide.host_names || "",
-        host_signature: guide.host_signature || "",
-      })
-    }
-    setEditing(false)
   }
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando datos...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <i className="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+          <p className="text-gray-600">Error al cargar los datos</p>
+          <p className="text-sm text-gray-500 mt-2">{error}</p>
+          <div className="mt-4 space-x-2">
+            <Button asChild>
+              <Link href="/dashboard/properties">Volver a Propiedades</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/guides">Ir a Guías</Link>
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <i className="fas fa-book text-4xl text-blue-500 mb-4"></i>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">No hay guía para esta propiedad</h2>
+          <p className="text-gray-600 mb-4">Puedes crear una guía del huésped para esta propiedad</p>
+          <div className="mt-4 space-x-2">
+            <Button asChild>
+              <Link href="/dashboard/guides">Crear Guía</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/properties">Volver a Propiedades</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Guía del Huésped</h2>
-          <p className="text-gray-600">Información y recursos para tus huéspedes</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {guide && (
-            <Badge variant={guide.is_active ? "default" : "secondary"}>
-              {guide.is_active ? "Activa" : "Inactiva"}
-            </Badge>
-          )}
-          <Button
-            variant={editing ? "outline" : "default"}
-            onClick={() => setEditing(!editing)}
-          >
-            {editing ? "Cancelar" : guide ? "Editar" : "Crear Guía"}
-          </Button>
+    <div className="min-h-screen bg-gray-50">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+      <div className="bg-white border-b border-gray-200">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/dashboard/guides">
+                  <i className="fas fa-arrow-left mr-2"></i>
+                  Volver
+                </Link>
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Editar Guía: {data.property.name}</h1>
+                <p className="text-sm text-gray-600">{data.property.address}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="default">Editando</Badge>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Información General</TabsTrigger>
-          <TabsTrigger value="sections">Secciones</TabsTrigger>
-          <TabsTrigger value="places">Lugares</TabsTrigger>
-          <TabsTrigger value="rules">Normas</TabsTrigger>
-          <TabsTrigger value="contact">Contacto</TabsTrigger>
-        </TabsList>
+      <div className="container mx-auto px-6 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
+            <TabsTrigger value="overview" className="text-xs">
+              Resumen
+            </TabsTrigger>
+            <TabsTrigger value="guide" className="text-xs">
+              Guía
+            </TabsTrigger>
+            <TabsTrigger 
+              value="apartment" 
+              className="text-xs"
+              disabled={!hasSectionType('apartment')}
+            >
+              Apartamento
+            </TabsTrigger>
+            <TabsTrigger 
+              value="rules" 
+              className="text-xs"
+              disabled={!hasSectionType('rules')}
+            >
+              Normas
+            </TabsTrigger>
+            <TabsTrigger 
+              value="house_guide" 
+              className="text-xs"
+              disabled={!hasSectionType('house_guide')}
+            >
+              Guía Casa
+            </TabsTrigger>
+            <TabsTrigger 
+              value="tips" 
+              className="text-xs"
+              disabled={!hasSectionType('tips')}
+            >
+              Consejos
+            </TabsTrigger>
+            <TabsTrigger 
+              value="contact" 
+              className="text-xs"
+              disabled={!hasSectionType('contact')}
+            >
+              Contacto
+            </TabsTrigger>
+            <TabsTrigger value="beaches" className="text-xs">
+              Playas
+            </TabsTrigger>
+            <TabsTrigger value="restaurants" className="text-xs">
+              Restaurantes
+            </TabsTrigger>
+            <TabsTrigger value="activities" className="text-xs">
+              Actividades
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="overview" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Home className="h-5 w-5" />
-                Información General
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {editing ? (
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="title">Título de la Guía</Label>
-                    <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Guía del Huésped"
-                    />
+          <TabsContent value="overview">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <i className="fas fa-chart-bar text-blue-600"></i>
+                    Resumen de la Guía
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <i className="fas fa-list text-2xl text-blue-600 mb-2"></i>
+                      <p className="font-semibold">{sections.length}</p>
+                      <p className="text-sm text-gray-600">Secciones</p>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <i className="fas fa-umbrella-beach text-2xl text-green-600 mb-2"></i>
+                      <p className="font-semibold">{data.beaches.length}</p>
+                      <p className="text-sm text-gray-600">Playas</p>
+                    </div>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <i className="fas fa-utensils text-2xl text-orange-600 mb-2"></i>
+                      <p className="font-semibold">{data.restaurants.length}</p>
+                      <p className="text-sm text-gray-600">Restaurantes</p>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <i className="fas fa-hiking text-2xl text-purple-600 mb-2"></i>
+                      <p className="font-semibold">{data.activities.length}</p>
+                      <p className="text-sm text-gray-600">Actividades</p>
+                    </div>
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="welcome_message">Mensaje de Bienvenida</Label>
-                    <Textarea
-                      id="welcome_message"
-                      value={formData.welcome_message}
-                      onChange={(e) => setFormData({ ...formData, welcome_message: e.target.value })}
-                      placeholder="¡Bienvenido a nuestra propiedad! Esperamos que disfrutes tu estancia..."
-                      rows={4}
-                    />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <i className="fas fa-info-circle text-blue-600"></i>
+                    Información de la Propiedad
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p><strong>Nombre:</strong> {data.property.name}</p>
+                    <p><strong>Dirección:</strong> {data.property.address}</p>
+                    <p><strong>Descripción:</strong> {data.property.description}</p>
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="host_names">Nombres del Anfitrión</Label>
-                    <Input
-                      id="host_names"
-                      value={formData.host_names}
-                      onChange={(e) => setFormData({ ...formData, host_names: e.target.value })}
-                      placeholder="María y Juan"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="host_signature">Firma del Anfitrión</Label>
-                    <Textarea
-                      id="host_signature"
-                      value={formData.host_signature}
-                      onChange={(e) => setFormData({ ...formData, host_signature: e.target.value })}
-                      placeholder="¡Esperamos verte pronto!"
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button onClick={handleSave}>Guardar</Button>
-                    <Button variant="outline" onClick={handleCancel}>Cancelar</Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {guide ? (
-                    <>
-                      <div>
-                        <h3 className="font-semibold text-lg">{guide.title}</h3>
-                        {guide.welcome_message && (
-                          <p className="text-gray-600 mt-2">{guide.welcome_message}</p>
-                        )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="guide">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <i className="fas fa-book text-blue-600"></i>
+                    Información General de la Guía
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Título de la Guía</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="Ej: Guía del Huésped"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="host_names">Nombres de los Anfitriones</Label>
+                      <Input
+                        id="host_names"
+                        value={formData.host_names}
+                        onChange={(e) => setFormData({ ...formData, host_names: e.target.value })}
+                        placeholder="Ej: Sonia y Pedro"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="welcome_message">Mensaje de Bienvenida</Label>
+                      <Textarea
+                        id="welcome_message"
+                        value={formData.welcome_message}
+                        onChange={(e) => setFormData({ ...formData, welcome_message: e.target.value })}
+                        placeholder="Mensaje de bienvenida para los huéspedes"
+                        rows={4}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="host_signature">Firma de los Anfitriones</Label>
+                      <Input
+                        id="host_signature"
+                        value={formData.host_signature}
+                        onChange={(e) => setFormData({ ...formData, host_signature: e.target.value })}
+                        placeholder="Ej: Con cariño, Sonia y Pedro"
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <i className="fas fa-map-marker-alt text-blue-600"></i>
+                        <h3 className="text-lg font-semibold">Ubicación para el Clima</h3>
                       </div>
-                      
-                      {guide.host_names && (
-                        <div>
-                          <h4 className="font-medium">Anfitriones</h4>
-                          <p className="text-gray-600">{guide.host_names}</p>
-                        </div>
-                      )}
-                      
-                      {guide.host_signature && (
-                        <div>
-                          <h4 className="font-medium">Mensaje Final</h4>
-                          <p className="text-gray-600">{guide.host_signature}</p>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Home className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        No hay guía creada
-                      </h3>
-                      <p className="text-gray-600 mb-4">
-                        Crea una guía para proporcionar información útil a tus huéspedes
+                      <p className="text-sm text-gray-600">
+                        Agrega las coordenadas de la propiedad para mostrar información meteorológica en la guía pública.
                       </p>
-                      <Button onClick={() => setEditing(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Crear Guía
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="latitude">Latitud</Label>
+                          <Input
+                            id="latitude"
+                            type="number"
+                            step="0.0000001"
+                            value={formData.latitude}
+                            onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                            placeholder="Ej: 37.2434"
+                          />
+                          <p className="text-xs text-gray-500">
+                            Rango: -90 a 90. Ejemplo para Vera, Almería: 37.2434
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="longitude">Longitud</Label>
+                          <Input
+                            id="longitude"
+                            type="number"
+                            step="0.0000001"
+                            value={formData.longitude}
+                            onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                            placeholder="Ej: -1.8591"
+                          />
+                          <p className="text-xs text-gray-500">
+                            Rango: -180 a 180. Ejemplo para Vera, Almería: -1.8591
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-sm text-blue-700">
+                          <i className="fas fa-info-circle mr-2"></i>
+                          <strong>Consejo:</strong> Puedes obtener las coordenadas exactas usando Google Maps. 
+                          Busca tu dirección y haz clic derecho → "¿Qué hay aquí?" para obtener las coordenadas.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button type="submit">
+                        <i className="fas fa-save mr-2"></i>
+                        Guardar Cambios
+                      </Button>
+                      <Button type="button" variant="outline">
+                        <i className="fas fa-undo mr-2"></i>
+                        Descartar
                       </Button>
                     </div>
-                  )}
-                </div>
+                  </form>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <i className="fas fa-list text-blue-600"></i>
+                    Secciones de la Guía
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {sections.map((section) => (
+                      <div key={section.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <i className={`${section.icon || 'fas fa-info-circle'} text-blue-600`}></i>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-medium">{section.title}</h4>
+                              <p className="text-xs text-gray-500 capitalize">{section.section_type}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleEditSection(section)}
+                            >
+                              <i className="fas fa-edit mr-2"></i>
+                              Editar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => handleDeleteSection(section.id)}
+                            >
+                              <i className="fas fa-trash"></i>
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600">{section.content}</p>
+                      </div>
+                    ))}
+                    <Button 
+                      variant="outline" 
+                      className="w-full bg-transparent"
+                      onClick={() => setShowAddSection(true)}
+                    >
+                      <i className="fas fa-plus mr-2"></i>
+                      Agregar Nueva Sección
+                    </Button>
+                    
+                    {showAddSection && (
+                      <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                        <h4 className="font-semibold mb-3">
+                          {editingSection ? 'Editar Sección' : 'Nueva Sección'}
+                        </h4>
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="section_type">Tipo de Sección</Label>
+                            <select
+                              id="section_type"
+                              value={newSection.section_type}
+                              onChange={(e) => setNewSection({ ...newSection, section_type: e.target.value as any })}
+                              className="w-full p-2 border rounded-md"
+                            >
+                              <option value="apartment">Apartamento</option>
+                              <option value="rules">Normas</option>
+                              <option value="house_guide">Guía de la Casa</option>
+                              <option value="tips">Consejos</option>
+                              <option value="contact">Contacto</option>
+                            </select>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="section_icon">Icono (Font Awesome)</Label>
+                            <Input
+                              id="section_icon"
+                              value={newSection.icon}
+                              onChange={(e) => setNewSection({ ...newSection, icon: e.target.value })}
+                              placeholder="fas fa-home"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="section_title">Título</Label>
+                            <Input
+                              id="section_title"
+                              value={newSection.title}
+                              onChange={(e) => setNewSection({ ...newSection, title: e.target.value })}
+                              placeholder="Título de la sección"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="section_content">Contenido</Label>
+                            <Textarea
+                              id="section_content"
+                              value={newSection.content}
+                              onChange={(e) => setNewSection({ ...newSection, content: e.target.value })}
+                              placeholder="Contenido de la sección"
+                              rows={4}
+                            />
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Button onClick={handleAddSection} size="sm">
+                              <i className="fas fa-save mr-2"></i>
+                              {editingSection ? 'Actualizar Sección' : 'Guardar Sección'}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setShowAddSection(false)
+                                setEditingSection(null)
+                                setNewSection({ section_type: "apartment", title: "", content: "", icon: "fas fa-home" })
+                              }}
+                            >
+                              <i className="fas fa-times mr-2"></i>
+                              Cancelar
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="apartment">
+            <div className="space-y-6">
+              {data?.guide?.id && (
+                <ApartmentSectionsManager 
+                  guideId={data.guide.id} 
+                  apartmentSections={data.apartment_sections || []}
+                  onDataChange={refetch} 
+                />
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </TabsContent>
 
-        <TabsContent value="sections" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Secciones de Contenido
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Secciones de Contenido
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Próximamente: gestión de secciones personalizables
-                </p>
-                <Button disabled>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Sección
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="rules">
+            <div className="space-y-6">
+              {data?.guide?.id && (
+                <HouseRulesManager guideId={data.guide.id} />
+              )}
+            </div>
+          </TabsContent>
 
-        <TabsContent value="places" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Lugares de Interés
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Lugares de Interés
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Próximamente: gestión de playas, restaurantes y actividades
-                </p>
-                <Button disabled>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Lugar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="house_guide">
+            <div className="space-y-6">
+              {data?.guide?.id && (
+                <HouseGuideManager guideId={data.guide.id} />
+              )}
+            </div>
+          </TabsContent>
 
-        <TabsContent value="rules" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Info className="h-5 w-5" />
-                Normas de la Casa
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Info className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Normas de la Casa
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Próximamente: gestión de normas y reglas de la propiedad
-                </p>
-                <Button disabled>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Norma
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="tips">
+            <div className="space-y-6">
+              {data?.guide?.id && (
+                <TipsManager guideId={data.guide.id} />
+              )}
+            </div>
+          </TabsContent>
 
-        <TabsContent value="contact" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Phone className="h-5 w-5" />
-                Información de Contacto
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Phone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Información de Contacto
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Próximamente: gestión de contactos y números de emergencia
-                </p>
-                <Button disabled>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Contacto
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="contact">
+            <SectionManager
+              section={getSectionByType('contact')}
+              guideId={data?.guide?.id || ''}
+              sectionType="contact"
+              defaultTitle="Información de Contacto"
+              defaultIcon="fas fa-phone-alt"
+              iconCategory="general"
+              placeholder="Proporciona información de contacto, números de emergencia, horarios de atención..."
+              onSectionChange={handleSectionChange}
+            />
+          </TabsContent>
+
+          <TabsContent value="beaches">
+            {data?.guide?.id ? (
+              <BeachesEditForm 
+                beaches={beaches} 
+                guideId={data.guide.id} 
+                onBeachesChange={setBeaches}
+              />
+            ) : (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <i className="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                  <p className="text-gray-600">No se puede gestionar playas sin una guía creada</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="restaurants">
+            {data?.guide?.id ? (
+              <RestaurantsEditForm 
+                restaurants={restaurants} 
+                guideId={data.guide.id} 
+                onRestaurantsChange={setRestaurants}
+              />
+            ) : (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <i className="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                  <p className="text-gray-600">No se puede gestionar restaurantes sin una guía creada</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="activities">
+            {data?.guide?.id ? (
+              <ActivitiesEditForm 
+                activities={activities} 
+                guideId={data.guide.id} 
+                onActivitiesChange={setActivities}
+              />
+            ) : (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <i className="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                  <p className="text-gray-600">No se puede gestionar actividades sin una guía creada</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }

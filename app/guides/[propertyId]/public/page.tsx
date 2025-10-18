@@ -113,11 +113,6 @@ function GuidePublicContent({ params }: GuidePublicPageProps) {
               </p>
               
               <div className="max-w-4xl mx-auto">
-                {console.log('[v0] Public page data:', data)}
-                {console.log('[v0] Property coordinates:', { 
-                  latitude: data.property?.latitude, 
-                  longitude: data.property?.longitude 
-                })}
                 <WeatherWidget 
                   latitude={data.property?.latitude || 37.2434} 
                   longitude={data.property?.longitude || -1.8591} 

@@ -33,7 +33,7 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
       tenant_id: "",
       name: "",
       description: "",
-      distance: "",
+      distance: null,
       price_info: "",
       badge: "",
       image_url: "",

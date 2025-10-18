@@ -33,7 +33,7 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
       tenant_id: "",
       name: "",
       description: "",
-      distance: "",
+      distance: null,
       rating: 0,
       badge: "",
       image_url: "",

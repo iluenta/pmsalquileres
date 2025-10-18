@@ -11,6 +11,9 @@ const nextConfig = {
     domains: ['localhost'],
   },
   serverExternalPackages: ['@supabase/supabase-js', '@supabase/ssr'],
+  experimental: {
+    nodeMiddleware: true,
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

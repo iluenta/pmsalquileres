@@ -142,7 +142,7 @@ function GuidePublicContent({ params }: GuidePublicPageProps) {
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(data.house_rules || []).map((rule) => (
+                {(data.house_rules || []).map((rule: any) => (
                   <div key={rule.id} className="bg-white rounded-lg shadow-lg p-6 text-center transition-transform hover:transform hover:-translate-y-2 border-t-4 border-blue-500">
                     <i className={`${rule.icon} text-4xl text-blue-500 mb-4`}></i>
                     <h3 className="text-xl font-semibold text-gray-800 mb-3">{rule.title}</h3>
@@ -164,7 +164,7 @@ function GuidePublicContent({ params }: GuidePublicPageProps) {
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {(data.house_guide_items || []).map((item) => (
+                {(data.house_guide_items || []).map((item: any) => (
                   <div key={item.id} className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-yellow-400">
                     <h3 className="text-xl font-semibold text-gray-800 mb-3 flex items-center">
                       <i className={`${item.icon} text-yellow-500 mr-3`}></i>
@@ -195,7 +195,7 @@ function GuidePublicContent({ params }: GuidePublicPageProps) {
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(data.tips || []).map((tip) => (
+                {(data.tips || []).map((tip: any) => (
                   <div key={tip.id} className="bg-white rounded-lg shadow-lg overflow-hidden transition-transform hover:transform hover:-translate-y-2">
                     <div className="bg-blue-600 text-white p-4 flex items-center">
                       <i className={`${tip.icon} text-xl mr-3`}></i>
@@ -232,7 +232,7 @@ function GuidePublicContent({ params }: GuidePublicPageProps) {
               <h2 className="text-3xl font-bold mb-8 text-gray-900 text-center">Playas de Vera</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(data.beaches || []).map((beach) => (
+                {(data.beaches || []).map((beach: any) => (
                   <div key={beach.id} className="bg-white rounded-lg shadow-lg overflow-hidden transition-transform hover:transform hover:-translate-y-2">
                     {beach.image_url && (
                       <div className="h-48 bg-gray-200 relative">
@@ -278,7 +278,7 @@ function GuidePublicContent({ params }: GuidePublicPageProps) {
               <h2 className="text-3xl font-bold mb-8 text-gray-900 text-center">Restaurantes Recomendados</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(data.restaurants || []).map((restaurant) => (
+                {(data.restaurants || []).map((restaurant: any) => (
                   <div key={restaurant.id} className="bg-white rounded-lg shadow-lg overflow-hidden transition-transform hover:transform hover:-translate-y-2">
                     {restaurant.image_url && (
                       <div className="h-48 bg-gray-200 relative">
@@ -327,7 +327,7 @@ function GuidePublicContent({ params }: GuidePublicPageProps) {
               <h2 className="text-3xl font-bold mb-8 text-gray-900 text-center">Actividades y Atracciones</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(data.activities || []).map((activity) => (
+                {(data.activities || []).map((activity: any) => (
                   <div key={activity.id} className="bg-white rounded-lg shadow-lg overflow-hidden transition-transform hover:transform hover:-translate-y-2">
                     {activity.image_url && (
                       <div className="h-48 bg-gray-200 relative">
@@ -371,7 +371,7 @@ function GuidePublicContent({ params }: GuidePublicPageProps) {
               <h2 className="text-3xl font-bold mb-8 text-gray-900 text-center">Información Práctica</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(data.practical_info || []).map((info) => (
+                {(data.practical_info || []).map((info: any) => (
                   <div key={info.id} className="bg-white rounded-lg shadow-lg overflow-hidden transition-transform hover:transform hover:-translate-y-2">
                     <div className="h-48 bg-gray-200 relative">
                       <div className="absolute top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
@@ -463,7 +463,7 @@ function GuidePublicContent({ params }: GuidePublicPageProps) {
                     <div className="mt-8 pt-8 border-t border-gray-200">
                       <h3 className="text-xl font-semibold text-gray-800 mb-4">Para Reportar Incidencias</h3>
                       <ul className="list-disc list-inside space-y-2 text-gray-600">
-                        {data.contact_info.service_issues.map((issue, index) => (
+                        {data.contact_info.service_issues.map((issue: any, index: number) => (
                           <li key={index}>{issue}</li>
                         ))}
                       </ul>
@@ -578,7 +578,7 @@ function GuidePublicContent({ params }: GuidePublicPageProps) {
           borderRadius: '8px',
           overflow: 'hidden'
         }}>
-          {tabs.map((tab) => (
+          {tabs.map((tab: any) => (
             <button
               key={tab.id}
               onClick={() => showSection(tab.id)}

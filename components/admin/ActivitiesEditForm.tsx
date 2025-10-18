@@ -246,7 +246,7 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
                   <Input
                     id="activity-distance"
                     value={editingActivity.distance || ''}
-                    onChange={(e) => setEditingActivity({ ...editingActivity, distance: e.target.value })}
+                    onChange={(e) => setEditingActivity({ ...editingActivity, distance: e.target.value ? Number(e.target.value) : null })}
                     placeholder="Ej: 10 minutos en coche"
                   />
                 </div>

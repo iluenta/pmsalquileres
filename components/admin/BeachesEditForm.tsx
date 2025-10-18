@@ -247,7 +247,7 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
                   <Input
                     id="beach-distance"
                     value={editingBeach.distance || ''}
-                    onChange={(e) => setEditingBeach({ ...editingBeach, distance: e.target.value })}
+                    onChange={(e) => setEditingBeach({ ...editingBeach, distance: e.target.value ? Number(e.target.value) : null })}
                     placeholder="Ej: 5 minutos en coche"
                   />
                 </div>

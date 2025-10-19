@@ -56,6 +56,7 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
       image_url: "",
       icon: "fas fa-home",
       order_index: sections.length + 1,
+      amenities: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
@@ -74,9 +75,11 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
           title: editingSection.title,
           description: editingSection.description,
           details: editingSection.details,
+          content: editingSection.description, // Usar description como content
           image_url: editingSection.image_url,
           icon: editingSection.icon,
-          order_index: editingSection.order_index
+          order_index: editingSection.order_index,
+          amenities: editingSection.amenities
         })
         
         if (newSection) {
@@ -90,9 +93,11 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
           title: editingSection.title,
           description: editingSection.description,
           details: editingSection.details,
+          content: editingSection.description, // Usar description como content
           image_url: editingSection.image_url,
           icon: editingSection.icon,
-          order_index: editingSection.order_index
+          order_index: editingSection.order_index,
+          amenities: editingSection.amenities
         })
         
         if (updatedSection) {
@@ -184,7 +189,7 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
                         <div>
                           <CardTitle className="text-lg">{section.title}</CardTitle>
                           <p className="text-sm text-gray-600">
-                            {sectionTypeLabels[section.section_type] || section.section_type}
+                            {sectionTypeLabels[section.section_type as keyof typeof sectionTypeLabels] || section.section_type}
                           </p>
                           {section.description && (
                             <p className="text-sm text-gray-600 mt-1">{section.description}</p>

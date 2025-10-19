@@ -95,7 +95,7 @@ export function WeatherWidget({ latitude, longitude }: WeatherWidgetProps) {
         <CardContent className="p-6">
           <Alert variant="destructive">
             <AlertDescription>
-              ⚠️ Error al cargar datos del clima: {error}
+              ⚠️ Error al cargar datos del clima: {error.message}
             </AlertDescription>
           </Alert>
         </CardContent>

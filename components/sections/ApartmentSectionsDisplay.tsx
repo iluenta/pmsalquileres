@@ -4,40 +4,56 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ApartmentSection } from "@/types/guides"
 
-// Iconos por defecto para cada tipo de sección
-const SECTION_TYPE_ICONS = {
-  cocina: "fas fa-utensils",
-  bano: "fas fa-shower",
-  salon: "fas fa-couch",
-  dormitorio: "fas fa-bed",
-  terraza: "fas fa-sun",
-  entrada: "fas fa-door-open",
-  balcon: "fas fa-wind",
-  garaje: "fas fa-car",
-} as const
-
-// Etiquetas para cada tipo de sección
-const SECTION_TYPE_LABELS = {
-  cocina: "Cocina",
-  bano: "Baño",
-  salon: "Salón",
-  dormitorio: "Dormitorio",
-  terraza: "Terraza",
-  entrada: "Entrada",
-  balcon: "Balcón",
-  garaje: "Garaje",
-} as const
-
-// Colores para cada tipo de sección
-const SECTION_TYPE_COLORS = {
-  cocina: "text-orange-500",
-  bano: "text-blue-500",
-  salon: "text-purple-500",
-  dormitorio: "text-pink-500",
-  terraza: "text-yellow-500",
-  entrada: "text-gray-500",
-  balcon: "text-green-500",
-  garaje: "text-indigo-500",
+// Mapeo de tipos de sección a información básica (solo para fallbacks)
+const SECTION_INFO = {
+  cocina: {
+    label: "Cocina",
+    icon: "fas fa-utensils",
+    color: "text-orange-500",
+    badge: "Cocina"
+  },
+  bano: {
+    label: "Baño",
+    icon: "fas fa-shower",
+    color: "text-blue-500",
+    badge: "Baño"
+  },
+  salon: {
+    label: "Salón",
+    icon: "fas fa-couch",
+    color: "text-green-500",
+    badge: "Salón"
+  },
+  dormitorio: {
+    label: "Dormitorio",
+    icon: "fas fa-bed",
+    color: "text-purple-500",
+    badge: "Dormitorio"
+  },
+  terraza: {
+    label: "Terraza",
+    icon: "fas fa-sun",
+    color: "text-yellow-500",
+    badge: "Terraza"
+  },
+  entrada: {
+    label: "Entrada",
+    icon: "fas fa-door-open",
+    color: "text-gray-500",
+    badge: "Entrada"
+  },
+  balcon: {
+    label: "Balcón",
+    icon: "fas fa-wind",
+    color: "text-cyan-500",
+    badge: "Balcón"
+  },
+  garaje: {
+    label: "Garaje",
+    icon: "fas fa-car",
+    color: "text-indigo-500",
+    badge: "Garaje"
+  }
 } as const
 
 interface ApartmentSectionsDisplayProps {
@@ -58,33 +74,53 @@ export function ApartmentSectionsDisplay({ sections }: ApartmentSectionsDisplayP
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(sections || []).map((section) => {
-              // Usar el icono de la base de datos si existe, sino usar el por defecto
-              const finalIcon = section.icon || SECTION_TYPE_ICONS[section.section_type]
+              const sectionInfo = SECTION_INFO[section.section_type as keyof typeof SECTION_INFO] || {
+                label: section.section_type,
+                icon: section.icon || "fas fa-home",
+                color: "text-gray-500",
+                badge: section.section_type
+              }
               
               return (
-                <Card key={section.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  {section.image_url && (
-                    <div className="aspect-video bg-gray-200">
-                      <img 
-                        src={section.image_url} 
-                        alt={section.title}
-                        className="w-full h-full object-cover"
-                      />
+                <Card key={section.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                  {/* Imagen de fondo - usar la imagen de la base de datos o un placeholder */}
+                  <div 
+                    className="h-48 bg-cover bg-center relative bg-gray-200"
+                    style={{ 
+                      backgroundImage: section.image_url 
+                        ? `url(${section.image_url})` 
+                        : 'none'
+                    }}
+                  >
+                    {/* Badge en la esquina superior derecha */}
+                    <div className="absolute top-4 right-4">
+                      <Badge className="bg-yellow-400 text-gray-800 font-semibold px-3 py-1 rounded-full text-sm">
+                        {sectionInfo.badge}
+                      </Badge>
                     </div>
-                  )}
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <i 
-                          className={`${finalIcon} text-lg ${SECTION_TYPE_COLORS[section.section_type]}`}
-                        ></i>
-                        <Badge variant="secondary" className="text-xs">
-                          {SECTION_TYPE_LABELS[section.section_type]}
-                        </Badge>
+                    
+                    {/* Si no hay imagen, mostrar un placeholder con icono */}
+                    {!section.image_url && (
+                      <div className="flex items-center justify-center h-full">
+                        <i className={`${sectionInfo.icon} text-6xl ${sectionInfo.color} opacity-50`}></i>
                       </div>
+                    )}
+                  </div>
+                  
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <i className={`${section.icon || sectionInfo.icon} text-2xl ${sectionInfo.color}`}></i>
+                      <h3 className="text-xl font-semibold text-gray-800">{section.title}</h3>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">{section.title}</h3>
-                    <p className="text-gray-600 text-sm">{section.description}</p>
+                    <p className="text-gray-600 text-sm mb-4">{section.description}</p>
+                    
+                    {/* Mostrar detalles si existen */}
+                    {section.details && (
+                      <div className="text-xs text-gray-500">
+                        <p className="font-medium mb-1">Detalles:</p>
+                        <p>{section.details}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )
@@ -102,6 +138,3 @@ export function ApartmentSectionsDisplay({ sections }: ApartmentSectionsDisplayP
     </section>
   )
 }
-
-
-

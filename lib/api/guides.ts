@@ -43,7 +43,7 @@ async function getCurrentUserTenantId(): Promise<string | null> {
   try {
     console.log('🔍 Obteniendo tenant_id del usuario...')
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) {
       console.error('❌ No se pudo obtener el cliente de Supabase')
       return null
@@ -101,7 +101,7 @@ export async function getGuide(propertyId: string): Promise<Guide | null> {
   try {
     console.log('Fetching guide for property:', propertyId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -140,7 +140,7 @@ export async function createGuide(guideData: CreateGuideData): Promise<Guide | n
     
     console.log('User tenant_id:', tenantId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const dataToInsert = {
@@ -187,7 +187,7 @@ export async function createGuide(guideData: CreateGuideData): Promise<Guide | n
 
 export async function updateGuide(guideId: string, guideData: UpdateGuideData): Promise<Guide | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -207,7 +207,7 @@ export async function updateGuide(guideId: string, guideData: UpdateGuideData): 
 
 export async function deleteGuide(guideId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return false
     
     const { error } = await supabase
@@ -226,7 +226,7 @@ export async function deleteGuide(guideId: string): Promise<boolean> {
 // ===== SECCIONES DE GUÍA =====
 export async function getGuideSections(guideId: string): Promise<GuideSection[]> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return []
     
     const { data, error } = await supabase
@@ -255,7 +255,7 @@ export async function createGuideSection(sectionData: CreateGuideSectionData): P
     
     console.log('User tenant_id:', tenantId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const dataToInsert = {
@@ -301,7 +301,7 @@ export async function createGuideSection(sectionData: CreateGuideSectionData): P
 
 export async function updateGuideSection(sectionId: string, sectionData: UpdateGuideSectionData): Promise<GuideSection | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -321,7 +321,7 @@ export async function updateGuideSection(sectionId: string, sectionData: UpdateG
 
 export async function deleteGuideSection(sectionId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return false
     
     const { error } = await supabase
@@ -340,7 +340,7 @@ export async function deleteGuideSection(sectionId: string): Promise<boolean> {
 // ===== SECCIONES DEL APARTAMENTO =====
 export async function getApartmentSections(guideId: string): Promise<ApartmentSection[]> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return []
     
     const { data, error } = await supabase
@@ -384,7 +384,7 @@ export async function createApartmentSection(sectionData: CreateApartmentSection
     
     console.log('User tenant_id:', tenantId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const dataToInsert = {
@@ -430,7 +430,7 @@ export async function createApartmentSection(sectionData: CreateApartmentSection
 
 export async function updateApartmentSection(sectionId: string, sectionData: UpdateApartmentSectionData): Promise<ApartmentSection | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -450,7 +450,7 @@ export async function updateApartmentSection(sectionId: string, sectionData: Upd
 
 export async function deleteApartmentSection(sectionId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return false
     
     const { error } = await supabase
@@ -469,7 +469,7 @@ export async function deleteApartmentSection(sectionId: string): Promise<boolean
 // ===== PLAYAS =====
 export async function getBeaches(guideId: string): Promise<Beach[]> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return []
     
     const { data, error } = await supabase
@@ -499,7 +499,7 @@ export async function createBeach(beachData: CreateBeachData): Promise<Beach | n
     
     console.log('User tenant_id:', tenantId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const dataToInsert = {
@@ -548,7 +548,7 @@ export async function updateBeach(beachId: string, beachData: UpdateBeachData): 
   try {
     console.log('Updating beach:', beachId, beachData)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -580,7 +580,7 @@ export async function deleteBeach(beachId: string): Promise<boolean> {
   try {
     console.log('Deleting beach:', beachId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return false
     
     const { error } = await supabase
@@ -609,7 +609,7 @@ export async function deleteBeach(beachId: string): Promise<boolean> {
 // ===== RESTAURANTES =====
 export async function getRestaurants(guideId: string): Promise<Restaurant[]> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return []
     
     const { data, error } = await supabase
@@ -640,7 +640,7 @@ export async function createRestaurant(restaurantData: CreateRestaurantData): Pr
     
     console.log('✅ User tenant_id:', tenantId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const dataToInsert = {
@@ -696,7 +696,7 @@ export async function createRestaurant(restaurantData: CreateRestaurantData): Pr
 
 export async function updateRestaurant(restaurantId: string, restaurantData: UpdateRestaurantData): Promise<Restaurant | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -716,7 +716,7 @@ export async function updateRestaurant(restaurantId: string, restaurantData: Upd
 
 export async function deleteRestaurant(restaurantId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return false
     
     const { error } = await supabase
@@ -735,7 +735,7 @@ export async function deleteRestaurant(restaurantId: string): Promise<boolean> {
 // ===== ACTIVIDADES =====
 export async function getActivities(guideId: string): Promise<Activity[]> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return []
     
     const { data, error } = await supabase
@@ -766,7 +766,7 @@ export async function createActivity(activityData: CreateActivityData): Promise<
     
     console.log('✅ User tenant_id:', tenantId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const dataToInsert = {
@@ -822,7 +822,7 @@ export async function createActivity(activityData: CreateActivityData): Promise<
 
 export async function updateActivity(activityId: string, activityData: UpdateActivityData): Promise<Activity | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -842,7 +842,7 @@ export async function updateActivity(activityId: string, activityData: UpdateAct
 
 export async function deleteActivity(activityId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return false
     
     const { error } = await supabase
@@ -861,7 +861,7 @@ export async function deleteActivity(activityId: string): Promise<boolean> {
 // ===== NORMAS DE LA CASA =====
 export async function getHouseRules(guideId: string): Promise<HouseRule[]> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return []
     
     const { data, error } = await supabase
@@ -890,7 +890,7 @@ export async function createHouseRule(ruleData: CreateHouseRuleData): Promise<Ho
     
     console.log('User tenant_id:', tenantId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const dataToInsert = {
@@ -936,7 +936,7 @@ export async function createHouseRule(ruleData: CreateHouseRuleData): Promise<Ho
 
 export async function updateHouseRule(ruleId: string, ruleData: UpdateHouseRuleData): Promise<HouseRule | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -956,7 +956,7 @@ export async function updateHouseRule(ruleId: string, ruleData: UpdateHouseRuleD
 
 export async function deleteHouseRule(ruleId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return false
     
     const { error } = await supabase
@@ -975,7 +975,7 @@ export async function deleteHouseRule(ruleId: string): Promise<boolean> {
 // ===== ELEMENTOS DE LA GUÍA DE LA CASA =====
 export async function getHouseGuideItems(guideId: string): Promise<HouseGuideItem[]> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return []
     
     const { data, error } = await supabase
@@ -1004,7 +1004,7 @@ export async function createHouseGuideItem(itemData: CreateHouseGuideItemData): 
     
     console.log('User tenant_id:', tenantId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const dataToInsert = {
@@ -1035,7 +1035,7 @@ export async function createHouseGuideItem(itemData: CreateHouseGuideItemData): 
 
 export async function updateHouseGuideItem(itemId: string, itemData: UpdateHouseGuideItemData): Promise<HouseGuideItem | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -1055,7 +1055,7 @@ export async function updateHouseGuideItem(itemId: string, itemData: UpdateHouse
 
 export async function deleteHouseGuideItem(itemId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return false
     
     const { error } = await supabase
@@ -1074,7 +1074,7 @@ export async function deleteHouseGuideItem(itemId: string): Promise<boolean> {
 // ===== CONSEJOS =====
 export async function getTips(guideId: string): Promise<Tip[]> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return []
     
     const { data, error } = await supabase
@@ -1118,7 +1118,7 @@ export async function createTip(tipData: CreateTipData): Promise<Tip | null> {
     
     console.log('✅ User tenant_id:', tenantId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const dataToInsert = {
@@ -1182,7 +1182,7 @@ export async function createTip(tipData: CreateTipData): Promise<Tip | null> {
 
 export async function updateTip(tipId: string, tipData: UpdateTipData): Promise<Tip | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -1218,7 +1218,7 @@ export async function updateTip(tipId: string, tipData: UpdateTipData): Promise<
 
 export async function deleteTip(tipId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return false
     
     const { error } = await supabase
@@ -1254,7 +1254,7 @@ export async function getContactInfo(guideId: string): Promise<ContactInfo | nul
   try {
     console.log('Fetching contact info for guide:', guideId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -1288,7 +1288,7 @@ export async function getContactInfo(guideId: string): Promise<ContactInfo | nul
 
 export async function createContactInfo(contactData: CreateContactInfoData): Promise<ContactInfo | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -1307,7 +1307,7 @@ export async function createContactInfo(contactData: CreateContactInfoData): Pro
 
 export async function updateContactInfo(contactId: string, contactData: UpdateContactInfoData): Promise<ContactInfo | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -1328,7 +1328,7 @@ export async function updateContactInfo(contactId: string, contactData: UpdateCo
 // ===== INFORMACIÓN PRÁCTICA =====
 export async function getPracticalInfo(guideId: string): Promise<PracticalInfo[]> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return []
     
     const { data, error } = await supabase
@@ -1347,7 +1347,7 @@ export async function getPracticalInfo(guideId: string): Promise<PracticalInfo[]
 
 export async function createPracticalInfo(practicalData: CreatePracticalInfoData): Promise<PracticalInfo | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -1366,7 +1366,7 @@ export async function createPracticalInfo(practicalData: CreatePracticalInfoData
 
 export async function updatePracticalInfo(practicalId: string, practicalData: UpdatePracticalInfoData): Promise<PracticalInfo | null> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     const { data, error } = await supabase
@@ -1386,7 +1386,7 @@ export async function updatePracticalInfo(practicalId: string, practicalData: Up
 
 export async function deletePracticalInfo(practicalId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return false
     
     const { error } = await supabase
@@ -1407,7 +1407,7 @@ export async function getCompleteGuideData(propertyId: string) {
   try {
     console.log('Fetching complete guide data for property:', propertyId)
     
-    const supabase = getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
     // Obtener la propiedad

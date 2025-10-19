@@ -34,6 +34,7 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
       name: "",
       description: "",
       distance: null,
+      amenities: [],
       rating: 0,
       badge: "",
       image_url: "",

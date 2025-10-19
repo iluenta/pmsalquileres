@@ -151,6 +151,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
         section_type: newSection.section_type,
         title: newSection.title,
         content: newSection.content,
+        icon: newSection.icon || "fas fa-home",
         order_index: sections.length,
         is_active: true,
       }
@@ -255,8 +256,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
           welcome_message: formData.welcome_message,
           host_names: formData.host_names,
           host_signature: formData.host_signature,
-          latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-          longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+          latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
+          longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
         })
         
         if (updatedGuide) {
@@ -274,8 +275,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
           welcome_message: formData.welcome_message,
           host_names: formData.host_names,
           host_signature: formData.host_signature,
-          latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-          longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+          latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
+          longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
         })
         
         if (newGuide) {
@@ -358,8 +359,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                 </Link>
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Editar Guía: {data.property.name}</h1>
-                <p className="text-sm text-gray-600">{data.property.address}</p>
+                <h1 className="text-2xl font-bold text-gray-900">Editar Guía: {data.property?.name || 'Propiedad'}</h1>
+                <p className="text-sm text-gray-600">{data.property?.address || 'Dirección no disponible'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -468,9 +469,9 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <p><strong>Nombre:</strong> {data.property.name}</p>
-                    <p><strong>Dirección:</strong> {data.property.address}</p>
-                    <p><strong>Descripción:</strong> {data.property.description}</p>
+                    <p><strong>Nombre:</strong> {data.property?.name || 'No disponible'}</p>
+                    <p><strong>Dirección:</strong> {data.property?.address || 'No disponible'}</p>
+                    <p><strong>Descripción:</strong> {data.property?.description || 'No disponible'}</p>
                   </div>
                 </CardContent>
               </Card>

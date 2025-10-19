@@ -68,12 +68,12 @@ export async function getCompleteGuideDataPublic(propertyId: string) {
       contactInfo,
       practicalInfo
     ] = await Promise.all([
-      // Secciones del apartamento
+      // Secciones del apartamento - usar la tabla específica apartment_sections
       supabasePublic
-        .from('guide_sections')
+        .from('apartment_sections')
         .select('*')
         .eq('guide_id', guide.id)
-        .eq('section_type', 'apartment'),
+        .order('order_index', { ascending: true }),
       
       // Playas
       supabasePublic
@@ -128,10 +128,8 @@ export async function getCompleteGuideDataPublic(propertyId: string) {
         .eq('guide_id', guide.id)
     ])
 
-    // Verificar errores individualmente para mejor debugging
-    if (apartmentSections.error) {
-      console.error('[v0] Error fetching apartment sections:', apartmentSections.error)
-    }
+    console.log('[v0] Apartment sections data:', apartmentSections.data)
+    console.log('[v0] Apartment sections error:', apartmentSections.error)
     if (beaches.error) {
       console.error('[v0] Error fetching beaches:', beaches.error)
     }
@@ -177,18 +175,20 @@ export async function getCompleteGuideDataPublic(propertyId: string) {
     const result = {
       property,
       guide,
-      apartmentSections: apartmentSections.data || [],
+      apartment_sections: apartmentSections.data || [],
       beaches: beaches.data || [],
       restaurants: restaurants.data || [],
       activities: activities.data || [],
-      houseRules: houseRules.data || [],
-      houseGuideItems: houseGuideItems.data || [],
+      house_rules: houseRules.data || [],
+      house_guide_items: houseGuideItems.data || [],
       tips: tips.data || [],
-      contactInfo: contactInfo.data || [],
-      practicalInfo: practicalInfo.data || []
+      contact_info: contactInfo.data || [],
+      practical_info: practicalInfo.data || []
     }
 
     console.log('[v0] Complete guide data fetched successfully (public):', result)
+    console.log('[v0] Apartment sections count:', result.apartment_sections.length)
+    console.log('[v0] Apartment sections details:', result.apartment_sections)
     return result
 
   } catch (error) {

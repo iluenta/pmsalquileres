@@ -41,69 +41,135 @@ export interface Guide {
 export interface GuideSection {
   id: string
   guide_id: string
+  tenant_id: string
   section_type: "apartment" | "rules" | "house_guide" | "tips" | "contact"
   title: string
   content: string
   icon: string
   order_index: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface GuidePlace {
+  id: string
+  guide_id: string
+  tenant_id: string
+  name: string
+  description: string | null
+  place_type: string
+  distance: number | null
+  rating: number | null
+  image_url: string | null
+  order_index: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ApartmentSection {
+  id: string
+  guide_id: string
+  tenant_id: string
+  section_type: string
+  title: string
+  description: string
+  details: string
+  image_url: string
+  icon: string
+  order_index: number
+  amenities: string[]
   created_at: string
   updated_at: string
 }
 
 export interface Beach {
   id: string
+  guide_id: string
+  tenant_id: string
   name: string
   description: string | null
   distance: number | null
   amenities: string[] | null
+  image_url: string | null
+  rating: number | null
+  badge: string | null
+  order_index: number
   created_at: string
+  updated_at: string
 }
 
 export interface Restaurant {
   id: string
+  guide_id: string
+  tenant_id: string
   name: string
   description: string | null
   cuisine_type: string | null
   price_range: string | null
   distance: number | null
+  image_url: string | null
+  rating: number | null
+  review_count: number | null
+  badge: string | null
+  order_index: number
   created_at: string
+  updated_at: string
 }
 
 export interface Activity {
   id: string
+  guide_id: string
+  tenant_id: string
   name: string
   description: string | null
   activity_type: string | null
   duration: string | null
   distance: number | null
+  price_info: string | null
+  badge: string | null
+  image_url: string | null
+  order_index: number
   created_at: string
+  updated_at: string
 }
 
 export interface HouseRule {
   id: string
+  guide_id: string
+  tenant_id: string
   title: string
   description: string
   icon: string
   order_index: number
   created_at: string
+  updated_at: string
 }
 
 export interface HouseGuideItem {
   id: string
+  guide_id: string
+  tenant_id: string
   title: string
   description: string
+  details: string
   icon: string
   order_index: number
   created_at: string
+  updated_at: string
 }
 
 export interface Tip {
   id: string
+  guide_id: string
+  tenant_id: string
   title: string
   description: string
+  details: string
   icon: string
   order_index: number
   created_at: string
+  updated_at: string
 }
 
 export interface ContactInfo {
@@ -113,6 +179,29 @@ export interface ContactInfo {
   icon: string
   order_index: number
   created_at: string
+}
+
+export interface GuideContactInfo {
+  id: string
+  guide_id: string
+  tenant_id: string
+  host_names: string | null
+  phone: string | null
+  email: string | null
+  whatsapp: string | null
+  emergency_numbers: {
+    emergencias: string
+    policia_local: string
+    guardia_civil: string
+    bomberos: string
+  } | null
+  emergency_phone: string | null
+  medical_contact: string | null
+  police_contact: string | null
+  fire_contact: string | null
+  service_issues: string[] | null
+  created_at: string
+  updated_at: string
 }
 
 export interface PracticalInfo {
@@ -155,8 +244,229 @@ export interface CreateGuideSectionData {
 }
 
 export interface UpdateGuideSectionData {
+  section_type?: "apartment" | "rules" | "house_guide" | "tips" | "contact"
   title?: string
   content?: string
+  icon?: string
+  order_index?: number
+}
+
+export interface CreateApartmentSectionData {
+  guide_id: string
+  section_type: string
+  title: string
+  description: string
+  details: string
+  content: string
+  image_url: string
+  icon: string
+  order_index?: number
+  amenities: string[]
+}
+
+export interface UpdateApartmentSectionData {
+  section_type?: string
+  title?: string
+  description?: string
+  details?: string
+  content?: string
+  image_url?: string
+  icon?: string
+  order_index?: number
+  amenities?: string[]
+}
+
+export interface CreateBeachData {
+  guide_id: string
+  name: string
+  description?: string | null
+  distance?: number | null
+  amenities?: string[] | null
+  image_url?: string | null
+  rating?: number | null
+  badge?: string | null
+  order_index?: number
+}
+
+export interface UpdateBeachData {
+  name?: string
+  description?: string | null
+  distance?: number | null
+  amenities?: string[] | null
+  image_url?: string | null
+  rating?: number | null
+  badge?: string | null
+  order_index?: number
+}
+
+export interface CreateRestaurantData {
+  guide_id: string
+  name: string
+  description?: string | null
+  cuisine_type?: string | null
+  price_range?: string | null
+  distance?: number | null
+  image_url?: string | null
+  rating?: number | null
+  review_count?: number | null
+  badge?: string | null
+  order_index?: number
+}
+
+export interface UpdateRestaurantData {
+  name?: string
+  description?: string | null
+  cuisine_type?: string | null
+  price_range?: string | null
+  distance?: number | null
+  image_url?: string | null
+  rating?: number | null
+  review_count?: number | null
+  badge?: string | null
+  order_index?: number
+}
+
+export interface CreateActivityData {
+  guide_id: string
+  name: string
+  description?: string | null
+  activity_type?: string | null
+  duration?: string | null
+  distance?: number | null
+  price_info?: string | null
+  badge?: string | null
+  image_url?: string | null
+  order_index?: number
+}
+
+export interface UpdateActivityData {
+  name?: string
+  description?: string | null
+  activity_type?: string | null
+  duration?: string | null
+  distance?: number | null
+  price_info?: string | null
+  badge?: string | null
+  image_url?: string | null
+  order_index?: number
+}
+
+export interface CreateGuidePlaceData {
+  guide_id: string
+  name: string
+  description?: string | null
+  place_type: string
+  distance?: number | null
+  rating?: number | null
+  badge?: string | null
+  image_url?: string | null
+  order_index?: number
+}
+
+export interface UpdateGuidePlaceData {
+  name?: string
+  description?: string | null
+  place_type?: string
+  distance?: number | null
+  rating?: number | null
+  badge?: string | null
+  image_url?: string | null
+  order_index?: number
+}
+
+export interface CreateHouseRuleData {
+  guide_id: string
+  title: string
+  description: string
+  icon: string
+  order_index?: number
+}
+
+export interface UpdateHouseRuleData {
+  title?: string
+  description?: string
+  icon?: string
+  order_index?: number
+}
+
+export interface CreateHouseGuideItemData {
+  guide_id: string
+  title: string
+  description: string
+  details: string
+  icon: string
+  order_index?: number
+}
+
+export interface UpdateHouseGuideItemData {
+  title?: string
+  description?: string
+  details?: string
+  icon?: string
+  order_index?: number
+}
+
+export interface CreateContactInfoData {
+  guide_id: string
+  host_names?: string | null
+  phone?: string | null
+  email?: string | null
+  whatsapp?: string | null
+  emergency_numbers?: string | null
+  emergency_phone?: string | null
+  medical_contact?: string | null
+  police_contact?: string | null
+  fire_contact?: string | null
+  service_issues?: string[] | null
+}
+
+export interface UpdateContactInfoData {
+  host_names?: string | null
+  phone?: string | null
+  email?: string | null
+  whatsapp?: string | null
+  emergency_numbers?: string | null
+  emergency_phone?: string | null
+  medical_contact?: string | null
+  police_contact?: string | null
+  fire_contact?: string | null
+  service_issues?: string[] | null
+}
+
+export interface CreatePracticalInfoData {
+  guide_id: string
+  category: string
+  title: string
+  description?: string | null
+  details?: string | null
+  icon?: string | null
+  image_url?: string | null
+  order_index?: number
+}
+
+export interface UpdatePracticalInfoData {
+  category?: string
+  title?: string
+  description?: string | null
+  details?: string | null
+  icon?: string | null
+  image_url?: string | null
+  order_index?: number
+}
+
+export interface CreateTipData {
+  guide_id: string
+  title: string
+  description: string
+  details: string
+  icon: string
+  order_index?: number
+}
+
+export interface UpdateTipData {
+  title?: string
+  description?: string
+  details?: string
   icon?: string
   order_index?: number
 }
@@ -166,6 +476,7 @@ export interface CompleteGuideData {
   guide: Guide
   property: Property
   sections: GuideSection[]
+  apartment_sections: ApartmentSection[]
   beaches: Beach[]
   restaurants: Restaurant[]
   activities: Activity[]
@@ -173,6 +484,41 @@ export interface CompleteGuideData {
   house_guide_items: HouseGuideItem[]
   tips: Tip[]
   contact_info: ContactInfo[]
+  practical_info: PracticalInfo[]
+}
+
+export interface CompleteGuideDataResponse {
+  property: {
+    id: string
+    name: string
+    address: string
+    description: string | null
+  }
+  guide: PropertyGuide
+  sections: GuideSection[]
+  apartment_sections: ApartmentSection[]
+  beaches: Beach[]
+  restaurants: Restaurant[]
+  activities: Activity[]
+  house_rules: HouseRule[]
+  house_guide_items: HouseGuideItem[]
+  tips: Tip[]
+  contact_info: GuideContactInfo | null
+  practical_info: PracticalInfo[]
+}
+
+export interface GuideData {
+  guide: Guide | null
+  property: Property | null
+  sections: GuideSection[]
+  apartment_sections: ApartmentSection[]
+  beaches: Beach[]
+  restaurants: Restaurant[]
+  activities: Activity[]
+  house_rules: HouseRule[]
+  house_guide_items: HouseGuideItem[]
+  tips: Tip[]
+  contact_info: GuideContactInfo | null
   practical_info: PracticalInfo[]
 }
 

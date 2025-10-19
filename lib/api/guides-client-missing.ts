@@ -53,10 +53,9 @@ export async function getApartmentSections(guideId: string): Promise<ApartmentSe
   const supabase = getSupabaseBrowserClient()
   
   const { data, error } = await supabase
-    .from("guide_sections")
+    .from("apartment_sections")
     .select("*")
     .eq("guide_id", guideId)
-    .eq("section_type", "apartment")
     .order("order_index", { ascending: true })
 
   if (error) {
@@ -75,19 +74,21 @@ export async function createApartmentSection(data: CreateApartmentSectionData): 
     return null
   }
   
-  // Mapear los campos correctamente para guide_sections
+  // Insertar directamente en apartment_sections
   const insertData = {
     tenant_id: tenantId,
     guide_id: data.guide_id,
-    section_type: "apartment",
+    section_type: data.section_type,
     title: data.title,
-    content: data.description || data.content, // Usar description como content
+    description: data.description,
+    details: data.details,
+    image_url: data.image_url,
     icon: data.icon,
     order_index: data.order_index || 0
   }
   
   const { data: result, error } = await supabase
-    .from("guide_sections")
+    .from("apartment_sections")
     .insert(insertData)
     .select()
     .single()
@@ -104,16 +105,19 @@ export async function createApartmentSection(data: CreateApartmentSectionData): 
 export async function updateApartmentSection(id: string, data: UpdateApartmentSectionData): Promise<ApartmentSection | null> {
   const supabase = getSupabaseBrowserClient()
   
-  // Mapear los campos correctamente para guide_sections
+  // Actualizar directamente en apartment_sections
   const updateData = {
+    section_type: data.section_type,
     title: data.title,
-    content: data.description || data.content, // Usar description como content
+    description: data.description,
+    details: data.details,
+    image_url: data.image_url,
     icon: data.icon,
     order_index: data.order_index
   }
   
   const { data: result, error } = await supabase
-    .from("guide_sections")
+    .from("apartment_sections")
     .update(updateData)
     .eq("id", id)
     .select()
@@ -132,7 +136,7 @@ export async function deleteApartmentSection(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
   
   const { error } = await supabase
-    .from("guide_sections")
+    .from("apartment_sections")
     .delete()
     .eq("id", id)
 

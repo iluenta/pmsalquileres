@@ -33,6 +33,8 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
       tenant_id: "",
       name: "",
       description: "",
+      cuisine_type: "",
+      distance: null,
       rating: 0,
       review_count: 0,
       price_range: "",

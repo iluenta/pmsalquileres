@@ -3,17 +3,17 @@
 
 import { useState, useEffect } from 'react'
 import { getCompleteGuideData } from '@/lib/api/guides-client'
-import type { GuideData } from '@/types/guides'
+import type { CompleteGuideDataResponse } from '@/types/guides'
 
 interface UseGuideDataReturn {
-  data: GuideData | null
+  data: CompleteGuideDataResponse | null
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
 }
 
 export function useGuideData(propertyId: string): UseGuideDataReturn {
-  const [data, setData] = useState<GuideData | null>(null)
+  const [data, setData] = useState<CompleteGuideDataResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 

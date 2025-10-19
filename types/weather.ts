@@ -45,7 +45,80 @@ export interface WeatherError {
   message: string;
 }
 
-// Tipos para la respuesta de la API de OpenWeatherMap
+// Tipos para la respuesta de la API de Google Weather
+export interface GoogleWeatherCurrentResponse {
+  weatherCode: string;
+  temperature: {
+    value: number;
+    unit: string;
+  };
+  apparentTemperature: {
+    value: number;
+    unit: string;
+  };
+  humidity: {
+    value: number;
+    unit: string;
+  };
+  pressure: {
+    value: number;
+    unit: string;
+  };
+  windSpeed: {
+    value: number;
+    unit: string;
+  };
+  windDirection: {
+    value: number;
+    unit: string;
+  };
+  uvIndex: {
+    value: number;
+    unit: string;
+  };
+  visibility: {
+    value: number;
+    unit: string;
+  };
+  cloudCover: {
+    value: number;
+    unit: string;
+  };
+  sunrise: string;
+  sunset: string;
+  updateTime: string;
+}
+
+export interface GoogleWeatherForecastResponse {
+  dailyForecasts: Array<{
+    date: string;
+    maxTemperature: {
+      value: number;
+      unit: string;
+    };
+    minTemperature: {
+      value: number;
+      unit: string;
+    };
+    weatherCode: string;
+    precipitationProbability: {
+      value: number;
+      unit: string;
+    };
+    humidity: {
+      value: number;
+      unit: string;
+    };
+    windSpeed: {
+      value: number;
+      unit: string;
+    };
+    sunrise: string;
+    sunset: string;
+  }>;
+}
+
+// Tipos para la respuesta de la API de OpenWeatherMap (mantener para compatibilidad)
 export interface OpenWeatherCurrentResponse {
   main: {
     temp: number;

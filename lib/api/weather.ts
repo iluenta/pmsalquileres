@@ -2,69 +2,46 @@ import {
   WeatherData, 
   CurrentWeather, 
   WeatherForecast, 
-  OpenWeatherCurrentResponse, 
-  OpenWeatherForecastResponse,
+  GoogleWeatherCurrentResponse, 
+  GoogleWeatherForecastResponse,
   WeatherError 
 } from '@/types/weather';
 
-const OPENWEATHER_BASE_URL = 'https://api.openweathermap.org/data/2.5';
-const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+const GOOGLE_WEATHER_BASE_URL = 'https://weather.googleapis.com/v1';
+const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_WEATHER_API_KEY;
 
 if (!API_KEY) {
-  console.error('NEXT_PUBLIC_OPENWEATHER_API_KEY no está configurada en .env.local');
+  console.error('NEXT_PUBLIC_GOOGLE_WEATHER_API_KEY no está configurada en .env.local');
 }
 
 // Función para convertir timestamp a hora legible
-function formatTime(timestamp: number): string {
-  console.log('[v0] formatTime input:', timestamp, 'type:', typeof timestamp);
-  
-  if (!timestamp || isNaN(timestamp)) {
-    console.error('[v0] Invalid timestamp for formatTime:', timestamp);
+function formatTime(timestamp: string): string {
+  try {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  } catch (error) {
+    console.error('[Google Weather] Error formatting time:', error);
     return '--:--';
   }
-  
-  const date = new Date(timestamp * 1000);
-  console.log('[v0] formatTime date object:', date);
-  
-  if (isNaN(date.getTime())) {
-    console.error('[v0] Invalid date created from timestamp:', timestamp);
-    return '--:--';
-  }
-  
-  return date.toLocaleTimeString('es-ES', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
 }
 
 // Función para convertir timestamp a fecha legible
-function formatDate(timestamp: number): string {
-  console.log('[v0] formatDate input:', timestamp, 'type:', typeof timestamp);
-  
-  if (!timestamp || isNaN(timestamp)) {
-    console.error('[v0] Invalid timestamp for formatDate:', timestamp);
+function formatDate(timestamp: string): string {
+  try {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  } catch (error) {
+    console.error('[Google Weather] Error formatting date:', error);
     return 'Fecha inválida';
   }
-  
-  const date = new Date(timestamp * 1000);
-  console.log('[v0] formatDate date object:', date);
-  
-  if (isNaN(date.getTime())) {
-    console.error('[v0] Invalid date created from timestamp:', timestamp);
-    return 'Fecha inválida';
-  }
-  
-  return date.toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-}
-
-// Función para capitalizar la primera letra
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 // Función para obtener dirección del viento
@@ -74,121 +51,118 @@ function getWindDirection(degrees: number): string {
   return directions[index];
 }
 
-// Transformar respuesta de clima actual
-function transformCurrentWeather(data: OpenWeatherCurrentResponse): CurrentWeather {
-  const weather = data.weather[0];
-  
-  console.log('[v0] transformCurrentWeather - weather object:', weather);
-  console.log('[v0] transformCurrentWeather - weather.main:', weather.main);
-  console.log('[v0] transformCurrentWeather - weather.description:', weather.description);
+// Función para convertir código de clima de Google a descripción legible
+function getWeatherDescription(weatherCode: string): { condition: string; description: string; icon: string } {
+  const weatherMap: { [key: string]: { condition: string; description: string; icon: string } } = {
+    'CLEAR': { condition: 'Despejado', description: 'Cielo despejado', icon: '01d' },
+    'PARTLY_CLOUDY': { condition: 'Parcialmente nublado', description: 'Parcialmente nublado', icon: '02d' },
+    'CLOUDY': { condition: 'Nublado', description: 'Nublado', icon: '04d' },
+    'OVERCAST': { condition: 'Muy nublado', description: 'Muy nublado', icon: '04d' },
+    'FOG': { condition: 'Niebla', description: 'Niebla', icon: '50d' },
+    'LIGHT_RAIN': { condition: 'Lluvia ligera', description: 'Lluvia ligera', icon: '10d' },
+    'RAIN': { condition: 'Lluvia', description: 'Lluvia', icon: '09d' },
+    'HEAVY_RAIN': { condition: 'Lluvia intensa', description: 'Lluvia intensa', icon: '09d' },
+    'LIGHT_SNOW': { condition: 'Nieve ligera', description: 'Nieve ligera', icon: '13d' },
+    'SNOW': { condition: 'Nieve', description: 'Nieve', icon: '13d' },
+    'HEAVY_SNOW': { condition: 'Nieve intensa', description: 'Nieve intensa', icon: '13d' },
+    'LIGHT_SLEET': { condition: 'Aguanieve ligera', description: 'Aguanieve ligera', icon: '13d' },
+    'SLEET': { condition: 'Aguanieve', description: 'Aguanieve', icon: '13d' },
+    'HEAVY_SLEET': { condition: 'Aguanieve intensa', description: 'Aguanieve intensa', icon: '13d' },
+    'LIGHT_HAIL': { condition: 'Granizo ligero', description: 'Granizo ligero', icon: '13d' },
+    'HAIL': { condition: 'Granizo', description: 'Granizo', icon: '13d' },
+    'HEAVY_HAIL': { condition: 'Granizo intenso', description: 'Granizo intenso', icon: '13d' },
+    'THUNDERSTORM': { condition: 'Tormenta', description: 'Tormenta eléctrica', icon: '11d' },
+    'LIGHT_THUNDERSTORM': { condition: 'Tormenta ligera', description: 'Tormenta eléctrica ligera', icon: '11d' },
+    'HEAVY_THUNDERSTORM': { condition: 'Tormenta intensa', description: 'Tormenta eléctrica intensa', icon: '11d' }
+  };
 
+  return weatherMap[weatherCode] || { condition: 'Desconocido', description: 'Condición desconocida', icon: '01d' };
+}
+
+// Transformar respuesta de clima actual de Google
+function transformGoogleCurrentWeather(data: GoogleWeatherCurrentResponse): CurrentWeather {
+  const weatherInfo = getWeatherDescription(data.weatherCode);
+  
   return {
-    temperature: Math.round(data.main.temp),
-    feelsLike: Math.round(data.main.feels_like),
-    condition: weather.main || 'Desconocido',
-    description: capitalizeFirst(weather.description),
-    humidity: data.main.humidity,
-    pressure: data.main.pressure,
-    windSpeed: Math.round(data.wind.speed * 3.6), // convertir m/s a km/h
-    windDirection: getWindDirection(data.wind.deg),
-    uvIndex: 0, // No disponible en la API gratuita
-    sunrise: formatTime(data.sys.sunrise),
-    sunset: formatTime(data.sys.sunset),
-    icon: weather.icon,
-    timestamp: data.dt
+    temperature: Math.round(data.temperature.value),
+    feelsLike: Math.round(data.apparentTemperature.value),
+    condition: weatherInfo.condition,
+    description: weatherInfo.description,
+    humidity: Math.round(data.humidity.value),
+    pressure: Math.round(data.pressure.value),
+    windSpeed: Math.round(data.windSpeed.value),
+    windDirection: getWindDirection(data.windDirection.value),
+    uvIndex: Math.round(data.uvIndex.value),
+    sunrise: formatTime(data.sunrise),
+    sunset: formatTime(data.sunset),
+    icon: weatherInfo.icon,
+    timestamp: new Date(data.updateTime).getTime() / 1000
   };
 }
 
-// Transformar respuesta de pronóstico
-function transformForecast(data: OpenWeatherForecastResponse): WeatherForecast[] {
-  console.log('[v0] transformForecast - Raw API data:', data);
-  console.log('[v0] transformForecast - First item dt:', data.list[0]?.dt, 'type:', typeof data.list[0]?.dt);
-  
-  // Agrupar por día y tomar el pronóstico de mediodía (12:00) para cada día
-  const dailyForecasts: { [key: string]: any } = {};
-  
-  data.list.forEach((item, index) => {
-    console.log(`[v0] Processing forecast item ${index}:`, {
-      dt: item.dt,
-      dt_type: typeof item.dt,
-      dt_txt: item.dt_txt
-    });
-    
-    const date = formatDate(item.dt);
-    const hour = new Date(item.dt * 1000).getHours();
-    
-    console.log(`[v0] Item ${index} - formatted date:`, date, 'hour:', hour);
-    
-    // Tomar el pronóstico de mediodía (12:00) como representativo del día
-    if (hour === 12 || !dailyForecasts[date]) {
-      dailyForecasts[date] = item;
-      console.log(`[v0] Selected item ${index} for date ${date}`);
-    }
-  });
-  
-  console.log('[v0] Daily forecasts selected:', Object.keys(dailyForecasts));
-  
-  return Object.values(dailyForecasts).slice(0, 5).map((item, index) => {
-    console.log(`[v0] Creating forecast object ${index} with dt:`, item.dt);
+// Transformar respuesta de pronóstico de Google
+function transformGoogleForecast(data: GoogleWeatherForecastResponse): WeatherForecast[] {
+  return data.dailyForecasts.slice(0, 5).map((day) => {
+    const weatherInfo = getWeatherDescription(day.weatherCode);
     
     return {
-      date: formatDate(item.dt),
-      maxTemp: Math.round(item.main.temp_max),
-      minTemp: Math.round(item.main.temp_min),
-      condition: item.weather[0].main,
-      description: capitalizeFirst(item.weather[0].description),
-      precipitation: Math.round(item.pop * 100), // convertir a porcentaje
-      icon: item.weather[0].icon,
-      humidity: item.main.humidity,
-      windSpeed: Math.round(item.wind.speed * 3.6) // convertir m/s a km/h
+      date: formatDate(day.date),
+      maxTemp: Math.round(day.maxTemperature.value),
+      minTemp: Math.round(day.minTemperature.value),
+      condition: weatherInfo.condition,
+      description: weatherInfo.description,
+      precipitation: Math.round(day.precipitationProbability.value),
+      icon: weatherInfo.icon,
+      humidity: Math.round(day.humidity.value),
+      windSpeed: Math.round(day.windSpeed.value)
     };
   });
 }
 
-// Obtener clima actual
+// Obtener clima actual usando Google Weather API
 export async function getCurrentWeather(lat: number, lon: number): Promise<CurrentWeather> {
   if (!API_KEY) {
-    throw new Error('API key de OpenWeatherMap no configurada');
+    throw new Error('API key de Google Weather no configurada');
   }
 
   try {
     const response = await fetch(
-      `${OPENWEATHER_BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=es`
+      `${GOOGLE_WEATHER_BASE_URL}/currentConditions?location=${lat},${lon}&key=${API_KEY}&units=METRIC&language=es`
     );
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(`Error de API: ${errorData.message || response.statusText}`);
+      throw new Error(`Error de Google Weather API: ${errorData.error?.message || response.statusText}`);
     }
 
-    const data: OpenWeatherCurrentResponse = await response.json();
-    return transformCurrentWeather(data);
+    const data: GoogleWeatherCurrentResponse = await response.json();
+    return transformGoogleCurrentWeather(data);
   } catch (error) {
-    console.error('Error fetching current weather:', error);
+    console.error('Error fetching current weather from Google:', error);
     throw error;
   }
 }
 
-// Obtener pronóstico de 5 días
+// Obtener pronóstico de 5 días usando Google Weather API
 export async function getWeatherForecast(lat: number, lon: number): Promise<WeatherForecast[]> {
   if (!API_KEY) {
-    throw new Error('API key de OpenWeatherMap no configurada');
+    throw new Error('API key de Google Weather no configurada');
   }
 
   try {
     const response = await fetch(
-      `${OPENWEATHER_BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=es`
+      `${GOOGLE_WEATHER_BASE_URL}/dailyForecast?location=${lat},${lon}&key=${API_KEY}&units=METRIC&language=es&days=5`
     );
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(`Error de API: ${errorData.message || response.statusText}`);
+      throw new Error(`Error de Google Weather API: ${errorData.error?.message || response.statusText}`);
     }
 
-    const data: OpenWeatherForecastResponse = await response.json();
-    return transformForecast(data);
+    const data: GoogleWeatherForecastResponse = await response.json();
+    return transformGoogleForecast(data);
   } catch (error) {
-    console.error('Error fetching weather forecast:', error);
+    console.error('Error fetching weather forecast from Google:', error);
     throw error;
   }
 }
@@ -201,10 +175,8 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
       getWeatherForecast(lat, lon)
     ]);
 
-    // Obtener el nombre de la ciudad de la respuesta del pronóstico
-    const cityName = forecast.length > 0 ? 
-      await getCityName(lat, lon) : 
-      'Ubicación de la propiedad';
+    // Obtener el nombre de la ciudad usando Google Geocoding API
+    const cityName = await getCityName(lat, lon);
 
     return {
       current,
@@ -217,12 +189,12 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
       }
     };
   } catch (error) {
-    console.error('Error fetching weather data:', error);
+    console.error('Error fetching weather data from Google:', error);
     throw error;
   }
 }
 
-// Función para obtener el nombre de la ciudad a partir de coordenadas
+// Función para obtener el nombre de la ciudad usando Google Geocoding API
 async function getCityName(lat: number, lon: number): Promise<string> {
   if (!API_KEY) {
     return 'Ubicación de la propiedad';
@@ -230,7 +202,7 @@ async function getCityName(lat: number, lon: number): Promise<string> {
 
   try {
     const response = await fetch(
-      `${OPENWEATHER_BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=es`
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${API_KEY}&language=es`
     );
 
     if (!response.ok) {
@@ -238,8 +210,20 @@ async function getCityName(lat: number, lon: number): Promise<string> {
       return 'Ubicación de la propiedad';
     }
 
-    const data: OpenWeatherCurrentResponse = await response.json();
-    return data.name || 'Ubicación de la propiedad';
+    const data = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      // Buscar el componente de ciudad en los resultados
+      const result = data.results[0];
+      const cityComponent = result.address_components.find((component: any) => 
+        component.types.includes('locality') || 
+        component.types.includes('administrative_area_level_2')
+      );
+      
+      return cityComponent ? cityComponent.long_name : result.formatted_address.split(',')[0];
+    }
+
+    return 'Ubicación de la propiedad';
   } catch (error) {
     console.warn('Error obteniendo nombre de ciudad:', error);
     return 'Ubicación de la propiedad';

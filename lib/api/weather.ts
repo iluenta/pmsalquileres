@@ -80,41 +80,85 @@ function getWeatherDescription(weatherCode: string): { condition: string; descri
 }
 
 // Transformar respuesta de clima actual de Google
-function transformGoogleCurrentWeather(data: GoogleWeatherCurrentResponse): CurrentWeather {
-  const weatherInfo = getWeatherDescription(data.weatherCode);
-  
+function transformGoogleCurrentWeather(data: any): CurrentWeather {
+  console.log('Google Weather API Response:', JSON.stringify(data, null, 2));
+
+  // Extraer datos según la estructura real de Google Weather API
+  const weatherCode = data.weatherCondition?.type || 'CLEAR';
+  const weatherInfo = getWeatherDescription(weatherCode);
+
+  const temperature = data.temperature?.degrees || 20;
+  const feelsLike = data.feelsLikeTemperature?.degrees || temperature;
+  const humidity = data.relativeHumidity || 50;
+  const pressure = data.airPressure?.meanSeaLevelMillibars || 1013;
+  const windSpeed = data.wind?.speed?.value || 0;
+  const windDirection = data.wind?.direction?.degrees || 0;
+  const uvIndex = data.uvIndex || 0;
+  const currentTime = data.currentTime;
+
+  // Google Weather API v1 currentConditions:lookup no proporciona sunrise/sunset directamente
+  // Usaremos placeholders por ahora
+  const sunrise = '--:--'; 
+  const sunset = '--:--'; 
+
+  // Ajustar icono basado en si es de día o de noche
+  let finalIcon = weatherInfo.icon;
+  if (data.isDaytime !== undefined) {
+    if (weatherInfo.icon.endsWith('d') && !data.isDaytime) {
+      finalIcon = weatherInfo.icon.replace('d', 'n');
+    } else if (weatherInfo.icon.endsWith('n') && data.isDaytime) {
+      finalIcon = weatherInfo.icon.replace('n', 'd');
+    }
+  }
+
+  const timestamp = new Date(currentTime).getTime() / 1000;
+
   return {
-    temperature: Math.round(data.temperature.value),
-    feelsLike: Math.round(data.apparentTemperature.value),
+    temperature: Math.round(temperature),
+    feelsLike: Math.round(feelsLike),
     condition: weatherInfo.condition,
     description: weatherInfo.description,
-    humidity: Math.round(data.humidity.value),
-    pressure: Math.round(data.pressure.value),
-    windSpeed: Math.round(data.windSpeed.value),
-    windDirection: getWindDirection(data.windDirection.value),
-    uvIndex: Math.round(data.uvIndex.value),
-    sunrise: formatTime(data.sunrise),
-    sunset: formatTime(data.sunset),
-    icon: weatherInfo.icon,
-    timestamp: new Date(data.updateTime).getTime() / 1000
+    humidity: Math.round(humidity),
+    pressure: Math.round(pressure),
+    windSpeed: Math.round(windSpeed),
+    windDirection: getWindDirection(windDirection),
+    uvIndex: Math.round(uvIndex),
+    sunrise: sunrise,
+    sunset: sunset,
+    icon: finalIcon,
+    timestamp: timestamp
   };
 }
 
 // Transformar respuesta de pronóstico de Google
-function transformGoogleForecast(data: GoogleWeatherForecastResponse): WeatherForecast[] {
-  return data.dailyForecasts.slice(0, 5).map((day) => {
-    const weatherInfo = getWeatherDescription(day.weatherCode);
+function transformGoogleForecast(data: any): WeatherForecast[] {
+  console.log('Google Weather Forecast API Response:', JSON.stringify(data, null, 2));
+  
+  // Manejar diferentes estructuras de respuesta
+  const forecasts = data.dailyForecasts || data.list || data.forecast || [];
+  
+  return forecasts.slice(0, 5).map((day: any) => {
+    const weatherCode = day.weatherCode || day.weather?.[0]?.main || 'CLEAR';
+    const weatherInfo = getWeatherDescription(weatherCode);
+    
+    // Extraer valores con fallbacks seguros
+    const maxTemp = day.maxTemperature?.value || day.maxTemperature || day.temp?.max || day.main?.temp_max || 25;
+    const minTemp = day.minTemperature?.value || day.minTemperature || day.temp?.min || day.main?.temp_min || 15;
+    const precipitation = day.precipitationProbability?.value || day.precipitationProbability || day.pop || 0;
+    const humidity = day.humidity?.value || day.humidity || day.main?.humidity || 50;
+    const windSpeed = day.windSpeed?.value || day.windSpeed || day.wind?.speed || 0;
+    const date = day.date || day.dt_txt || day.dt || new Date().toISOString();
     
     return {
-      date: formatDate(day.date),
-      maxTemp: Math.round(day.maxTemperature.value),
-      minTemp: Math.round(day.minTemperature.value),
+      date: formatDate(date),
+      maxTemp: Math.round(maxTemp),
+      minTemp: Math.round(minTemp),
       condition: weatherInfo.condition,
       description: weatherInfo.description,
-      precipitation: Math.round(day.precipitationProbability.value),
+      precipitation: Math.round(precipitation),
       icon: weatherInfo.icon,
-      humidity: Math.round(day.humidity.value),
-      windSpeed: Math.round(day.windSpeed.value)
+      humidity: Math.round(humidity),
+      windSpeed: Math.round(windSpeed)
     };
   });
 }

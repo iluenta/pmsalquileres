@@ -127,7 +127,7 @@ export async function getCurrentWeather(lat: number, lon: number): Promise<Curre
 
   try {
     const response = await fetch(
-      `${GOOGLE_WEATHER_BASE_URL}/currentConditions:lookup?key=${API_KEY}&location.latitude=${lat}&location.longitude=${lon}&units=METRIC&language=es`
+      `${GOOGLE_WEATHER_BASE_URL}/currentConditions:lookup?key=${API_KEY}&location.latitude=${lat}&location.longitude=${lon}`
     );
 
     if (!response.ok) {
@@ -151,7 +151,7 @@ export async function getWeatherForecast(lat: number, lon: number): Promise<Weat
 
   try {
     const response = await fetch(
-      `${GOOGLE_WEATHER_BASE_URL}/forecast/days:lookup?key=${API_KEY}&location.latitude=${lat}&location.longitude=${lon}&units=METRIC&language=es&days=5`
+      `${GOOGLE_WEATHER_BASE_URL}/forecast/days:lookup?key=${API_KEY}&location.latitude=${lat}&location.longitude=${lon}&days=5`
     );
 
     if (!response.ok) {

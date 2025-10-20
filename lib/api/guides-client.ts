@@ -191,7 +191,7 @@ export async function getCompleteGuideData(propertyId: string) {
     // Obtener la propiedad
     const { data: property, error: propertyError } = await supabase
       .from('properties')
-      .select('id, name, street, city, description')
+      .select('id, name, street, city, province, country, locality, description, latitude, longitude')
       .eq('id', propertyId)
       .maybeSingle()
 
@@ -252,7 +252,10 @@ export async function getCompleteGuideData(propertyId: string) {
         id: property.id,
         name: property.name,
         address: property.street || property.city,
-        description: property.description
+        description: property.description,
+        locality: property.locality,
+        latitude: property.latitude,
+        longitude: property.longitude
       },
       guide,
       sections,

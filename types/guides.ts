@@ -14,6 +14,7 @@ export interface Property {
   city: string | null
   province: string | null
   country: string | null
+  locality: string | null
   bedrooms: number | null
   bathrooms: number | null
   max_guests: number | null
@@ -493,6 +494,9 @@ export interface CompleteGuideDataResponse {
     name: string
     address: string
     description: string | null
+    locality: string | null
+    latitude: number | null
+    longitude: number | null
   }
   guide: PropertyGuide
   sections: GuideSection[]

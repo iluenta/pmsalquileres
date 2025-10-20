@@ -56,6 +56,7 @@ function getWeatherDescription(weatherCode: string): { condition: string; descri
   const weatherMap: { [key: string]: { condition: string; description: string; icon: string } } = {
     'CLEAR': { condition: 'Despejado', description: 'Cielo despejado', icon: '01d' },
     'PARTLY_CLOUDY': { condition: 'Parcialmente nublado', description: 'Parcialmente nublado', icon: '02d' },
+    'MOSTLY_CLOUDY': { condition: 'Mayormente nublado', description: 'Mayormente nublado', icon: '03d' },
     'CLOUDY': { condition: 'Nublado', description: 'Nublado', icon: '04d' },
     'OVERCAST': { condition: 'Muy nublado', description: 'Muy nublado', icon: '04d' },
     'FOG': { condition: 'Niebla', description: 'Niebla', icon: '50d' },

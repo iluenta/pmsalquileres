@@ -89,6 +89,7 @@ export function PropertyGuidePublicNew({ propertyId }: PropertyGuidePublicNewPro
       <GuideWeatherWidget 
         latitude={data.guide?.latitude}
         longitude={data.guide?.longitude}
+        locality={data.property?.locality}
       />
       
       <GuideValueProposition data={data} />

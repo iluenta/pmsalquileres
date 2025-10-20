@@ -6,10 +6,12 @@ import { Cloud, CloudRain, Sun } from "lucide-react"
 interface GuideWeatherWidgetProps {
   latitude?: number | null
   longitude?: number | null
+  locality?: string | null
 }
 
-export function GuideWeatherWidget({ latitude, longitude }: GuideWeatherWidgetProps) {
+export function GuideWeatherWidget({ latitude, longitude, locality }: GuideWeatherWidgetProps) {
   console.log('[GuideWeatherWidget] Coordinates:', { latitude, longitude })
+  console.log('[GuideWeatherWidget] Locality:', locality)
   
   const { data, loading, error } = useWeather(latitude ?? null, longitude ?? null)
 
@@ -48,7 +50,7 @@ export function GuideWeatherWidget({ latitude, longitude }: GuideWeatherWidgetPr
   }
 
   const WeatherIcon = getWeatherIcon(data.current.description)
-  const cityName = data.location?.name || "Vera"
+  const cityName = locality || data.location?.name || "Ubicación de la propiedad"
 
   return (
     <section className="py-8 bg-primary text-primary-foreground">

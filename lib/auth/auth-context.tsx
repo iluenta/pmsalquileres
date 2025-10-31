@@ -34,9 +34,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [loading, setLoading] = useState(true)
+  
+  // Get Supabase client - will throw error in production if env vars missing
+  // Error will be caught by error.tsx ErrorBoundary
   const supabase = getSupabaseBrowserClient()
 
   const fetchUserInfo = async (userId: string) => {
+    if (!supabase) {
+      console.error("[v0] Supabase client not available")
+      return
+    }
+
     try {
       const { data, error } = await supabase.rpc("get_user_info", {
         p_user_id: userId,
@@ -62,12 +70,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    if (!supabase) {
+      console.error("[v0] Supabase client not initialized. Please check environment variables.")
+      setLoading(false)
+      return
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }: any) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchUserInfo(session.user.id)
       }
+      setLoading(false)
+    }).catch((error) => {
+      console.error("[v0] Error getting session:", error)
       setLoading(false)
     })
 
@@ -84,13 +101,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe()
+      }
+    }
+  }, [supabase])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setUserInfo(null)
+    if (!supabase) {
+      setUser(null)
+      setUserInfo(null)
+      return
+    }
+    
+    try {
+      await supabase.auth.signOut()
+      setUser(null)
+      setUserInfo(null)
+    } catch (error) {
+      console.error("[v0] Error signing out:", error)
+      setUser(null)
+      setUserInfo(null)
+    }
   }
 
   return (

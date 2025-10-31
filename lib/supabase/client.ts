@@ -8,16 +8,26 @@ export function getSupabaseBrowserClient() {
     return client
   }
 
-  // In development or if env vars are missing, provide fallback
+  // Validate environment variables
   if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    const errorMessage = 'Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.'
+    
     if (isDevelopment()) {
-      console.warn('Supabase environment variables not found, using fallback')
+      console.warn(`[Supabase] ${errorMessage}`)
+      // In development, return null to allow the app to continue
+      return null as any
     }
-    // Return a mock client for build time
-    return null as any
+    
+    // In production, throw an error to make the problem visible
+    console.error(`[Supabase] ${errorMessage}`)
+    throw new Error(errorMessage)
   }
 
-  client = createBrowserClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-
-  return client
+  try {
+    client = createBrowserClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    return client
+  } catch (error) {
+    console.error('[Supabase] Failed to create client:', error)
+    throw error
+  }
 }

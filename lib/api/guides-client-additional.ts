@@ -8,10 +8,9 @@ export async function getApartmentSectionsClient(guideId: string): Promise<any[]
   const supabase = getSupabaseBrowserClient()
   
   const { data, error } = await supabase
-    .from("guide_sections")
+    .from("apartment_sections")
     .select("*")
     .eq("guide_id", guideId)
-    .eq("section_type", "apartment")
     .order("order_index", { ascending: true })
 
   if (error) {
@@ -19,6 +18,7 @@ export async function getApartmentSectionsClient(guideId: string): Promise<any[]
     return []
   }
 
+  console.log("[v0] Apartment sections fetched:", data)
   return data || []
 }
 

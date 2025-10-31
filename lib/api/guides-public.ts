@@ -39,30 +39,19 @@ export async function getCompleteGuideDataPublic(propertyId: string) {
 
     console.log('[v0] Guide found (public):', guide)
 
-    // Obtener información completa de la propiedad desde la tabla properties
-    const { data: propertyData, error: propertyError } = await supabasePublic
-      .from('properties')
-      .select('id, name, description, street, city, province, country, locality, latitude, longitude')
-      .eq('id', propertyId)
-      .maybeSingle()
-
-    if (propertyError) {
-      console.error('[v0] Error fetching property data (public):', propertyError)
-    }
-
-    // Crear un objeto property con la información disponible
+    // Crear un objeto property con la información disponible desde la guía
     const property = {
       id: propertyId,
-      name: propertyData?.name || guide.title || "Propiedad",
-      description: propertyData?.description || guide.welcome_message,
-      street: propertyData?.street || null,
-      city: propertyData?.city || null,
-      province: propertyData?.province || null,
-      country: propertyData?.country || null,
-      locality: propertyData?.locality || null,
-      // Coordenadas desde la tabla properties o property_guides como fallback
-      latitude: propertyData?.latitude || guide.latitude,
-      longitude: propertyData?.longitude || guide.longitude
+      name: guide.title || "Propiedad",
+      description: guide.welcome_message,
+      street: null,
+      city: null,
+      province: null,
+      country: null,
+      locality: guide.locality,
+      // Coordenadas desde la tabla property_guides (accesible públicamente)
+      latitude: guide.latitude,
+      longitude: guide.longitude
     }
 
     console.log('[v0] Property info created from guide:', property)

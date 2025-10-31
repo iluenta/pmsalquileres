@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { getCompleteGuideData } from '@/lib/api/guides-client'
+import { getCompleteGuideDataPublic } from '@/lib/api/guides-public'
 import type { CompleteGuideDataResponse } from '@/types/guides'
 
 interface UseGuideDataReturn {
@@ -30,7 +31,13 @@ export function useGuideData(propertyId: string): UseGuideDataReturn {
       setError(null)
       
       console.log('Fetching guide data for property:', propertyId)
-      const guideData = await getCompleteGuideData(propertyId)
+      let guideData = await getCompleteGuideData(propertyId)
+
+      // Fallback a cliente público si no hay sesión o la guía es pública
+      if (!guideData) {
+        console.log('Falling back to public guide fetcher')
+        guideData = await getCompleteGuideDataPublic(propertyId) as any
+      }
       
       if (guideData) {
         console.log('Guide data loaded successfully:', guideData)

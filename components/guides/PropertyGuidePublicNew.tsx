@@ -56,6 +56,8 @@ export function PropertyGuidePublicNew({ propertyId }: PropertyGuidePublicNewPro
     latitude: data.guide?.latitude, 
     longitude: data.guide?.longitude 
   })
+  console.log('[PropertyGuidePublicNew] Apartment sections:', data.apartment_sections)
+  console.log('[PropertyGuidePublicNew] Apartment sections length:', data.apartment_sections?.length)
 
   // Determinar qué secciones mostrar basado en si tienen contenido
   const hasApartmentSections = data.apartment_sections && data.apartment_sections.length > 0
@@ -86,16 +88,17 @@ export function PropertyGuidePublicNew({ propertyId }: PropertyGuidePublicNewPro
         welcomeMessage={data.guide?.welcome_message || "Bienvenido a tu hogar temporal"}
       />
       
-      <GuideWeatherWidget 
-        latitude={data.guide?.latitude}
-        longitude={data.guide?.longitude}
-        locality={data.property?.locality}
-      />
-      
       <GuideValueProposition data={data} />
       
       {hasApartmentSections && (
-        <GuideApartmentSections sections={data.apartment_sections} />
+        <>
+          <GuideWeatherWidget 
+            latitude={data.guide?.latitude}
+            longitude={data.guide?.longitude}
+            locality={data.property?.locality}
+          />
+          <GuideApartmentSections sections={data.apartment_sections} data={data} />
+        </>
       )}
       
       {hasBeaches && (

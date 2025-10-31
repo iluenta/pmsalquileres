@@ -110,6 +110,16 @@ export async function createPropertyGuideClient(data: CreateGuideData): Promise<
   if (!tenantId) {
     return null
   }
+  // Intentar heredar locality desde properties si no viene en data
+  let inheritedLocality: string | null = data.locality ?? null
+  if (!inheritedLocality && data.property_id) {
+    const { data: prop } = await supabase
+      .from('properties')
+      .select('city')
+      .eq('id', data.property_id)
+      .maybeSingle()
+    inheritedLocality = (prop?.city as string) || null
+  }
   
   const { data: result, error } = await supabase
     .from("property_guides")
@@ -122,6 +132,7 @@ export async function createPropertyGuideClient(data: CreateGuideData): Promise<
       host_signature: data.host_signature,
       latitude: data.latitude,
       longitude: data.longitude,
+      locality: inheritedLocality,
     })
     .select()
     .single()
@@ -191,7 +202,7 @@ export async function getCompleteGuideData(propertyId: string) {
     // Obtener la propiedad
     const { data: property, error: propertyError } = await supabase
       .from('properties')
-      .select('id, name, street, city, province, country, locality, description, latitude, longitude')
+      .select('id, name, street, city, province, country, description')
       .eq('id', propertyId)
       .maybeSingle()
 
@@ -253,9 +264,9 @@ export async function getCompleteGuideData(propertyId: string) {
         name: property.name,
         address: property.street || property.city,
         description: property.description,
-        locality: property.locality,
-        latitude: property.latitude,
-        longitude: property.longitude
+        locality: guide.locality,
+        latitude: guide.latitude,
+        longitude: guide.longitude
       },
       guide,
       sections,

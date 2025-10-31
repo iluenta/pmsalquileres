@@ -223,6 +223,7 @@ export interface CreateGuideData {
   host_signature?: string
   latitude?: number
   longitude?: number
+  locality?: string
 }
 
 export interface UpdateGuideData {
@@ -232,6 +233,7 @@ export interface UpdateGuideData {
   host_signature?: string
   latitude?: number
   longitude?: number
+  locality?: string
   is_active?: boolean
 }
 
@@ -535,6 +537,7 @@ export interface PropertyGuide {
   host_signature: string | null
   latitude: number | null
   longitude: number | null
+  locality: string | null
   is_active: boolean
   created_at: string
   updated_at: string

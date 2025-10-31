@@ -32,6 +32,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
     welcome_message: "",
     host_names: "",
     host_signature: "",
+    locality: "",
     latitude: "",
     longitude: "",
   })
@@ -64,6 +65,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
         welcome_message: data.guide.welcome_message || "",
         host_names: data.guide.host_names || "",
         host_signature: data.guide.host_signature || "",
+        locality: (data.guide as any).locality || data.property?.locality || "",
         latitude: data.guide.latitude?.toString() || "",
         longitude: data.guide.longitude?.toString() || "",
       })
@@ -88,6 +90,9 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
   // Funciones para verificar si existe una sección de cada tipo
   const hasSectionType = (type: string) => {
+    if (type === 'apartment') {
+      return data?.apartment_sections && data.apartment_sections.length > 0
+    }
     return sections.some(section => section.section_type === type)
   }
 
@@ -256,6 +261,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
           welcome_message: formData.welcome_message,
           host_names: formData.host_names,
           host_signature: formData.host_signature,
+          locality: formData.locality || undefined,
           latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
           longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
         })
@@ -275,6 +281,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
           welcome_message: formData.welcome_message,
           host_names: formData.host_names,
           host_signature: formData.host_signature,
+          locality: formData.locality || undefined,
           latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
           longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
         })
@@ -438,7 +445,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <i className="fas fa-list text-2xl text-blue-600 mb-2"></i>
-                      <p className="font-semibold">{sections.length}</p>
+                      <p className="font-semibold">{data.apartment_sections?.length || 0}</p>
                       <p className="text-sm text-gray-600">Secciones</p>
                     </div>
                     <div className="text-center p-4 bg-green-50 rounded-lg">
@@ -506,6 +513,16 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                         value={formData.host_names}
                         onChange={(e) => setFormData({ ...formData, host_names: e.target.value })}
                         placeholder="Ej: Sonia y Pedro"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="locality">Localidad (opcional)</Label>
+                      <Input
+                        id="locality"
+                        value={formData.locality}
+                        onChange={(e) => setFormData({ ...formData, locality: e.target.value })}
+                        placeholder="Ej: Vera, Almería"
                       />
                     </div>
 

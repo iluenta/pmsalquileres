@@ -55,6 +55,8 @@ function getWindDirection(degrees: number): string {
 function getWeatherDescription(weatherCode: string): { condition: string; description: string; icon: string } {
   const weatherMap: { [key: string]: { condition: string; description: string; icon: string } } = {
     'CLEAR': { condition: 'Despejado', description: 'Cielo despejado', icon: '01d' },
+    'MOSTLY_CLEAR': { condition: 'Mayormente despejado', description: 'Mayormente despejado', icon: '02d' },
+    'MOSTLY_SUNNY': { condition: 'Mayormente soleado', description: 'Mayormente soleado', icon: '02d' },
     'PARTLY_CLOUDY': { condition: 'Parcialmente nublado', description: 'Parcialmente nublado', icon: '02d' },
     'MOSTLY_CLOUDY': { condition: 'Mayormente nublado', description: 'Mayormente nublado', icon: '03d' },
     'CLOUDY': { condition: 'Nublado', description: 'Nublado', icon: '04d' },
@@ -134,32 +136,98 @@ function transformGoogleCurrentWeather(data: any): CurrentWeather {
 // Transformar respuesta de pronóstico de Google
 function transformGoogleForecast(data: any): WeatherForecast[] {
   console.log('Google Weather Forecast API Response:', JSON.stringify(data, null, 2));
-  
-  // Manejar diferentes estructuras de respuesta
-  const forecasts = data.dailyForecasts || data.list || data.forecast || [];
-  
-  return forecasts.slice(0, 5).map((day: any) => {
-    const weatherCode = day.weatherCode || day.weather?.[0]?.main || 'CLEAR';
+
+  // Intentar detectar la colección de días en distintas variantes
+  const days: any[] =
+    data?.forecastDays ||
+    data?.dailyForecasts ||
+    data?.daily ||
+    data?.days ||
+    data?.forecast?.daily ||
+    data?.forecast ||
+    data?.list ||
+    [];
+
+  if (!Array.isArray(days) || days.length === 0) {
+    return [];
+  }
+
+  return days.slice(0, 5).map((day: any) => {
+    // Preferir pronóstico diurno si está disponible
+    const daytime = day?.daytimeForecast || day?.day || null;
+
+    // Código de condición
+    const weatherCode =
+      daytime?.weatherCondition?.type ||
+      day?.weatherCondition?.type ||
+      day?.weatherCode ||
+      day?.weather?.[0]?.main ||
+      'CLEAR';
     const weatherInfo = getWeatherDescription(weatherCode);
-    
-    // Extraer valores con fallbacks seguros
-    const maxTemp = day.maxTemperature?.value || day.maxTemperature || day.temp?.max || day.main?.temp_max || 25;
-    const minTemp = day.minTemperature?.value || day.minTemperature || day.temp?.min || day.main?.temp_min || 15;
-    const precipitation = day.precipitationProbability?.value || day.precipitationProbability || day.pop || 0;
-    const humidity = day.humidity?.value || day.humidity || day.main?.humidity || 50;
-    const windSpeed = day.windSpeed?.value || day.windSpeed || day.wind?.speed || 0;
-    const date = day.date || day.dt_txt || day.dt || new Date().toISOString();
-    
+
+    // Temperaturas máximas y mínimas (diferentes nombres según API)
+    const maxTempRaw =
+      day?.temperatureMax?.degrees ??
+      day?.maxTemperature?.degrees ??
+      day?.maxTemperature?.value ??
+      day?.maxTemperature ??
+      day?.temp?.max ??
+      day?.main?.temp_max ??
+      25;
+    const minTempRaw =
+      day?.temperatureMin?.degrees ??
+      day?.minTemperature?.degrees ??
+      day?.minTemperature?.value ??
+      day?.minTemperature ??
+      day?.temp?.min ??
+      day?.main?.temp_min ??
+      15;
+
+    // Otros valores
+    const precipitationRaw =
+      daytime?.precipitation?.probability?.percent ??
+      day?.precipitation?.probability?.percent ??
+      day?.precipitationProbability?.value ??
+      day?.precipitationProbability ??
+      day?.pop ??
+      0;
+    const humidityRaw =
+      daytime?.relativeHumidity ??
+      day?.relativeHumidity ??
+      day?.humidity?.value ??
+      day?.humidity ??
+      day?.main?.humidity ??
+      50;
+    const windSpeedRaw =
+      daytime?.wind?.speed?.value ??
+      day?.wind?.speed?.value ??
+      day?.windSpeed?.value ??
+      day?.windSpeed ??
+      day?.wind?.speed ??
+      0;
+
+    const dateRaw =
+      day?.date ||
+      day?.displayDate ||
+      day?.interval?.startTime ||
+      day?.startTime ||
+      day?.validTime ||
+      day?.dt_txt ||
+      day?.dt ||
+      new Date().toISOString();
+
     return {
-      date: formatDate(date),
-      maxTemp: Math.round(maxTemp),
-      minTemp: Math.round(minTemp),
+      date: typeof dateRaw === 'object' && dateRaw?.year
+        ? formatDate(`${dateRaw.year}-${String(dateRaw.month).padStart(2,'0')}-${String(dateRaw.day).padStart(2,'0')}`)
+        : formatDate(String(dateRaw)),
+      maxTemp: Math.round(Number(maxTempRaw)),
+      minTemp: Math.round(Number(minTempRaw)),
       condition: weatherInfo.condition,
       description: weatherInfo.description,
-      precipitation: Math.round(precipitation),
+      precipitation: Math.round(Number(precipitationRaw)),
       icon: weatherInfo.icon,
-      humidity: Math.round(humidity),
-      windSpeed: Math.round(windSpeed)
+      humidity: Math.round(Number(humidityRaw)),
+      windSpeed: Math.round(Number(windSpeedRaw)),
     };
   });
 }

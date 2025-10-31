@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { ApartmentSection } from "@/types/guides"
 import { getApartmentSections, createApartmentSection, updateApartmentSection, deleteApartmentSection } from "@/lib/api/guides-client"
 
@@ -21,6 +22,44 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
   const [loading, setLoading] = useState(true)
   const [editingSection, setEditingSection] = useState<ApartmentSection | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
+  const [newAmenity, setNewAmenity] = useState("")
+
+  // Amenities predefinidos por tipo de sección
+  const predefinedAmenities = {
+    cocina: [
+      "Vitrocerámica", "Horno", "Microondas", "Nevera", "Lavavajillas", 
+      "Cafetera", "Tostadora", "Utensilios de cocina", "Vajilla completa", 
+      "Cristalería", "Mesa de comedor", "Sillas", "Fregadero", "Encimera"
+    ],
+    bano: [
+      "Ducha", "Bañera", "Toallas", "Secador de pelo", "Artículos de aseo básicos",
+      "Espejo", "Armario", "Calefactor", "Ventilador", "Grifos modernos"
+    ],
+    salon: [
+      "Sofá", "TV de pantalla plana", "Aire acondicionado", "Mesa de centro",
+      "Lámparas", "Alfombra", "Biblioteca", "Chimenea", "Ventilador de techo"
+    ],
+    dormitorio: [
+      "Cama doble", "Armario", "Mesitas de noche", "Lámparas", "Ventilador",
+      "Aire acondicionado", "Espejo", "Alfombra", "Persianas", "Cortinas"
+    ],
+    terraza: [
+      "Mesa exterior", "Sillas", "Sombrilla", "Barbacoa", "Lavabo exterior",
+      "Iluminación", "Macetas", "Hamaca", "Mesa de ping pong", "Piscina"
+    ],
+    entrada: [
+      "Perchero", "Espejo", "Banco", "Armario", "Lámpara", "Alfombra de entrada",
+      "Caja de llaves", "Intercomunicador", "Timbre", "Cámara de seguridad"
+    ],
+    balcon: [
+      "Mesa pequeña", "Sillas", "Macetas", "Iluminación", "Barandilla",
+      "Sombrilla", "Hamaca", "Mesa de café", "Lámpara", "Alfombra"
+    ],
+    garaje: [
+      "Plaza de aparcamiento", "Iluminación", "Puerta automática", "Caja de herramientas",
+      "Bicicletas", "Motos", "Lavadora", "Secadora", "Armario", "Escalera"
+    ]
+  }
 
   // Cargar secciones al montar el componente
   useEffect(() => {
@@ -132,6 +171,35 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
     setIsAddingNew(false)
   }
 
+  // Funciones para manejar amenities
+  const addAmenity = (amenity: string) => {
+    if (!editingSection || !amenity.trim()) return
+    
+    const currentAmenities = editingSection.amenities || []
+    if (!currentAmenities.includes(amenity.trim())) {
+      setEditingSection({
+        ...editingSection,
+        amenities: [...currentAmenities, amenity.trim()]
+      })
+    }
+  }
+
+  const removeAmenity = (amenity: string) => {
+    if (!editingSection) return
+    
+    setEditingSection({
+      ...editingSection,
+      amenities: (editingSection.amenities || []).filter(a => a !== amenity)
+    })
+  }
+
+  const addCustomAmenity = () => {
+    if (newAmenity.trim()) {
+      addAmenity(newAmenity.trim())
+      setNewAmenity("")
+    }
+  }
+
   const sectionTypeLabels = {
     cocina: "Cocina",
     bano: "Baño",
@@ -216,11 +284,23 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
                       </div>
                     </div>
                   </CardHeader>
-                  {section.details && (
-                    <CardContent className="pt-0">
-                      <p className="text-sm text-gray-700">{section.details}</p>
-                    </CardContent>
-                  )}
+                  <CardContent className="pt-0">
+                    {section.details && (
+                      <p className="text-sm text-gray-700 mb-3">{section.details}</p>
+                    )}
+                    {section.amenities && section.amenities.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-gray-700">Amenities:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {section.amenities.map((amenity, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {amenity}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
                 </Card>
               ))}
             </div>
@@ -318,6 +398,70 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
                   value={editingSection.order_index || ''}
                   onChange={(e) => setEditingSection({ ...editingSection, order_index: e.target.value ? Number.parseInt(e.target.value) : 0 })}
                 />
+              </div>
+
+              {/* Sección de Amenities */}
+              <div className="space-y-4">
+                <Label>Amenities</Label>
+                
+                {/* Amenities actuales */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Amenities seleccionados:</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {(editingSection.amenities || []).map((amenity, index) => (
+                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                        {amenity}
+                        <button
+                          type="button"
+                          onClick={() => removeAmenity(amenity)}
+                          className="ml-1 text-red-500 hover:text-red-700"
+                        >
+                          <i className="fas fa-times text-xs"></i>
+                        </button>
+                      </Badge>
+                    ))}
+                    {(!editingSection.amenities || editingSection.amenities.length === 0) && (
+                      <p className="text-sm text-gray-500">No hay amenities seleccionados</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Amenities predefinidos */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Amenities predefinidos:</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {(predefinedAmenities[editingSection.section_type as keyof typeof predefinedAmenities] || []).map((amenity) => (
+                      <Button
+                        key={amenity}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addAmenity(amenity)}
+                        disabled={(editingSection.amenities || []).includes(amenity)}
+                        className="text-xs"
+                      >
+                        <i className="fas fa-plus mr-1"></i>
+                        {amenity}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Agregar amenity personalizado */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Agregar amenity personalizado:</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newAmenity}
+                      onChange={(e) => setNewAmenity(e.target.value)}
+                      placeholder="Escribe un amenity personalizado"
+                      onKeyPress={(e) => e.key === 'Enter' && addCustomAmenity()}
+                    />
+                    <Button type="button" onClick={addCustomAmenity} disabled={!newAmenity.trim()}>
+                      <i className="fas fa-plus"></i>
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2">

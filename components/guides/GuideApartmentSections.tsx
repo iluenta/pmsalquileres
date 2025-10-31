@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ApartmentSection } from "@/types/guides"
+import { ApartmentSection, CompleteGuideDataResponse } from "@/types/guides"
+import { GuidePracticalInfo } from "./GuidePracticalInfo"
 
 // Mapeo de tipos de sección a información básica
 const SECTION_TYPE_INFO = {
@@ -48,27 +49,43 @@ const SECTION_TYPE_INFO = {
 
 interface GuideApartmentSectionsProps {
   sections: ApartmentSection[]
+  data?: CompleteGuideDataResponse
 }
 
-export function GuideApartmentSections({ sections }: GuideApartmentSectionsProps) {
+export function GuideApartmentSections({ sections, data }: GuideApartmentSectionsProps) {
+  console.log('[GuideApartmentSections] Sections received:', sections)
+  console.log('[GuideApartmentSections] Data received:', data)
+  console.log('[GuideApartmentSections] Sections length:', sections?.length)
+  
   if (!sections || sections.length === 0) {
+    console.log('[GuideApartmentSections] No sections to display')
     return null
   }
+
+  // Usar datos de la guía o valores por defecto
+  const propertyName = data?.property?.name || "Propiedad"
+  const propertyAddress = data?.property?.address || "Dirección no disponible"
+  const welcomeMessage = data?.guide?.welcome_message || "Un apartamento completamente equipado con todo lo que necesitas para sentirte como en casa"
 
   return (
     <section id="apartamento" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 md:mb-16">
           <h2 className="font-serif text-3xl md:text-5xl font-bold text-foreground mb-4 text-balance">
-            Tu Hogar en Vera
+            Tu Hogar en {propertyName}
           </h2>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed text-pretty">
-            Un apartamento completamente equipado con todo lo que necesitas para sentirte como en casa
+            {welcomeMessage}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12">
           {sections.map((section) => {
+            console.log('[GuideApartmentSections] Rendering section:', section)
+            console.log('[GuideApartmentSections] Section icon:', section.icon)
+            console.log('[GuideApartmentSections] Section amenities:', section.amenities)
+            console.log('[GuideApartmentSections] Section amenities length:', section.amenities?.length)
+            
             const sectionInfo = SECTION_TYPE_INFO[section.section_type as keyof typeof SECTION_TYPE_INFO] || {
               label: section.section_type,
               icon: section.icon || "fas fa-home",
@@ -136,28 +153,8 @@ export function GuideApartmentSections({ sections }: GuideApartmentSectionsProps
           })}
         </div>
 
-        {/* Información adicional del apartamento */}
-        <div className="bg-muted rounded-2xl p-6 md:p-8 border-l-4 border-primary">
-          <h3 className="text-xl font-bold text-foreground mb-3">Información del Apartamento</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-muted-foreground">
-            <div>
-              <p className="font-semibold text-foreground mb-1">Dirección</p>
-              <p>Calle Ejemplo, 123, 04620 Vera, Almería</p>
-            </div>
-            <div>
-              <p className="font-semibold text-foreground mb-1">Check-in / Check-out</p>
-              <p>Entrada: 16:00h | Salida: 11:00h</p>
-            </div>
-            <div>
-              <p className="font-semibold text-foreground mb-1">Código de acceso</p>
-              <p>07349</p>
-            </div>
-            <div>
-              <p className="font-semibold text-foreground mb-1">WiFi</p>
-              <p>Ver@Tesper@1234</p>
-            </div>
-          </div>
-        </div>
+        {/* Información práctica del apartamento */}
+        <GuidePracticalInfo data={data} />
       </div>
     </section>
   )

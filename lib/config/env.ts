@@ -31,3 +31,12 @@ export function isDevelopment() {
 export function isProduction() {
   return process.env.NODE_ENV === 'production'
 }
+
+export function isBuildTime() {
+  // During build/prerendering, window is not available
+  return typeof window === 'undefined' && process.env.NEXT_PHASE === 'phase-production-build'
+}
+
+export function isClientRuntime() {
+  return typeof window !== 'undefined'
+}

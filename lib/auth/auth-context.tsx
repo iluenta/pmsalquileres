@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchUserInfo(session.user.id)
       }
       setLoading(false)
-    }).catch((error) => {
+    }).catch((error: unknown) => {
       console.error("[v0] Error getting session:", error)
       setLoading(false)
     })

@@ -1,5 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr"
-import { env, isDevelopment, isClientRuntime } from "@/lib/config/env"
+import { env, isDevelopment } from "@/lib/config/env"
 
 let client: ReturnType<typeof createBrowserClient> | null = null
 
@@ -12,10 +12,11 @@ export function getSupabaseBrowserClient() {
   if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     const errorMessage = 'Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.'
     
-    // During build time (prerendering), return null to allow build to continue
-    // The error will be caught in client runtime where it can be handled properly
-    if (!isClientRuntime()) {
-      console.warn(`[Supabase] ${errorMessage} - Build time, returning null`)
+    // Always return null during build/prerendering (when window is undefined)
+    // This prevents build errors - the error will show in client runtime instead
+    if (typeof window === 'undefined') {
+      // This is build time or server-side rendering
+      console.warn(`[Supabase] ${errorMessage} - Build/SSR time, returning null`)
       return null as any
     }
     
@@ -25,9 +26,17 @@ export function getSupabaseBrowserClient() {
       return null as any
     }
     
-    // In production client runtime, throw an error to make the problem visible
+    // In production client runtime (window is defined), throw error to make problem visible
     console.error(`[Supabase] ${errorMessage}`)
     throw new Error(errorMessage)
+  }
+
+  // Only create client if we have the required environment variables
+  // And only if we're in a client environment (window is defined)
+  if (typeof window === 'undefined') {
+    // During build/SSR, return null even if env vars are present
+    // The client should only be created in browser runtime
+    return null as any
   }
 
   try {
@@ -35,8 +44,8 @@ export function getSupabaseBrowserClient() {
     return client
   } catch (error) {
     console.error('[Supabase] Failed to create client:', error)
-    // Only throw in client runtime, not during build
-    if (isClientRuntime()) {
+    // Only throw in client runtime, not during build/SSR
+    if (typeof window !== 'undefined') {
       throw error
     }
     return null as any

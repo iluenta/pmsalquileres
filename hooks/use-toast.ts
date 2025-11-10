@@ -140,6 +140,20 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, 'id'>
 
 function toast({ ...props }: Toast) {
+  // Validar que el toast tenga contenido antes de crearlo
+  const hasTitle = props.title && String(props.title).trim().length > 0
+  const hasDescription = props.description && String(props.description).trim().length > 0
+  
+  // No crear toast si no tiene título ni descripción
+  if (!hasTitle && !hasDescription) {
+    console.warn('Toast ignorado: no tiene título ni descripción', props)
+    return {
+      id: '',
+      dismiss: () => {},
+      update: () => {},
+    }
+  }
+
   const id = genId()
 
   const update = (props: ToasterToast) =>

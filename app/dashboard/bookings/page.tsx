@@ -1,10 +1,13 @@
 import { getBookings } from "@/lib/api/bookings"
+import { getProperties } from "@/lib/api/properties"
+import { getConfigurationTypes, getConfigurationValues } from "@/lib/api/configuration"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { BookingsTable } from "@/components/bookings/BookingsTable"
+import { BookingsTableWrapper } from "@/components/bookings/BookingsTableWrapper"
+import { cookies } from "next/headers"
 
 export default async function BookingsPage() {
   const supabase = await getSupabaseServerClient()
@@ -26,7 +29,45 @@ export default async function BookingsPage() {
   }
 
   const tenantId = userInfo[0].tenant_id
-  const bookings = await getBookings(tenantId)
+  
+  // Obtener año seleccionado desde cookies (si existe)
+  const cookieStore = await cookies()
+  const selectedYearCookie = cookieStore.get("selected-season-year")
+  const selectedYear = selectedYearCookie?.value ? parseInt(selectedYearCookie.value, 10) : null
+  
+  // Obtener datos en paralelo
+  const [bookings, properties, configurationTypes] = await Promise.all([
+    getBookings(tenantId, selectedYear),
+    getProperties(),
+    getConfigurationTypes(tenantId),
+  ])
+
+  // Buscar el tipo de configuración "Estado de Reserva"
+  const bookingStatusType = configurationTypes.find(
+    (type) =>
+      type.name === "Estado de Reserva" ||
+      type.name === "Booking Status" ||
+      type.name === "Estados de Reserva"
+  )
+
+  // Buscar el tipo de configuración "Tipo de Reserva"
+  const bookingTypeConfig = configurationTypes.find(
+    (type) =>
+      type.name === "Tipo de Reserva" ||
+      type.name === "Booking Type"
+  )
+
+  // Obtener los valores de estado de reserva
+  let bookingStatuses: any[] = []
+  if (bookingStatusType) {
+    bookingStatuses = await getConfigurationValues(bookingStatusType.id)
+  }
+
+  // Obtener los valores de tipo de reserva
+  let bookingTypes: any[] = []
+  if (bookingTypeConfig) {
+    bookingTypes = await getConfigurationValues(bookingTypeConfig.id)
+  }
 
   return (
     <div className="space-y-6">
@@ -45,7 +86,12 @@ export default async function BookingsPage() {
         </Button>
       </div>
 
-      <BookingsTable bookings={bookings} />
+      <BookingsTableWrapper
+        initialBookings={bookings}
+        properties={properties}
+        bookingStatuses={bookingStatuses}
+        bookingTypes={bookingTypes}
+      />
     </div>
   )
 }

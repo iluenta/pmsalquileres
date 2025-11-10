@@ -65,7 +65,7 @@ export const config = {
     // - public folder files (images, etc.)
     // - api routes (except auth)
     // - login/register pages
-    // - public guide pages (incluye public y public-new)
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/(?!auth)|login|register|guides/.*/public(?:-new)?).*)",
+    // - public guide pages
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/(?!auth)|login|register|guides/.*/public).*)",
   ],
 }

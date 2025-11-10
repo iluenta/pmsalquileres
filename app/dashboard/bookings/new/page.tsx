@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { createBooking } from "@/lib/api/bookings"
-import type { CreateBookingData } from "@/types/bookings"
+import type { CreateBookingData, UpdateBookingData } from "@/types/bookings"
 
 export default async function NewBookingPage() {
   const supabase = await getSupabaseServerClient()
@@ -48,10 +48,36 @@ export default async function NewBookingPage() {
     bookingStatuses = await getConfigurationValues(bookingStatusType.id)
   }
 
-  const handleSave = async (data: CreateBookingData): Promise<boolean> => {
+  const handleSave = async (data: CreateBookingData | UpdateBookingData): Promise<boolean> => {
     "use server"
-    const result = await createBooking(data)
-    return result !== null
+    try {
+      // Asegurar que tenemos los campos requeridos para CreateBookingData
+      if (!data.property_id || !data.person_id || !data.check_in_date || !data.check_out_date) {
+        throw new Error("Faltan campos requeridos para crear la reserva")
+      }
+      const createData: CreateBookingData = {
+        property_id: data.property_id,
+        person_id: data.person_id,
+        channel_id: data.channel_id,
+        channel_booking_number: data.channel_booking_number,
+        check_in_date: data.check_in_date,
+        check_out_date: data.check_out_date,
+        number_of_guests: data.number_of_guests ?? 1,
+        total_amount: data.total_amount ?? 0,
+        sales_commission_amount: data.sales_commission_amount,
+        collection_commission_amount: data.collection_commission_amount,
+        tax_amount: data.tax_amount,
+        net_amount: data.net_amount,
+        paid_amount: data.paid_amount,
+        booking_status_id: data.booking_status_id,
+        notes: data.notes,
+      }
+      const result = await createBooking(createData)
+      return result !== null
+    } catch (error: any) {
+      console.error("Error in handleSave:", error)
+      throw error // Propagar el error para que se muestre en el toast
+    }
   }
 
   return (

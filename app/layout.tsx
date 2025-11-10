@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className="scroll-smooth" suppressHydrationWarning>
+    <html lang="es" className="scroll-smooth h-full overflow-hidden" suppressHydrationWarning>
       <head>
         <link 
           rel="stylesheet" 
@@ -33,7 +33,7 @@ export default function RootLayout({
           referrerPolicy="no-referrer" 
         />
       </head>
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased h-full overflow-hidden`} suppressHydrationWarning>
         <Suspense fallback={null}>
           <AuthProvider>
             <TenantProvider>

@@ -1,7 +1,24 @@
--- Script para crear/actualizar la tabla de reservas (bookings)
+-- Script para crear la tabla de reservas bookings
 -- Ejecutar en Supabase SQL Editor
+-- IMPORTANTE: La tabla persons debe existir antes de ejecutar este script
 
--- Crear tabla bookings si no existe
+-- Verificar que la tabla persons existe
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'persons'
+  ) THEN
+    RAISE EXCEPTION 'La tabla persons no existe. Debes crearla primero antes de ejecutar este script.';
+  END IF;
+END $$;
+
+-- Eliminar la tabla bookings si existe para recrearla desde cero
+-- Esto asegura que todas las columnas y relaciones estén correctas
+DROP TABLE IF EXISTS public.bookings CASCADE;
+
+-- Crear tabla bookings
 CREATE TABLE IF NOT EXISTS public.bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,

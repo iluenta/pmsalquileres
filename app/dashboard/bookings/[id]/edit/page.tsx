@@ -63,8 +63,16 @@ export default async function EditBookingPage({
 
   const handleSave = async (data: UpdateBookingData): Promise<boolean> => {
     "use server"
-    const result = await updateBooking(id, data, tenantId)
-    return result !== null
+    try {
+      const result = await updateBooking(id, data, tenantId)
+      if (!result) {
+        throw new Error("No se pudo actualizar la reserva")
+      }
+      return true
+    } catch (error: any) {
+      console.error("Error in handleSave:", error)
+      throw error // Propagar el error para que se muestre en el toast
+    }
   }
 
   return (

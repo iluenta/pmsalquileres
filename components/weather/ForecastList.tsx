@@ -39,3 +39,11 @@ export function ForecastList({ unit, forecast }: ForecastListProps) {
     </div>
   );
 }
+
+
+
+
+
+
+
+

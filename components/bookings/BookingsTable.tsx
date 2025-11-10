@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -18,31 +19,74 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast"
 import { MoreHorizontal, Edit, Trash2, Eye } from "lucide-react"
-import { format } from "date-fns"
+import { format, startOfMonth, endOfMonth, addMonths, subDays, addDays } from "date-fns"
 import { es } from "date-fns/locale"
 import type { BookingWithDetails } from "@/types/bookings"
+import { BookingsFilters, type BookingsFiltersState } from "./BookingsFilters"
+import type { Property } from "@/lib/api/properties"
+import type { ConfigurationValue } from "@/lib/api/configuration"
 
 interface BookingsTableProps {
   bookings: BookingWithDetails[]
-  onDelete?: (id: string) => Promise<void>
+  properties: Property[]
+  bookingStatuses: ConfigurationValue[]
+  bookingTypes: ConfigurationValue[]
 }
 
-export function BookingsTable({ bookings, onDelete }: BookingsTableProps) {
+export function BookingsTable({ bookings, properties, bookingStatuses, bookingTypes }: BookingsTableProps) {
+  const router = useRouter()
+  const { toast } = useToast()
+  const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [filters, setFilters] = useState<BookingsFiltersState>({
+    propertyId: "all",
+    guestName: "",
+    phone: "",
+    statusId: "all",
+    bookingTypeId: "all",
+    dateRange: "all",
+  })
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar esta reserva?")) {
-      return
-    }
+    setDeletingId(id)
+    try {
+      const response = await fetch(`/api/bookings/${id}`, {
+        method: 'DELETE',
+      })
 
-    if (onDelete) {
-      setDeletingId(id)
-      try {
-        await onDelete(id)
-      } finally {
-        setDeletingId(null)
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Error al eliminar la reserva")
       }
+
+      toast({
+        title: "Reserva eliminada",
+        description: "La reserva se ha eliminado correctamente.",
+      })
+
+      // Refrescar la página para actualizar la lista
+      router.refresh()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "No se pudo eliminar la reserva",
+        variant: "destructive",
+      })
+    } finally {
+      setDeletingId(null)
+      setDeleteId(null)
     }
   }
 
@@ -61,22 +105,136 @@ export function BookingsTable({ bookings, onDelete }: BookingsTableProps) {
     }).format(amount)
   }
 
+  // Función para obtener el rango de fechas según el filtro temporal
+  const getDateRange = (range: string): { start: Date | null; end: Date | null } => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    switch (range) {
+      case "next7days": {
+        const end = addDays(today, 7)
+        return { start: today, end }
+      }
+      case "thisMonth": {
+        const start = startOfMonth(today)
+        const end = endOfMonth(today)
+        return { start, end }
+      }
+      case "nextMonth": {
+        const nextMonth = addMonths(today, 1)
+        const start = startOfMonth(nextMonth)
+        const end = endOfMonth(nextMonth)
+        return { start, end }
+      }
+      case "last7days": {
+        const start = subDays(today, 7)
+        return { start, end: today }
+      }
+      case "lastMonth": {
+        const lastMonth = addMonths(today, -1)
+        const start = startOfMonth(lastMonth)
+        const end = endOfMonth(lastMonth)
+        return { start, end }
+      }
+      default:
+        return { start: null, end: null }
+    }
+  }
+
+  // Filtrar reservas según los filtros aplicados
+  const filteredBookings = useMemo(() => {
+    let result = [...bookings]
+
+    // Filtro por propiedad
+    if (filters.propertyId && filters.propertyId !== "all") {
+      result = result.filter((booking) => booking.property?.id === filters.propertyId)
+    }
+
+    // Filtro por nombre del huésped
+    if (filters.guestName) {
+      const searchTerm = filters.guestName.toLowerCase()
+      result = result.filter((booking) => {
+        if (!booking.person) return false
+        const fullName = `${booking.person.first_name} ${booking.person.last_name}`.toLowerCase()
+        return fullName.includes(searchTerm)
+      })
+    }
+
+    // Filtro por teléfono
+    if (filters.phone) {
+      const searchTerm = filters.phone
+      result = result.filter((booking) => {
+        if (!booking.person?.phone) return false
+        return booking.person.phone.includes(searchTerm)
+      })
+    }
+
+    // Filtro por estado
+    if (filters.statusId && filters.statusId !== "all") {
+      result = result.filter((booking) => booking.booking_status?.id === filters.statusId)
+    }
+
+    // Filtro por tipo de reserva
+    if (filters.bookingTypeId && filters.bookingTypeId !== "all") {
+      result = result.filter((booking) => booking.booking_type?.id === filters.bookingTypeId)
+    }
+
+    // Filtro temporal
+    if (filters.dateRange !== "all") {
+      const { start, end } = getDateRange(filters.dateRange)
+      if (start && end) {
+        result = result.filter((booking) => {
+          const checkInDate = new Date(booking.check_in_date)
+          checkInDate.setHours(0, 0, 0, 0)
+          return checkInDate >= start && checkInDate <= end
+        })
+      }
+    }
+
+    return result
+  }, [bookings, filters])
+
   if (bookings.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">No hay reservas registradas</p>
+      <div className="space-y-4">
+        <BookingsFilters
+          properties={properties}
+          bookingStatuses={bookingStatuses}
+          bookingTypes={bookingTypes}
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
+        <div className="text-center py-12">
+          <p className="text-gray-500">No hay reservas registradas</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
+    <div className="space-y-4">
+      <BookingsFilters
+        properties={properties}
+        bookingStatuses={bookingStatuses}
+        bookingTypes={bookingTypes}
+        filters={filters}
+        onFiltersChange={setFilters}
+      />
+
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <p>
+          Mostrando {filteredBookings.length} de {bookings.length} reserva{bookings.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Código</TableHead>
             <TableHead>Propiedad</TableHead>
             <TableHead>Huésped</TableHead>
+            <TableHead>Tipo</TableHead>
             <TableHead>Fechas</TableHead>
             <TableHead>Huéspedes</TableHead>
             <TableHead>Importe</TableHead>
@@ -85,7 +243,14 @@ export function BookingsTable({ bookings, onDelete }: BookingsTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {bookings.map((booking) => (
+          {filteredBookings.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={9} className="text-center py-12">
+                <p className="text-gray-500">No se encontraron reservas con los filtros aplicados</p>
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredBookings.map((booking) => (
             <TableRow key={booking.id}>
               <TableCell className="font-medium">{booking.booking_code}</TableCell>
               <TableCell>
@@ -106,14 +271,37 @@ export function BookingsTable({ bookings, onDelete }: BookingsTableProps) {
                     <div className="font-medium">
                       {booking.person.first_name} {booking.person.last_name}
                     </div>
-                    {booking.person.email && (
+                    {booking.person.phone && (
                       <div className="text-sm text-gray-500">
-                        {booking.person.email}
+                        {booking.person.phone}
+                      </div>
+                    )}
+                    {booking.channel_booking_number && (
+                      <div className="text-xs text-blue-600 mt-1">
+                        Ref. Canal: {booking.channel_booking_number}
                       </div>
                     )}
                   </div>
                 ) : (
                   "N/A"
+                )}
+              </TableCell>
+              <TableCell>
+                {booking.booking_type ? (
+                  <Badge
+                    variant="outline"
+                    style={{
+                      backgroundColor: booking.booking_type.color
+                        ? `${booking.booking_type.color}20`
+                        : undefined,
+                      borderColor: booking.booking_type.color || undefined,
+                      color: booking.booking_type.color || undefined,
+                    }}
+                  >
+                    {booking.booking_type.label}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">Sin tipo</Badge>
                 )}
               </TableCell>
               <TableCell>
@@ -171,23 +359,48 @@ export function BookingsTable({ bookings, onDelete }: BookingsTableProps) {
                         Editar
                       </Link>
                     </DropdownMenuItem>
-                    {onDelete && (
-                      <DropdownMenuItem
-                        onClick={() => handleDelete(booking.id)}
-                        disabled={deletingId === booking.id}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        {deletingId === booking.id ? "Eliminando..." : "Eliminar"}
-                      </DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem
+                      onClick={() => setDeleteId(booking.id)}
+                      disabled={deletingId === booking.id}
+                      className="text-red-600 focus:text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {deletingId === booking.id ? "Eliminando..." : "Eliminar"}
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
             </TableRow>
-          ))}
+            ))
+          )}
         </TableBody>
       </Table>
+      </div>
+
+      {/* Diálogo de confirmación de eliminación */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar reserva?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente la reserva
+              {deleteId && bookings.find(b => b.id === deleteId) && (
+                <> <strong>{bookings.find(b => b.id === deleteId)?.booking_code}</strong></>
+              )}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingId}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && handleDelete(deleteId)}
+              disabled={!!deletingId}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deletingId ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

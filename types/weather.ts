@@ -168,3 +168,11 @@ export interface OpenWeatherForecastResponse {
     country: string;
   };
 }
+
+
+
+
+
+
+
+

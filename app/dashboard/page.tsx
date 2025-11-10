@@ -1,10 +1,8 @@
 import { getDashboardStats, getRecentBookings, getPropertyOccupancy } from "@/lib/api/dashboard"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
-import { StatCard } from "@/components/dashboard/stat-card"
-import { RecentBookingsTable } from "@/components/dashboard/recent-bookings-table"
-import { OccupancyChart } from "@/components/dashboard/occupancy-chart"
-import { Building2, Calendar, Users, Euro, TrendingUp, AlertCircle } from "lucide-react"
 import { redirect } from "next/navigation"
+import { DashboardContent } from "@/components/dashboard/dashboard-content"
+import { cookies } from "next/headers"
 
 export default async function DashboardPage() {
   const supabase = await getSupabaseServerClient()
@@ -29,44 +27,24 @@ export default async function DashboardPage() {
 
   const tenantId = userInfo[0].tenant_id
 
-  // Fetch dashboard data
+  // Obtener año seleccionado desde cookies (si existe)
+  const cookieStore = await cookies()
+  const selectedYearCookie = cookieStore.get("selected-season-year")
+  const selectedYear = selectedYearCookie?.value ? parseInt(selectedYearCookie.value, 10) : null
+
+  // Fetch dashboard data inicial
   const [stats, recentBookings, propertyOccupancy] = await Promise.all([
-    getDashboardStats(tenantId),
-    getRecentBookings(tenantId, 5),
-    getPropertyOccupancy(tenantId, 5),
+    getDashboardStats(tenantId, selectedYear),
+    getRecentBookings(tenantId, 5, selectedYear),
+    getPropertyOccupancy(tenantId, 5, selectedYear),
   ])
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-ES", {
-      style: "currency",
-      currency: "EUR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Resumen de tu negocio de alquileres vacacionales</p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard title="Propiedades Activas" value={stats.totalProperties} icon={Building2} />
-        <StatCard title="Reservas Activas" value={stats.activeBookings} icon={Calendar} />
-        <StatCard title="Total Huéspedes" value={stats.totalGuests} icon={Users} />
-        <StatCard title="Ingresos del Mes" value={formatCurrency(stats.monthlyRevenue)} icon={Euro} />
-        <StatCard title="Tasa de Ocupación" value={`${stats.occupancyRate}%`} icon={TrendingUp} />
-        <StatCard title="Pagos Pendientes" value={formatCurrency(stats.pendingPayments)} icon={AlertCircle} />
-      </div>
-
-      {/* Charts and Tables */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <RecentBookingsTable bookings={recentBookings} />
-        <OccupancyChart data={propertyOccupancy} />
-      </div>
-    </div>
+    <DashboardContent
+      initialStats={stats}
+      initialRecentBookings={recentBookings}
+      initialPropertyOccupancy={propertyOccupancy}
+      tenantId={tenantId}
+    />
   )
 }

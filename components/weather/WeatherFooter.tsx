@@ -11,3 +11,11 @@ export function WeatherFooter({ lastUpdate }: WeatherFooterProps) {
     </div>
   );
 }
+
+
+
+
+
+
+
+

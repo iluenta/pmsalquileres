@@ -17,6 +17,7 @@ export interface Property {
   bedrooms: number | null
   bathrooms: number | null
   max_guests: number | null
+  min_nights: number | null // Número mínimo de noches para reservas comerciales
   base_price_per_night: number | null
   is_active: boolean
   created_at: string

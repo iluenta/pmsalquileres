@@ -47,12 +47,25 @@
 - id (UUID, PK)
 - tenant_id (UUID, FK → tenants)
 - first_name (VARCHAR)
-- last_name (VARCHAR)
-- email (VARCHAR, nullable)
-- phone (VARCHAR, nullable)
-- person_category (VARCHAR) -- 'guest', 'owner', 'contact', etc.
+- last_name (VARCHAR, nullable)
+- full_name (VARCHAR, nullable) -- Solo para personas jurídicas
+- document_type (VARCHAR, nullable)
+- document_number (VARCHAR, nullable)
+- birth_date (DATE, nullable)
+- nationality (VARCHAR, nullable)
+- person_type (UUID, FK → configuration_values) -- Tipo desde configuration_types 'person_type'
 - notes (TEXT, nullable)
+- is_active (BOOLEAN)
 - created_at, updated_at
+```
+
+**Nota:** Los datos de contacto (email, phone) están en la tabla relacionada `person_contact_infos`:
+```sql
+- person_id (UUID, FK → persons)
+- contact_type (VARCHAR) -- 'email', 'phone', etc.
+- contact_value (VARCHAR)
+- is_primary (BOOLEAN)
+- is_active (BOOLEAN)
 ```
 
 ### Tabla `bookings`
@@ -163,7 +176,7 @@ Los estados están en `configuration_values` y se pueden gestionar desde:
 1. **Orden de Scripts SQL:** Siempre ejecutar `023_create_persons_table.sql` ANTES de `021_create_bookings_table.sql`
 2. **Configuración de Estados:** Ejecutar `022_create_booking_status_config.sql` después de crear bookings
 3. **Código de Reserva:** Se genera automáticamente con formato `BK-YYYYMMDD-XXX`
-4. **Categoría de Personas:** Los huéspedes se crean automáticamente con `person_category = 'guest'`
+4. **Tipo de Personas:** Los huéspedes se crean automáticamente con `person_type` obtenido desde `configuration_values` donde el `configuration_type` es 'person_type' y el `label` es 'guest'
 5. **Búsqueda:** Requiere mínimo 2 caracteres para mejorar rendimiento
 
 ## 🚀 Próximos Pasos (Futuras Mejoras)

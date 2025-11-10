@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/lib/auth/auth-context"
 import { useTenant } from "@/lib/auth/tenant-context"
+import { useSeason } from "@/lib/contexts/season-context"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -11,16 +12,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Building2, User, Settings, LogOut, Moon, Sun } from "lucide-react"
+import { Building2, User, Settings, LogOut, Moon, Sun, Calendar } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
+import { useEffect } from "react"
 
 export function Header() {
   const { user, userInfo, signOut } = useAuth()
   const { tenantName } = useTenant()
+  const { selectedYear, setSelectedYear, availableYears, loadAvailableYears } = useSeason()
   const router = useRouter()
   const { theme, setTheme } = useTheme()
+
+  // Recargar años disponibles al montar
+  useEffect(() => {
+    loadAvailableYears()
+  }, [loadAvailableYears])
 
   const handleSignOut = async () => {
     await signOut()
@@ -38,11 +53,43 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-6">
-      {/* Tenant Info */}
+      {/* Tenant Info y Selector de Año */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1.5">
           <Building2 className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold text-primary">{tenantName || "Cargando..."}</span>
+        </div>
+        
+        {/* Selector de Año/Temporada */}
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select
+            value={selectedYear?.toString() || "all"}
+            onValueChange={(value) => {
+              if (value === "all") {
+                setSelectedYear(null)
+              } else {
+                const year = parseInt(value, 10)
+                if (!isNaN(year)) {
+                  setSelectedYear(year)
+                }
+              }
+              // Refrescar la página para aplicar el filtro
+              router.refresh()
+            }}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Año" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

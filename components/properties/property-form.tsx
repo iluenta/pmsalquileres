@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -12,10 +12,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, Save, Loader2 } from "lucide-react"
+import { ArrowLeft, Save, Loader2, Info, MapPin, Home, DollarSign, ShoppingCart, ToggleLeft } from "lucide-react"
 import Link from "next/link"
 import { Separator } from "@/components/ui/separator"
+import Image from "next/image"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface PropertyFormProps {
   propertyTypes: any[]
@@ -29,6 +32,10 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
   const supabase = getSupabaseBrowserClient()
 
   const [loading, setLoading] = useState(false)
+  const [allChannels, setAllChannels] = useState<Array<{ id: string; name: string; logo_url: string | null }>>([])
+  const [selectedChannels, setSelectedChannels] = useState<string[]>([])
+  const [loadingChannels, setLoadingChannels] = useState(false)
+  
   const [formData, setFormData] = useState({
     property_code: property?.property_code || "",
     name: property?.name || "",
@@ -43,6 +50,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     bedrooms: property?.bedrooms || 0,
     bathrooms: property?.bathrooms || 0,
     max_guests: property?.max_guests || 0,
+    min_nights: property?.min_nights || 1,
     square_meters: property?.square_meters || 0,
     base_price_per_night: property?.base_price_per_night || 0,
     cleaning_fee: property?.cleaning_fee || 0,
@@ -51,6 +59,50 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     check_out_time: property?.check_out_time || "11:00",
     is_active: property?.is_active ?? true,
   })
+
+  // Cargar canales disponibles
+  useEffect(() => {
+    const loadChannels = async () => {
+      setLoadingChannels(true)
+      try {
+        const response = await fetch("/api/sales-channels")
+        if (response.ok) {
+          const data = await response.json()
+          setAllChannels(data.map((c: any) => ({
+            id: c.id,
+            name: c.person.full_name,
+            logo_url: c.logo_url,
+          })))
+        }
+      } catch (error) {
+        console.error("Error loading channels:", error)
+      } finally {
+        setLoadingChannels(false)
+      }
+    }
+    loadChannels()
+  }, [])
+
+  // Cargar canales activos de la propiedad si está editando
+  useEffect(() => {
+    const loadPropertyChannels = async () => {
+      if (!property?.id) {
+        setSelectedChannels([])
+        return
+      }
+      
+      try {
+        const response = await fetch(`/api/properties/${property.id}/sales-channels`)
+        if (response.ok) {
+          const data = await response.json()
+          setSelectedChannels(data.channelIds || [])
+        }
+      } catch (error) {
+        console.error("Error loading property channels:", error)
+      }
+    }
+    loadPropertyChannels()
+  }, [property?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,11 +126,14 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
         updated_at: new Date().toISOString(),
       }
 
+      let propertyId: string
+      
       if (property) {
         // Update existing property
         const { error } = await supabase.from("properties").update(dataToSave).eq("id", property.id)
 
         if (error) throw error
+        propertyId = property.id
 
         toast({
           title: "Propiedad actualizada",
@@ -86,14 +141,38 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
         })
       } else {
         // Create new property
-        const { error } = await supabase.from("properties").insert(dataToSave)
+        const { error, data: newProperty } = await supabase
+          .from("properties")
+          .insert(dataToSave)
+          .select()
+          .single()
 
         if (error) throw error
+        propertyId = newProperty.id
 
         toast({
           title: "Propiedad creada",
           description: "La propiedad se ha creado correctamente.",
         })
+      }
+
+      // Guardar canales de venta activos
+      if (propertyId) {
+        try {
+          const response = await fetch(`/api/properties/${propertyId}/sales-channels`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ channelIds: selectedChannels }),
+          })
+
+          if (!response.ok) {
+            console.error("Error saving property channels")
+            // No lanzar error, solo loguear
+          }
+        } catch (error) {
+          console.error("Error saving property channels:", error)
+          // No lanzar error, solo loguear
+        }
       }
 
       router.push("/dashboard/properties")
@@ -132,13 +211,38 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
         </Button>
       </div>
 
-      {/* Basic Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Información Básica</CardTitle>
-          <CardDescription>Datos principales de la propiedad</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="general" className="flex items-center gap-2">
+            <Info className="h-4 w-4" />
+            General
+          </TabsTrigger>
+          <TabsTrigger value="location" className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Ubicación
+          </TabsTrigger>
+          <TabsTrigger value="characteristics" className="flex items-center gap-2">
+            <Home className="h-4 w-4" />
+            Características
+          </TabsTrigger>
+          <TabsTrigger value="pricing" className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4" />
+            Precios
+          </TabsTrigger>
+          <TabsTrigger value="channels" className="flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4" />
+            Canales
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Pestaña: Información General */}
+        <TabsContent value="general" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Información Básica</CardTitle>
+              <CardDescription>Datos principales de la propiedad</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="property_code">Código de Propiedad *</Label>
@@ -198,13 +302,34 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
         </CardContent>
       </Card>
 
-      {/* Location */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ubicación</CardTitle>
-          <CardDescription>Dirección de la propiedad</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          {/* Estado */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Estado</CardTitle>
+              <CardDescription>Activar o desactivar la propiedad</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                  disabled={loading}
+                />
+                <Label htmlFor="is_active">Propiedad activa</Label>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Pestaña: Ubicación */}
+        <TabsContent value="location" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Ubicación</CardTitle>
+              <CardDescription>Dirección de la propiedad</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="street">Calle</Label>
@@ -276,14 +401,16 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Characteristics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Características</CardTitle>
-          <CardDescription>Detalles de la propiedad</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        {/* Pestaña: Características */}
+        <TabsContent value="characteristics" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Características</CardTitle>
+              <CardDescription>Detalles de la propiedad</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
               <Label htmlFor="bedrooms">Habitaciones</Label>
@@ -334,16 +461,36 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
               />
             </div>
           </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="min_nights">Noches Mínimas *</Label>
+              <Input
+                id="min_nights"
+                type="number"
+                value={formData.min_nights}
+                onChange={(e) => setFormData({ ...formData, min_nights: Number.parseInt(e.target.value) || 1 })}
+                disabled={loading}
+                min="1"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Número mínimo de noches requeridas para reservas comerciales
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Pricing */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Precios</CardTitle>
-          <CardDescription>Configuración de precios y tarifas</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        {/* Pestaña: Precios */}
+        <TabsContent value="pricing" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Precios</CardTitle>
+              <CardDescription>Configuración de precios y tarifas</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="base_price_per_night">Precio Base/Noche (€)</Label>
@@ -414,24 +561,67 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Estado</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="is_active"
-              checked={formData.is_active}
-              onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-              disabled={loading}
-            />
-            <Label htmlFor="is_active">Propiedad activa</Label>
-          </div>
+        {/* Pestaña: Canales de Venta */}
+        <TabsContent value="channels" className="space-y-4 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Canales de Venta Activos</CardTitle>
+              <CardDescription>
+                Selecciona los canales de venta activos para esta propiedad. 
+                Solo estos canales estarán disponibles al crear reservas para esta propiedad.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+          {loadingChannels ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : allChannels.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No hay canales de venta disponibles. Crea canales desde la sección "Canales de Venta".
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {allChannels.map((channel) => (
+                <div key={channel.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent/50">
+                  <Checkbox
+                    id={`channel-${channel.id}`}
+                    checked={selectedChannels.includes(channel.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedChannels([...selectedChannels, channel.id])
+                      } else {
+                        setSelectedChannels(selectedChannels.filter(id => id !== channel.id))
+                      }
+                    }}
+                    disabled={loading}
+                  />
+                  <Label
+                    htmlFor={`channel-${channel.id}`}
+                    className="flex items-center gap-3 flex-1 cursor-pointer"
+                  >
+                    {channel.logo_url && (
+                      <div className="relative h-8 w-8">
+                        <Image
+                          src={channel.logo_url}
+                          alt={channel.name}
+                          fill
+                          className="object-contain rounded"
+                        />
+                      </div>
+                    )}
+                    <span className="font-medium">{channel.name}</span>
+                  </Label>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Actions */}
       <div className="flex gap-3">

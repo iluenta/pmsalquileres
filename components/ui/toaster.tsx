@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import { useToast } from '@/hooks/use-toast'
 import {
   Toast,
@@ -15,20 +16,30 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
-        return (
-          <Toast key={id} {...props}>
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
-        )
-      })}
+      {toasts
+        .filter(({ title, description, action }) => {
+          // Filtrar toasts vacíos antes de renderizar
+          const hasTitle = title && String(title).trim().length > 0
+          const hasDescription = description && String(description).trim().length > 0
+          return hasTitle || hasDescription || action
+        })
+        .map(function ({ id, title, description, action, ...props }) {
+          const hasTitle = title && String(title).trim().length > 0
+          const hasDescription = description && String(description).trim().length > 0
+          
+          return (
+            <Toast key={id} {...props}>
+              <div className="grid gap-1">
+                {hasTitle && <ToastTitle>{title}</ToastTitle>}
+                {hasDescription && (
+                  <ToastDescription>{description}</ToastDescription>
+                )}
+              </div>
+              {action}
+              <ToastClose />
+            </Toast>
+          )
+        })}
       <ToastViewport />
     </ToastProvider>
   )

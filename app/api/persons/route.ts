@@ -38,16 +38,17 @@ export async function POST(request: Request) {
 
     if (!person) {
       return NextResponse.json(
-        { error: "Error creating person" },
+        { error: "Error creating person. Verifica que el tipo de configuración 'person_type' esté creado." },
         { status: 500 }
       )
     }
 
     return NextResponse.json(person)
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating person:", error)
+    const errorMessage = error?.message || "Error al crear huésped. Verifica que el tipo de configuración 'person_type' esté creado."
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: errorMessage },
       { status: 500 }
     )
   }

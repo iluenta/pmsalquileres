@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
-import { createBooking } from "@/lib/api/bookings"
-import type { CreateBookingData } from "@/types/bookings"
+import { getBookings } from "@/lib/api/bookings"
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) {
@@ -15,24 +14,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body: CreateBookingData = await request.json()
+    const { data: userInfo } = await supabase.rpc("get_user_info", {
+      p_user_id: user.id,
+    })
 
-    const booking = await createBooking(body)
-
-    if (!booking) {
-      return NextResponse.json(
-        { error: "Error creating booking" },
-        { status: 500 }
-      )
+    if (!userInfo || userInfo.length === 0) {
+      return NextResponse.json({ error: "User info not found" }, { status: 404 })
     }
 
-    return NextResponse.json(booking)
-  } catch (error) {
-    console.error("Error creating booking:", error)
+    const tenantId = userInfo[0].tenant_id
+
+    const { searchParams } = new URL(request.url)
+    const yearParam = searchParams.get("year")
+    const year = yearParam && yearParam !== "all" ? parseInt(yearParam, 10) : null
+
+    const bookings = await getBookings(tenantId, year)
+
+    return NextResponse.json(bookings)
+  } catch (error: any) {
+    console.error("Error in /api/bookings:", error)
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: error.message || "Internal server error" },
       { status: 500 }
     )
   }
 }
-

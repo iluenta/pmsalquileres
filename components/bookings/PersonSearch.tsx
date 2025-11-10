@@ -50,20 +50,31 @@ export function PersonSearch({
     phone: "",
   })
 
+  const [searchError, setSearchError] = useState<string | null>(null)
+
   const searchPersons = useCallback(async (term: string) => {
     if (!term || term.length < 2) {
       setPersons([])
+      setSearchError(null)
       return
     }
 
     setLoading(true)
+    setSearchError(null)
     try {
       const response = await fetch(`/api/persons/search?tenantId=${tenantId}&search=${encodeURIComponent(term)}&category=guest`)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Error al buscar huéspedes")
+      }
+      
       const data = await response.json()
       setPersons(data || [])
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error searching persons:", error)
       setPersons([])
+      setSearchError(error.message || "Error al buscar huéspedes. Verifica que el tipo de configuración 'person_type' esté creado.")
     } finally {
       setLoading(false)
     }
@@ -81,11 +92,15 @@ export function PersonSearch({
     return () => clearTimeout(debounceTimer)
   }, [searchTerm, searchPersons])
 
+  const [createError, setCreateError] = useState<string | null>(null)
+
   const handleCreateNew = async () => {
     if (!newPersonData.first_name.trim() || !newPersonData.last_name.trim()) {
       return
     }
 
+    setCreateError(null)
+    
     if (!onCreateNew) {
       // Si no hay función de creación, crear mediante API
       try {
@@ -94,28 +109,37 @@ export function PersonSearch({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...newPersonData,
-            tenant_id: tenantId,
-            person_category: "guest",
           }),
         })
         
-        if (!response.ok) throw new Error("Error creating person")
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || "Error al crear huésped")
+        }
         
         const newPerson = await response.json()
         onSelect(newPerson)
         setOpen(false)
         setShowCreateForm(false)
         setNewPersonData({ first_name: "", last_name: "", email: "", phone: "" })
-      } catch (error) {
+        setSearchError(null)
+      } catch (error: any) {
         console.error("Error creating person:", error)
+        setCreateError(error.message || "Error al crear huésped. Verifica que el tipo de configuración 'person_type' esté creado.")
       }
     } else {
-      const newPerson = await onCreateNew(newPersonData)
-      if (newPerson) {
-        onSelect(newPerson)
-        setOpen(false)
-        setShowCreateForm(false)
-        setNewPersonData({ first_name: "", last_name: "", email: "", phone: "" })
+      try {
+        const newPerson = await onCreateNew(newPersonData)
+        if (newPerson) {
+          onSelect(newPerson)
+          setOpen(false)
+          setShowCreateForm(false)
+          setNewPersonData({ first_name: "", last_name: "", email: "", phone: "" })
+          setSearchError(null)
+        }
+      } catch (error: any) {
+        console.error("Error creating person:", error)
+        setCreateError(error.message || "Error al crear huésped")
       }
     }
   }
@@ -143,7 +167,7 @@ export function PersonSearch({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0" align="start">
-          <Command>
+          <Command shouldFilter={false}>
             <CommandInput 
               placeholder="Buscar por nombre, email o teléfono..." 
               value={searchTerm}
@@ -160,51 +184,63 @@ export function PersonSearch({
               )}
               {!loading && searchTerm.length >= 2 && persons.length === 0 && !showCreateForm && (
                 <CommandEmpty>
-                  <div className="py-4 text-center">
-                    <p className="text-sm text-gray-500 mb-2">No se encontraron huéspedes</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowCreateForm(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Crear nuevo huésped
-                    </Button>
+                  <div className="py-4 text-center space-y-2">
+                    {searchError ? (
+                      <>
+                        <p className="text-sm text-red-500 mb-2">{searchError}</p>
+                        <p className="text-xs text-gray-500">Ejecuta el script SQL: 024_create_person_type_config.sql</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-gray-500 mb-2">No se encontraron huéspedes</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowCreateForm(true)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Crear nuevo huésped
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </CommandEmpty>
               )}
               {!loading && !showCreateForm && persons.length > 0 && (
                 <CommandGroup>
-                  {persons.map((person) => (
-                    <CommandItem
-                      key={person.id}
-                      value={person.id}
-                      onSelect={() => {
-                        onSelect(person)
-                        setOpen(false)
-                        setSearchTerm("")
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          value?.id === person.id ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      <div className="flex flex-col">
-                        <span className="font-medium">
-                          {person.first_name} {person.last_name}
-                        </span>
-                        {(person.email || person.phone) && (
-                          <span className="text-xs text-gray-500">
-                            {person.email && person.email}
-                            {person.email && person.phone && " • "}
-                            {person.phone && person.phone}
+                  {persons.map((person) => {
+                    const personDisplayName = `${person.first_name} ${person.last_name}${person.email ? ` ${person.email}` : ''}${person.phone ? ` ${person.phone}` : ''}`
+                    return (
+                      <CommandItem
+                        key={person.id}
+                        value={personDisplayName}
+                        onSelect={() => {
+                          onSelect(person)
+                          setOpen(false)
+                          setSearchTerm("")
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            value?.id === person.id ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {person.first_name} {person.last_name}
                           </span>
-                        )}
-                      </div>
-                    </CommandItem>
-                  ))}
+                          {(person.email || person.phone) && (
+                            <span className="text-xs text-gray-500">
+                              {person.email && person.email}
+                              {person.email && person.phone && " • "}
+                              {person.phone && person.phone}
+                            </span>
+                          )}
+                        </div>
+                      </CommandItem>
+                    )
+                  })}
                 </CommandGroup>
               )}
               {showCreateForm && (
@@ -252,6 +288,9 @@ export function PersonSearch({
                         }
                       />
                     </div>
+                    {createError && (
+                      <p className="text-sm text-red-500">{createError}</p>
+                    )}
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -267,6 +306,7 @@ export function PersonSearch({
                         onClick={() => {
                           setShowCreateForm(false)
                           setNewPersonData({ first_name: "", last_name: "", email: "", phone: "" })
+                          setCreateError(null)
                         }}
                       >
                         Cancelar

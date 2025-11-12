@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Building2, Calendar, Users, CreditCard, Settings, BarChart3, BookOpen, ShoppingCart, CalendarDays } from "lucide-react"
+import { LayoutDashboard, Building2, Calendar, Users, CreditCard, Settings, BarChart3, BookOpen, ShoppingCart, CalendarDays, Wrench } from "lucide-react"
 
 const navigation = [
   {
@@ -32,8 +32,13 @@ const navigation = [
     icon: ShoppingCart,
   },
   {
-    name: "Huéspedes",
-    href: "/dashboard/guests",
+    name: "Proveedores de Servicios",
+    href: "/dashboard/service-providers",
+    icon: Wrench,
+  },
+  {
+    name: "Personas",
+    href: "/dashboard/persons",
     icon: Users,
   },
   {

@@ -54,7 +54,7 @@ export async function calculateBookingPaidAmount(
       return 0
     }
     
-    return movements?.reduce((sum, m) => sum + Number(m.amount || 0), 0) || 0
+    return movements?.reduce((sum: number, m) => sum + Number(m.amount || 0), 0) || 0
   } catch (error) {
     console.error('Error in calculateBookingPaidAmount:', error)
     return 0

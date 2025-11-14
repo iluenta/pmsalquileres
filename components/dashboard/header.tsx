@@ -79,7 +79,7 @@ export function Header() {
             }}
           >
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Año" />
+              <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>

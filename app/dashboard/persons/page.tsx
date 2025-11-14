@@ -34,7 +34,7 @@ export default function PersonsPage() {
   const [searchPhone, setSearchPhone] = useState("")
   const [isActive, setIsActive] = useState<boolean | null>(true)
   
-  const searchTimeoutRef = useRef<NodeJS.Timeout>()
+  const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   // Cargar tipos de persona
   useEffect(() => {

@@ -1,15 +1,10 @@
 "use client"
 
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay } from "date-fns"
+import { format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { Card } from "@/components/ui/card"
 import type { CalendarDay } from "@/lib/api/calendar"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 
 interface MonthCalendarProps {
   month: Date
@@ -37,112 +32,93 @@ export function MonthCalendar({ month, days, onDayClick }: MonthCalendarProps) {
     daysMap.set(dateKey, day)
   })
 
-  const getDayColor = (day: CalendarDay | null): string => {
-    if (!day) return ""
+  const getStatusColor = (day: CalendarDay | null): string => {
+    if (!day) {
+      return "bg-emerald-50 dark:bg-emerald-950 text-foreground hover:bg-emerald-100 dark:hover:bg-emerald-900"
+    }
     
     if (day.isAvailable) {
-      return "bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50"
+      return "bg-emerald-50 dark:bg-emerald-950 text-foreground hover:bg-emerald-100 dark:hover:bg-emerald-900"
     }
     
     if (day.bookingType === 'closed_period') {
-      return "bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50"
+      return "bg-amber-500 dark:bg-amber-600 text-white dark:text-white"
     }
     
     // Reserva comercial
-    return "bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50"
+    return "bg-rose-500 dark:bg-rose-600 text-white dark:text-white"
   }
 
-  const getDayTooltip = (day: CalendarDay | null): string => {
-    if (!day) return ""
-    
-    if (day.isAvailable) {
-      return "Disponible"
-    }
-    
-    if (day.bookingType === 'closed_period') {
-      return `Período cerrado${day.isCheckIn ? " (Inicio)" : ""}`
-    }
-    
-    if (day.booking) {
-      const dateStr = format(day.date, 'dd/MM/yyyy')
-      return day.guestName 
-        ? `Reserva de ${day.guestName}${day.isCheckIn ? " (Inicio)" : ""} - ${dateStr}`
-        : `Reserva${day.isCheckIn ? " (Inicio)" : ""} - ${dateStr}`
-    }
-    
-    return "Ocupado"
-  }
+  const monthName = month.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
 
   return (
-    <div className="space-y-2">
-      <h3 className="text-lg font-semibold text-center">
-        {format(month, "MMMM yyyy", { locale: es })}
-      </h3>
-      
-      {/* Días de la semana */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day, index) => (
-          <div
-            key={index}
-            className="text-center text-sm font-medium text-muted-foreground py-2"
-          >
-            {day}
-          </div>
-        ))}
+    <Card className="overflow-hidden border-border">
+      <div className="bg-gradient-to-r from-muted/50 to-muted/30 dark:from-muted/30 dark:to-muted/20 p-4">
+        <h3 className="text-center font-semibold text-foreground text-pretty capitalize">
+          {monthName}
+        </h3>
       </div>
 
-      {/* Calendario */}
-      <div className="grid grid-cols-7 gap-1">
-        {/* Días vacíos al inicio */}
-        {emptyDays.map((_, index) => (
-          <div key={`empty-${index}`} className="aspect-square" />
-        ))}
+      <div className="p-4">
+        {/* Day headers */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day) => (
+            <div
+              key={day}
+              className="text-center text-xs font-semibold text-muted-foreground py-2"
+            >
+              {day}
+            </div>
+          ))}
+        </div>
 
-        {/* Días del mes */}
-        {monthDays.map((date) => {
-          const dateKey = format(date, 'yyyy-MM-dd')
-          const day = daysMap.get(dateKey) || null
-          const dayColor = getDayColor(day)
-          const isCurrentDay = isToday(date)
-          const isCurrentMonth = isSameMonth(date, month)
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-1">
+          {/* Empty cells for days before month starts */}
+          {emptyDays.map((_, i) => (
+            <div key={`empty-${i}`} className="aspect-square" />
+          ))}
 
-          return (
-            <TooltipProvider key={dateKey}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
-                    className={cn(
-                      "aspect-square rounded-md border border-border p-1 text-sm cursor-pointer transition-colors",
-                      dayColor,
-                      isCurrentDay && "ring-2 ring-primary ring-offset-2",
-                      !isCurrentMonth && "opacity-50"
-                    )}
-                    onClick={() => day && onDayClick?.(day)}
-                  >
-                    <div className="flex flex-col h-full">
-                      <span className={cn(
-                        "text-xs font-medium",
-                        isCurrentDay && "text-primary font-bold"
-                      )}>
-                        {format(date, "d")}
-                      </span>
-                      {day && !day.isAvailable && day.isCheckIn && day.guestName && (
-                        <span className="text-[10px] truncate mt-auto font-medium">
-                          {day.guestName.split(' ')[0]}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{getDayTooltip(day)}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )
-        })}
+          {/* Days */}
+          {monthDays.map((date) => {
+            const dateKey = format(date, 'yyyy-MM-dd')
+            const day = daysMap.get(dateKey) || null
+            const isReserved = day && !day.isAvailable
+            const statusColor = getStatusColor(day)
+
+            return (
+              <div
+                key={dateKey}
+                className={cn(
+                  "aspect-square rounded-md border border-border flex flex-col items-center justify-center p-1 text-xs transition-colors cursor-pointer",
+                  statusColor
+                )}
+                title={
+                  isReserved && day.booking
+                    ? `${day.guestName || 'Reserva'} (${format(day.date, 'dd/MM/yyyy')})`
+                    : day?.bookingType === 'closed_period'
+                    ? 'Período Cerrado'
+                    : 'Disponible'
+                }
+                onClick={() => day && onDayClick?.(day)}
+              >
+                <span className="font-semibold">{format(date, "d")}</span>
+                {isReserved && day.guestName && (
+                  <span className="text-xs font-medium leading-tight text-center line-clamp-2">
+                    {day.guestName}
+                  </span>
+                )}
+                {day?.bookingType === 'closed_period' && (
+                  <span className="text-xs font-medium leading-tight text-center line-clamp-2">
+                    Período Cerrado
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
-    </div>
+    </Card>
   )
 }
 

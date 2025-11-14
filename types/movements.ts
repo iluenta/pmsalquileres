@@ -6,9 +6,9 @@ export interface Movement {
   id: string
   tenant_id: string
   movement_type_id: string // ID de configuration_value donde configuration_type = 'movement_type'
-  booking_id: string | null // Solo para ingresos
-  service_provider_id: string | null // Solo para gastos
-  service_provider_service_id: string | null // Opcional, solo para gastos
+  booking_id: string | null // Para ingresos (requerido) y gastos (opcional)
+  service_provider_id: string | null // Solo para gastos (requerido)
+  service_provider_service_id: string | null // Opcional, solo para gastos (deprecated, usar expense_items)
   treasury_account_id: string
   payment_method_id: string // ID de configuration_value donde configuration_type = 'payment_method'
   movement_status_id: string // ID de configuration_value donde configuration_type = 'movement_status'
@@ -20,6 +20,27 @@ export interface Movement {
   created_at: string
   updated_at: string
   created_by: string | null
+}
+
+export interface MovementExpenseItem {
+  id: string
+  movement_id: string
+  service_provider_service_id: string | null
+  service_name: string
+  amount: number
+  tax_type_id: string | null
+  tax_amount: number
+  total_amount: number
+  notes: string | null
+  created_at: string
+  updated_at: string
+  service_provider_service?: {
+    id: string
+    service_type?: {
+      label: string
+    }
+  }
+  tax_type?: ConfigurationValue
 }
 
 export interface MovementWithDetails extends Movement {
@@ -47,6 +68,7 @@ export interface MovementWithDetails extends Movement {
       label: string
     }
   } | null
+  expense_items?: MovementExpenseItem[]
   treasury_account?: {
     id: string
     name: string
@@ -58,11 +80,31 @@ export interface MovementWithDetails extends Movement {
 }
 
 // Tipos para operaciones CRUD
+export interface CreateExpenseItemData {
+  service_provider_service_id?: string | null
+  service_name: string
+  amount: number
+  tax_type_id?: string | null
+  tax_amount?: number
+  total_amount?: number
+  notes?: string | null
+}
+
+export interface UpdateExpenseItemData {
+  service_provider_service_id?: string | null
+  service_name?: string
+  amount?: number
+  tax_type_id?: string | null
+  tax_amount?: number
+  total_amount?: number
+  notes?: string | null
+}
+
 export interface CreateMovementData {
   movement_type_id: string
-  booking_id?: string | null // Solo para ingresos
-  service_provider_id?: string | null // Solo para gastos
-  service_provider_service_id?: string | null // Opcional, solo para gastos
+  booking_id?: string | null // Para ingresos (requerido) y gastos (opcional)
+  service_provider_id?: string | null // Solo para gastos (requerido)
+  service_provider_service_id?: string | null // Opcional, solo para gastos (deprecated, usar expense_items)
   treasury_account_id: string
   payment_method_id: string
   movement_status_id: string
@@ -71,6 +113,7 @@ export interface CreateMovementData {
   reference?: string | null
   movement_date: string
   notes?: string | null
+  expense_items?: CreateExpenseItemData[] // Solo para gastos
 }
 
 export interface UpdateMovementData {
@@ -86,6 +129,7 @@ export interface UpdateMovementData {
   reference?: string | null
   movement_date?: string
   notes?: string | null
+  expense_items?: (CreateExpenseItemData & { id?: string })[] // Para crear/actualizar/eliminar items
 }
 
 // Tipos auxiliares para cálculos

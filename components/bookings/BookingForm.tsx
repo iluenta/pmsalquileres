@@ -13,11 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { PersonSearch } from "./PersonSearch"
-import { Loader2, Save, Calendar, User, ShoppingCart, DollarSign, FileText } from "lucide-react"
+import { Loader2, Save, CalendarIcon, ChevronLeft } from "lucide-react"
 import type { Booking, BookingWithDetails, Person, CreateBookingData, UpdateBookingData } from "@/types/bookings"
 import type { Property } from "@/lib/api/properties"
 import type { ConfigurationValue } from "@/lib/api/configuration"
@@ -575,51 +574,52 @@ export function BookingForm({
   }
 
   const nights = calculateNights()
+  const selectedProperty = properties.find(p => p.id === formData.property_id)
+  const selectedBookingType = bookingTypes.find(bt => bt.id === formData.booking_type_id)
+  const selectedBookingStatus = bookingStatuses.find(bs => bs.id === formData.booking_status_id)
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-full">
-      <Card>
-        <CardHeader>
-          <CardTitle>{booking ? "Editar Reserva" : "Nueva Reserva"}</CardTitle>
-          <CardDescription>Complete la información de la reserva en las siguientes pestañas</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="general" className="w-full">
-            <TabsList className={`grid w-full ${isClosedPeriod ? 'grid-cols-2' : 'grid-cols-5'}`}>
-              <TabsTrigger value="general" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="hidden sm:inline">General</span>
-              </TabsTrigger>
-              {!isClosedPeriod && (
-                <TabsTrigger value="guest" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Huésped</span>
-                </TabsTrigger>
-              )}
-              {!isClosedPeriod && (
-                <TabsTrigger value="channel" className="flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4" />
-                  <span className="hidden sm:inline">Canal</span>
-                </TabsTrigger>
-              )}
-              {!isClosedPeriod && (
-                <TabsTrigger value="amounts" className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="hidden sm:inline">Importes</span>
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="status" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">Estado</span>
-              </TabsTrigger>
-            </TabsList>
+    <div className="min-h-screen bg-gradient-to-b from-muted/20 to-background p-4 md:p-6 lg:p-8">
+      {/* Header */}
+      <div className="mb-6 md:mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/bookings")}
+            className="p-1.5 hover:bg-muted rounded-lg transition"
+          >
+            <ChevronLeft className="w-5 h-5 text-foreground" />
+          </button>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              {booking ? `Editar Reserva ${booking.booking_code}` : "Nueva Reserva"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {booking ? "Modifica los datos de la reserva" : "Crea una nueva reserva para una propiedad"}
+            </p>
+          </div>
+        </div>
+      </div>
 
-            {/* Pestaña: Información General */}
-            <TabsContent value="general" className="space-y-4 mt-6">
+      <form onSubmit={handleSubmit} className="space-y-6 md:space-y-0">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Main Info */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Section 1: Información General */}
+            <Card className="p-5 md:p-6 border-0 shadow-sm hover:shadow-md transition-shadow">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+                  1
+                </span>
+                Información General
+              </h2>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Property */}
                 <div className="space-y-2">
-                  <Label htmlFor="property_id">
-                    Propiedad <span className="text-red-500">*</span>
+                  <Label htmlFor="property_id" className="text-sm font-medium text-foreground">
+                    Propiedad <span className="text-destructive">*</span>
                   </Label>
                   <Select
                     value={formData.property_id}
@@ -627,7 +627,7 @@ export function BookingForm({
                       setFormData({ ...formData, property_id: value, channel_id: "", channel_booking_number: "" })
                     }}
                   >
-                    <SelectTrigger id="property_id">
+                    <SelectTrigger id="property_id" className="bg-background">
                       <SelectValue placeholder="Seleccione una propiedad" />
                     </SelectTrigger>
                     <SelectContent>
@@ -639,13 +639,14 @@ export function BookingForm({
                     </SelectContent>
                   </Select>
                   {errors.property_id && (
-                    <p className="text-sm text-red-500">{errors.property_id}</p>
+                    <p className="text-sm text-destructive">{errors.property_id}</p>
                   )}
                 </div>
 
+                {/* Reservation Type */}
                 <div className="space-y-2">
-                  <Label htmlFor="booking_type_id">
-                    Tipo de Reserva <span className="text-red-500">*</span>
+                  <Label htmlFor="booking_type_id" className="text-sm font-medium text-foreground">
+                    Tipo de Reserva <span className="text-destructive">*</span>
                   </Label>
                   <Select
                     value={formData.booking_type_id}
@@ -673,7 +674,7 @@ export function BookingForm({
                       }
                     }}
                   >
-                    <SelectTrigger id="booking_type_id">
+                    <SelectTrigger id="booking_type_id" className="bg-background">
                       <SelectValue placeholder="Seleccione un tipo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -685,70 +686,72 @@ export function BookingForm({
                     </SelectContent>
                   </Select>
                   {errors.booking_type_id && (
-                    <p className="text-sm text-red-500">{errors.booking_type_id}</p>
+                    <p className="text-sm text-destructive">{errors.booking_type_id}</p>
                   )}
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="check_in_date">
-                Fecha de Entrada <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="check_in_date"
-                type="date"
-                value={formData.check_in_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, check_in_date: e.target.value })
-                }
-                className="w-full"
-              />
-              {errors.check_in_date && (
-                <p className="text-sm text-red-500">{errors.check_in_date}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="check_out_date">
-                Fecha de Salida <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="check_out_date"
-                type="date"
-                value={formData.check_out_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, check_out_date: e.target.value })
-                }
-                className="w-full"
-              />
-              {errors.check_out_date && (
-                <p className="text-sm text-red-500">{errors.check_out_date}</p>
-              )}
-            </div>
-
+                {/* Check-in Date */}
                 <div className="space-y-2">
-                  <Label>Número de Noches</Label>
+                  <Label htmlFor="check_in_date" className="text-sm font-medium text-foreground">
+                    Fecha de Entrada <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="check_in_date"
+                    type="date"
+                    value={formData.check_in_date}
+                    onChange={(e) =>
+                      setFormData({ ...formData, check_in_date: e.target.value })
+                    }
+                    className="bg-background"
+                  />
+                  {errors.check_in_date && (
+                    <p className="text-sm text-destructive">{errors.check_in_date}</p>
+                  )}
+                </div>
+
+                {/* Check-out Date */}
+                <div className="space-y-2">
+                  <Label htmlFor="check_out_date" className="text-sm font-medium text-foreground">
+                    Fecha de Salida <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="check_out_date"
+                    type="date"
+                    value={formData.check_out_date}
+                    onChange={(e) =>
+                      setFormData({ ...formData, check_out_date: e.target.value })
+                    }
+                    className="bg-background"
+                  />
+                  {errors.check_out_date && (
+                    <p className="text-sm text-destructive">{errors.check_out_date}</p>
+                  )}
+                </div>
+
+                {/* Number of Nights */}
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="text-sm font-medium text-foreground">Número de Noches</Label>
                   <Input
                     type="text"
                     value={nights > 0 ? `${nights} ${nights === 1 ? 'noche' : 'noches'}` : '-'}
                     readOnly
-                    className="w-full bg-muted cursor-not-allowed"
+                    className="bg-muted cursor-not-allowed"
                   />
                 </div>
               </div>
-            </TabsContent>
+            </Card>
 
-            {/* Pestaña: Huésped */}
+            {/* Section 2: Datos del Huésped - Only for Commercial */}
             {!isClosedPeriod && (
-              <TabsContent value="guest" className="space-y-4 mt-6">
+              <Card className="p-5 md:p-6 border-0 shadow-sm hover:shadow-md transition-shadow">
+                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+                    2
+                  </span>
+                  Datos del Huésped
+                </h2>
+
                 <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Datos del Huésped</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Seleccione o cree un nuevo huésped para esta reserva
-                    </p>
-                  </div>
                   <PersonSearch
                     tenantId={tenantId}
                     value={selectedPerson}
@@ -756,365 +759,354 @@ export function BookingForm({
                     required
                   />
                   {errors.person && (
-                    <p className="text-sm text-red-500">{errors.person}</p>
+                    <p className="text-sm text-destructive">{errors.person}</p>
                   )}
                 </div>
-              </TabsContent>
+              </Card>
             )}
 
-            {/* Pestaña: Canal de Venta */}
+            {/* Section 3: Canal de Venta - Only for Commercial */}
             {!isClosedPeriod && (
-              <TabsContent value="channel" className="space-y-4 mt-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Canal de Venta</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Seleccione el canal de venta utilizado para esta reserva (opcional)
-                    </p>
+              <Card className="p-5 md:p-6 border-0 shadow-sm hover:shadow-md transition-shadow">
+                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+                    3
+                  </span>
+                  Canal de Venta
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="channel_id" className="text-sm font-medium text-foreground">
+                      Canal de Venta
+                    </Label>
+                    <Select
+                      value={formData.channel_id || "none"}
+                      onValueChange={(value) =>
+                        setFormData({ 
+                          ...formData, 
+                          channel_id: value === "none" ? "" : value,
+                          channel_booking_number: value === "none" ? "" : formData.channel_booking_number
+                        })
+                      }
+                      disabled={!formData.property_id}
+                    >
+                      <SelectTrigger id="channel_id" className="bg-background">
+                        <SelectValue 
+                          placeholder={
+                            !formData.property_id 
+                              ? "Seleccione primero una propiedad" 
+                              : channels.length === 0 
+                                ? "No hay canales activos para esta propiedad"
+                                : "Seleccione un canal (opcional)"
+                          } 
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin canal</SelectItem>
+                        {channels.length === 0 && formData.property_id ? (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            No hay canales activos para esta propiedad. 
+                            Configúralos en la edición de la propiedad.
+                          </div>
+                        ) : (
+                          channels.map((channel) => (
+                            <SelectItem key={channel.id} value={channel.id}>
+                              <div className="flex items-center gap-2">
+                                {channel.logo_url && (
+                                  <img
+                                    src={channel.logo_url}
+                                    alt={channel.name}
+                                    className="h-4 w-4 object-contain"
+                                  />
+                                )}
+                                <span>{channel.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {formData.property_id && propertyChannels.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Esta propiedad no tiene canales de venta activos. 
+                        Configúralos en la edición de la propiedad.
+                      </p>
+                    )}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                  {formData.channel_id ? (
                     <div className="space-y-2">
-                      <Label htmlFor="channel_id">
-                        Canal de Venta
+                      <Label htmlFor="channel_booking_number" className="text-sm font-medium text-foreground">
+                        Número de Reserva del Canal <span className="text-destructive">*</span>
                       </Label>
-                      <Select
-                        value={formData.channel_id || "none"}
-                        onValueChange={(value) =>
-                          setFormData({ 
-                            ...formData, 
-                            channel_id: value === "none" ? "" : value,
-                            channel_booking_number: value === "none" ? "" : formData.channel_booking_number
+                      <Input
+                        id="channel_booking_number"
+                        type="text"
+                        placeholder="Ej: 12345678"
+                        value={formData.channel_booking_number}
+                        onChange={(e) => {
+                          const newValue = e.target.value
+                          setFormData({ ...formData, channel_booking_number: newValue })
+                          if (newValue.trim() && errors.channel_booking_number) {
+                            setErrors(prev => {
+                              const newErrors = { ...prev }
+                              delete newErrors.channel_booking_number
+                              return newErrors
+                            })
+                          }
+                        }}
+                        onBlur={() => {
+                          setTouched(prev => ({ ...prev, channel_booking_number: true }))
+                          if (formData.channel_id && !formData.channel_booking_number?.trim()) {
+                            setErrors(prev => ({
+                              ...prev,
+                              channel_booking_number: "El número de reserva del canal es obligatorio cuando se selecciona un canal"
+                            }))
+                          } else if (formData.channel_booking_number?.trim()) {
+                            setErrors(prev => {
+                              const newErrors = { ...prev }
+                              delete newErrors.channel_booking_number
+                              return newErrors
+                            })
+                          }
+                        }}
+                        className={`bg-background ${errors.channel_booking_number && touched.channel_booking_number ? "border-destructive" : ""}`}
+                      />
+                      {errors.channel_booking_number && touched.channel_booking_number && (
+                        <p className="text-sm text-destructive">{errors.channel_booking_number}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Número que identifica esta reserva en el canal de venta seleccionado
+                      </p>
+                    </div>
+                  ) : (
+                    <div></div>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Section 4: Importes y Comisiones - Only for Commercial */}
+            {!isClosedPeriod && (
+              <Card className="p-5 md:p-6 border-0 shadow-sm hover:shadow-md transition-shadow">
+                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+                    4
+                  </span>
+                  Importes y Comisiones
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Number of Guests */}
+                  <div className="space-y-2">
+                    <Label htmlFor="number_of_guests" className="text-sm font-medium text-foreground">
+                      Número de Huéspedes <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="number_of_guests"
+                      type="number"
+                      min="1"
+                      max={formData.property_id ? (() => {
+                        const selectedProperty = properties.find(p => p.id === formData.property_id)
+                        return selectedProperty?.max_guests || undefined
+                      })() : undefined}
+                      value={formData.number_of_guests}
+                      onChange={(e) => {
+                        const newValue = parseInt(e.target.value) || 1
+                        setFormData({
+                          ...formData,
+                          number_of_guests: newValue,
+                        })
+                        if (formData.property_id) {
+                          const selectedProperty = properties.find(p => p.id === formData.property_id)
+                          if (selectedProperty?.max_guests && newValue > selectedProperty.max_guests) {
+                            setErrors(prev => ({
+                              ...prev,
+                              number_of_guests: `El número de huéspedes no puede ser superior a ${selectedProperty.max_guests} (máximo configurado para esta propiedad)`
+                            }))
+                          } else if (errors.number_of_guests && newValue <= (selectedProperty?.max_guests || Infinity)) {
+                            setErrors(prev => {
+                              const newErrors = { ...prev }
+                              delete newErrors.number_of_guests
+                              return newErrors
+                            })
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        if (formData.property_id) {
+                          const selectedProperty = properties.find(p => p.id === formData.property_id)
+                          if (selectedProperty?.max_guests && formData.number_of_guests > selectedProperty.max_guests) {
+                            setErrors(prev => ({
+                              ...prev,
+                              number_of_guests: `El número de huéspedes no puede ser superior a ${selectedProperty.max_guests} (máximo configurado para esta propiedad)`
+                            }))
+                          }
+                        }
+                      }}
+                      className={`bg-background ${errors.number_of_guests ? "border-destructive" : ""}`}
+                    />
+                    {errors.number_of_guests && (
+                      <p className="text-sm text-destructive">{errors.number_of_guests}</p>
+                    )}
+                    {formData.property_id && (() => {
+                      const selectedProperty = properties.find(p => p.id === formData.property_id)
+                      return selectedProperty?.max_guests ? (
+                        <p className="text-xs text-muted-foreground">
+                          Máximo {selectedProperty.max_guests} huéspedes
+                        </p>
+                      ) : null
+                    })()}
+                  </div>
+
+                  {/* Total Amount */}
+                  <div className="space-y-2">
+                    <Label htmlFor="total_amount" className="text-sm font-medium text-foreground">
+                      Importe Total <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="flex items-center">
+                      <Input
+                        id="total_amount"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.total_amount}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            total_amount: parseFloat(e.target.value) || 0,
                           })
                         }
-                        disabled={!formData.property_id}
-                      >
-                        <SelectTrigger id="channel_id">
-                          <SelectValue 
-                            placeholder={
-                              !formData.property_id 
-                                ? "Seleccione primero una propiedad" 
-                                : channels.length === 0 
-                                  ? "No hay canales activos para esta propiedad"
-                                  : "Seleccione un canal (opcional)"
-                            } 
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Sin canal</SelectItem>
-                          {channels.length === 0 && formData.property_id ? (
-                            <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                              No hay canales activos para esta propiedad. 
-                              Configúralos en la edición de la propiedad.
-                            </div>
-                          ) : (
-                            channels.map((channel) => (
-                              <SelectItem key={channel.id} value={channel.id}>
-                                <div className="flex items-center gap-2">
-                                  {channel.logo_url && (
-                                    <img
-                                      src={channel.logo_url}
-                                      alt={channel.name}
-                                      className="h-4 w-4 object-contain"
-                                    />
-                                  )}
-                                  <span>{channel.name}</span>
-                                </div>
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      {formData.property_id && propertyChannels.length === 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          Esta propiedad no tiene canales de venta activos. 
-                          Configúralos en la edición de la propiedad.
-                        </p>
-                      )}
+                        className="bg-background rounded-r-none"
+                      />
+                      <span className="px-4 py-2 bg-muted border border-l-0 border-input rounded-r-md text-muted-foreground font-medium">
+                        €
+                      </span>
                     </div>
-
-                    {formData.channel_id ? (
-                      <div className="space-y-2">
-                        <Label htmlFor="channel_booking_number">
-                          Número de Reserva del Canal <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id="channel_booking_number"
-                          type="text"
-                          placeholder="Ej: 12345678"
-                          value={formData.channel_booking_number}
-                          onChange={(e) => {
-                            const newValue = e.target.value
-                            setFormData({ ...formData, channel_booking_number: newValue })
-                            // Limpiar error cuando el usuario empiece a escribir y el campo tenga valor
-                            if (newValue.trim() && errors.channel_booking_number) {
-                              setErrors(prev => {
-                                const newErrors = { ...prev }
-                                delete newErrors.channel_booking_number
-                                return newErrors
-                              })
-                            }
-                          }}
-                          onBlur={() => {
-                            // Validar cuando pierde el foco solo si está vacío
-                            setTouched(prev => ({ ...prev, channel_booking_number: true }))
-                            if (formData.channel_id && !formData.channel_booking_number?.trim()) {
-                              setErrors(prev => ({
-                                ...prev,
-                                channel_booking_number: "El número de reserva del canal es obligatorio cuando se selecciona un canal"
-                              }))
-                            } else if (formData.channel_booking_number?.trim()) {
-                              // Limpiar error si tiene valor
-                              setErrors(prev => {
-                                const newErrors = { ...prev }
-                                delete newErrors.channel_booking_number
-                                return newErrors
-                              })
-                            }
-                          }}
-                          className={errors.channel_booking_number && touched.channel_booking_number ? "border-red-500" : ""}
-                        />
-                        {errors.channel_booking_number && touched.channel_booking_number && (
-                          <p className="text-sm text-red-500">{errors.channel_booking_number}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          Número que identifica esta reserva en el canal de venta seleccionado
-                        </p>
-                      </div>
-                    ) : (
-                      <div></div>
+                    {errors.total_amount && (
+                      <p className="text-sm text-destructive">{errors.total_amount}</p>
                     )}
                   </div>
                 </div>
-              </TabsContent>
-            )}
 
-            {/* Pestaña: Importes */}
-            {!isClosedPeriod && (
-              <TabsContent value="amounts" className="space-y-4 mt-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Importes y Comisiones</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Configure los importes de la reserva y las comisiones
-                    </p>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="number_of_guests">
-                        Número de Huéspedes <span className="text-red-500">*</span>
-                      </Label>
-                  <Input
-                    id="number_of_guests"
-                    type="number"
-                    min="1"
-                    max={formData.property_id ? (() => {
-                      const selectedProperty = properties.find(p => p.id === formData.property_id)
-                      return selectedProperty?.max_guests || undefined
-                    })() : undefined}
-                    value={formData.number_of_guests}
-                    onChange={(e) => {
-                      const newValue = parseInt(e.target.value) || 1
-                      setFormData({
-                        ...formData,
-                        number_of_guests: newValue,
-                      })
-                      // Validar en tiempo real
-                      if (formData.property_id) {
-                        const selectedProperty = properties.find(p => p.id === formData.property_id)
-                        if (selectedProperty?.max_guests && newValue > selectedProperty.max_guests) {
-                          setErrors(prev => ({
-                            ...prev,
-                            number_of_guests: `El número de huéspedes no puede ser superior a ${selectedProperty.max_guests} (máximo configurado para esta propiedad)`
-                          }))
-                        } else if (errors.number_of_guests && newValue <= (selectedProperty?.max_guests || Infinity)) {
-                          // Limpiar error si ahora es válido
-                          setErrors(prev => {
-                            const newErrors = { ...prev }
-                            delete newErrors.number_of_guests
-                            return newErrors
-                          })
-                        }
-                      }
-                    }}
-                    onBlur={() => {
-                      // Validar cuando pierde el foco
-                      if (formData.property_id) {
-                        const selectedProperty = properties.find(p => p.id === formData.property_id)
-                        if (selectedProperty?.max_guests && formData.number_of_guests > selectedProperty.max_guests) {
-                          setErrors(prev => ({
-                            ...prev,
-                            number_of_guests: `El número de huéspedes no puede ser superior a ${selectedProperty.max_guests} (máximo configurado para esta propiedad)`
-                          }))
-                        }
-                      }
-                    }}
-                    className={`w-full ${errors.number_of_guests ? "border-red-500" : ""}`}
-                  />
-                  {errors.number_of_guests && (
-                    <p className="text-sm text-red-500">{errors.number_of_guests}</p>
-                  )}
-                  {formData.property_id && (() => {
-                    const selectedProperty = properties.find(p => p.id === formData.property_id)
-                    return selectedProperty?.max_guests ? (
-                      <p className="text-xs text-muted-foreground">
-                        Máximo de huéspedes para esta propiedad: {selectedProperty.max_guests}
-                      </p>
-                    ) : null
-                  })()}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="total_amount">
-                    Importe Total <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="total_amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.total_amount}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        total_amount: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full"
-                  />
-                  {errors.total_amount && (
-                    <p className="text-sm text-red-500">{errors.total_amount}</p>
-                  )}
-                </div>
-
-              </div>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Desglose de Comisiones e Impuestos</CardTitle>
-                      <CardDescription>
-                        Comisiones calculadas automáticamente desde el canal de venta. Puedes modificarlas manualmente.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sales_commission_amount">
-                    Comisión de Venta (€)
-                  </Label>
-                  <Input
-                    id="sales_commission_amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.sales_commission_amount}
-                    onChange={(e) => {
-                      setManuallyModified(prev => ({ ...prev, sales_commission_amount: true }))
-                      setFormData({
-                        ...formData,
-                        sales_commission_amount: parseFloat(e.target.value) || 0,
-                      })
-                    }}
-                  />
-                  {selectedChannel && (
-                    <p className="text-xs text-muted-foreground">
-                      {selectedChannel.sales_commission}% del total
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="collection_commission_amount">
-                    Comisión de Cobro (€)
-                  </Label>
-                  <Input
-                    id="collection_commission_amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.collection_commission_amount}
-                    onChange={(e) => {
-                      setManuallyModified(prev => ({ ...prev, collection_commission_amount: true }))
-                      setFormData({
-                        ...formData,
-                        collection_commission_amount: parseFloat(e.target.value) || 0,
-                      })
-                    }}
-                  />
-                  {selectedChannel && (
-                    <p className="text-xs text-muted-foreground">
-                      {selectedChannel.collection_commission}% del total
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tax_amount">
-                    Impuesto (€)
-                  </Label>
-                  <Input
-                    id="tax_amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.tax_amount}
-                    onChange={(e) => {
-                      setManuallyModified(prev => ({ ...prev, tax_amount: true }))
-                      setFormData({
-                        ...formData,
-                        tax_amount: parseFloat(e.target.value) || 0,
-                      })
-                    }}
-                  />
-                  {selectedChannel && selectedChannel.apply_tax && selectedChannel.tax_percentage && (
-                    <p className="text-xs text-muted-foreground">
-                      {selectedChannel.tax_percentage}% del total
-                    </p>
-                  )}
-                  {(!selectedChannel || !selectedChannel.apply_tax) && (
-                    <p className="text-xs text-muted-foreground">
-                      Sin impuesto aplicado
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="net_amount">
-                    Importe Neto (€)
-                  </Label>
-                  <Input
-                    id="net_amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.net_amount}
-                    disabled
-                    className="bg-gray-100"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Calculado automáticamente: Total - Comisiones - Impuesto
-                  </p>
-                </div>
+                {/* Fee Breakdown */}
+                <div className="mt-6 pt-6 border-t border-border">
+                  <h3 className="text-sm font-semibold text-foreground mb-4">Desglose de Comisiones e Impuestos</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-muted p-4 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">Comisión de Venta (€)</p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="sales_commission_amount"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={formData.sales_commission_amount}
+                          onChange={(e) => {
+                            setManuallyModified(prev => ({ ...prev, sales_commission_amount: true }))
+                            setFormData({
+                              ...formData,
+                              sales_commission_amount: parseFloat(e.target.value) || 0,
+                            })
+                          }}
+                          className="bg-background"
+                        />
                       </div>
-                    </CardContent>
-                  </Card>
+                      {selectedChannel && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {selectedChannel.sales_commission}% del total
+                        </p>
+                      )}
+                    </div>
+                    <div className="bg-muted p-4 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">Comisión de Cobro (€)</p>
+                      <Input
+                        id="collection_commission_amount"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.collection_commission_amount}
+                        onChange={(e) => {
+                          setManuallyModified(prev => ({ ...prev, collection_commission_amount: true }))
+                          setFormData({
+                            ...formData,
+                            collection_commission_amount: parseFloat(e.target.value) || 0,
+                          })
+                        }}
+                        className="bg-background"
+                      />
+                      {selectedChannel && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {selectedChannel.collection_commission}% del total
+                        </p>
+                      )}
+                    </div>
+                    <div className="bg-muted p-4 rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">Impuesto (€)</p>
+                      <Input
+                        id="tax_amount"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.tax_amount}
+                        onChange={(e) => {
+                          setManuallyModified(prev => ({ ...prev, tax_amount: true }))
+                          setFormData({
+                            ...formData,
+                            tax_amount: parseFloat(e.target.value) || 0,
+                          })
+                        }}
+                        className="bg-background"
+                      />
+                      {selectedChannel && selectedChannel.apply_tax && selectedChannel.tax_percentage && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {selectedChannel.tax_percentage}% del total
+                        </p>
+                      )}
+                      {(!selectedChannel || !selectedChannel.apply_tax) && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Sin impuesto aplicado
+                        </p>
+                      )}
+                    </div>
+                    <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-4 rounded-lg border border-primary/20">
+                      <p className="text-xs text-foreground mb-1">Importe Neto (€)</p>
+                      <Input
+                        id="net_amount"
+                        type="number"
+                        step="0.01"
+                        value={formData.net_amount}
+                        disabled
+                        className="bg-background font-semibold"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Total - Comisiones - Impuesto
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </TabsContent>
+              </Card>
             )}
+          </div>
 
-            {/* Pestaña: Estado y Notas */}
-            <TabsContent value="status" className="space-y-4 mt-6">
+          {/* Right Column - Status & Summary */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Section 5: Estado y Notas */}
+            <Card className="p-5 md:p-6 border-0 shadow-sm hover:shadow-md transition-shadow sticky top-6">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+                  5
+                </span>
+                Estado y Notas
+              </h2>
+
               <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Estado y Notas</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Configure el estado de la reserva y añada notas adicionales
-                  </p>
-                </div>
-
+                {/* Status - Only for Commercial */}
                 {!isClosedPeriod && (
                   <div className="space-y-2">
-                    <Label htmlFor="booking_status_id">
-                      Estado de la Reserva <span className="text-red-500">*</span>
+                    <Label htmlFor="booking_status_id" className="text-sm font-medium text-foreground">
+                      Estado de la Reserva <span className="text-destructive">*</span>
                     </Label>
                     <Select
                       value={formData.booking_status_id || undefined}
@@ -1122,18 +1114,16 @@ export function BookingForm({
                         setFormData({ ...formData, booking_status_id: value })
                       }
                     >
-                      <SelectTrigger id="booking_status_id" className={errors.booking_status_id ? "border-red-500" : ""}>
+                      <SelectTrigger id="booking_status_id" className={`bg-background ${errors.booking_status_id ? "border-destructive" : ""}`}>
                         <SelectValue placeholder="Seleccione un estado" />
                       </SelectTrigger>
                       <SelectContent>
                         {bookingStatuses.length > 0 ? (
-                          <>
-                            {bookingStatuses.map((status) => (
-                              <SelectItem key={status.id} value={status.id}>
-                                {status.label}
-                              </SelectItem>
-                            ))}
-                          </>
+                          bookingStatuses.map((status) => (
+                            <SelectItem key={status.id} value={status.id}>
+                              {status.label}
+                            </SelectItem>
+                          ))
                         ) : (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">
                             No hay estados disponibles
@@ -1142,44 +1132,74 @@ export function BookingForm({
                       </SelectContent>
                     </Select>
                     {errors.booking_status_id && (
-                      <p className="text-sm text-red-500">{errors.booking_status_id}</p>
+                      <p className="text-sm text-destructive">{errors.booking_status_id}</p>
                     )}
                   </div>
                 )}
 
+                {/* Notes */}
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notas</Label>
+                  <Label htmlFor="notes" className="text-sm font-medium text-foreground">
+                    Notas Adicionales
+                  </Label>
                   <Textarea
                     id="notes"
-                    placeholder="Notas adicionales sobre la reserva..."
+                    placeholder="Añade notas adicionales sobre la reserva..."
                     rows={4}
                     value={formData.notes}
                     onChange={(e) =>
                       setFormData({ ...formData, notes: e.target.value })
                     }
+                    className="bg-background resize-none h-40 md:h-56"
                   />
                 </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
 
-      <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push("/dashboard/bookings")}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          <Save className="mr-2 h-4 w-4" />
-          {booking ? "Actualizar Reserva" : "Crear Reserva"}
-        </Button>
-      </div>
-    </form>
+                {/* Summary Card */}
+                <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-4 rounded-lg border border-primary/20 mt-6">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Resumen de Reserva</h3>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    {booking && (
+                      <div className="flex justify-between">
+                        <span>ID Reserva:</span>
+                        <span className="font-semibold text-foreground">{booking.booking_code}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>Noches:</span>
+                      <span className="font-semibold text-foreground">{nights}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Importe:</span>
+                      <span className="font-semibold text-foreground">
+                        {formData.total_amount ? `${formData.total_amount.toFixed(2)} €` : "0.00 €"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 justify-end pt-6 border-t border-border mt-8 lg:col-span-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push("/dashboard/bookings")}
+            disabled={loading}
+            className="px-6"
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={loading} className="px-6">
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Save className="mr-2 h-4 w-4" />
+            {booking ? "Actualizar Reserva" : "Crear Reserva"}
+          </Button>
+        </div>
+      </form>
+    </div>
   )
 }
 

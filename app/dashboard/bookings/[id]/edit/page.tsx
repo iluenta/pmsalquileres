@@ -4,9 +4,6 @@ import { getBookingById } from "@/lib/api/bookings"
 import { getProperties } from "@/lib/api/properties"
 import { getConfigurationTypes, getConfigurationValues } from "@/lib/api/configuration"
 import { BookingForm } from "@/components/bookings/BookingForm"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
 import { updateBooking } from "@/lib/api/bookings"
 import type { UpdateBookingData } from "@/types/bookings"
 
@@ -76,32 +73,13 @@ export default async function EditBookingPage({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/bookings">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Editar Reserva {booking.booking_code}
-          </h1>
-          <p className="text-muted-foreground">
-            Modifica los datos de la reserva
-          </p>
-        </div>
-      </div>
-
-      <BookingForm
-        booking={booking}
-        properties={properties}
-        bookingStatuses={bookingStatuses}
-        tenantId={tenantId}
-        onSave={handleSave}
-      />
-    </div>
+    <BookingForm
+      booking={booking}
+      properties={properties}
+      bookingStatuses={bookingStatuses}
+      tenantId={tenantId}
+      onSave={handleSave}
+    />
   )
 }
 

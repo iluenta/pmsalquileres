@@ -23,19 +23,6 @@ export default async function NewMovementPage() {
 
   const tenantId = userInfo[0].tenant_id
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Nuevo Movimiento</h1>
-        <p className="text-muted-foreground">
-          Registra un nuevo movimiento financiero (ingreso o gasto)
-        </p>
-      </div>
-
-      <div className="max-w-4xl">
-        <MovementForm tenantId={tenantId} />
-      </div>
-    </div>
-  )
+  return <MovementForm tenantId={tenantId} />
 }
 

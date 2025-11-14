@@ -19,7 +19,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
+import { MoreHorizontal, Edit, Trash2, Package } from "lucide-react"
 import type { MovementWithDetails } from "@/types/movements"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -133,6 +138,9 @@ export function MovementsTable({ movements }: MovementsTableProps) {
                 : movement.service_provider
                 ? movement.service_provider.person?.full_name || "Gasto"
                 : "Gasto"
+              
+              const expenseItemsCount = movement.expense_items?.length || 0
+              const hasMultipleServices = expenseItemsCount > 1
 
               return (
                 <TableRow key={movement.id}>
@@ -145,7 +153,62 @@ export function MovementsTable({ movements }: MovementsTableProps) {
                       {movement.movement_type?.label || "N/A"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-medium">{concept}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <span>{concept}</span>
+                      {!isIncome && hasMultipleServices && (
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <Badge variant="outline" className="cursor-help text-xs">
+                              <Package className="h-3 w-3 mr-1" />
+                              {expenseItemsCount} servicios
+                            </Badge>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80" side="right" align="start">
+                            <div className="space-y-3">
+                              <div>
+                                <h4 className="text-sm font-semibold mb-3">
+                                  Servicios del Gasto ({expenseItemsCount})
+                                </h4>
+                                <div className="space-y-2 max-h-96 overflow-y-auto">
+                                  {movement.expense_items?.map((item) => (
+                                    <div
+                                      key={item.id}
+                                      className="border-l-2 border-primary/20 pl-3 space-y-1"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm font-semibold">
+                                          {item.service_name}
+                                        </span>
+                                        <span className="text-sm font-semibold text-primary">
+                                          {formatCurrency(item.total_amount)}
+                                        </span>
+                                      </div>
+                                      <div className="text-xs text-muted-foreground space-y-0.5">
+                                        <div>
+                                          Base: {formatCurrency(item.amount)}
+                                        </div>
+                                        {item.tax_amount > 0 && (
+                                          <div>
+                                            Impuesto: {formatCurrency(item.tax_amount)}
+                                            {item.tax_type && (
+                                              <span className="ml-1">
+                                                ({item.tax_type.label})
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell
                     className={isIncome ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}
                   >

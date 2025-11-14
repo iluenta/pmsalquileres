@@ -3,9 +3,6 @@ import { redirect } from "next/navigation"
 import { getProperties } from "@/lib/api/properties"
 import { getConfigurationTypes, getConfigurationValues } from "@/lib/api/configuration"
 import { BookingForm } from "@/components/bookings/BookingForm"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
 import { createBooking } from "@/lib/api/bookings"
 import type { CreateBookingData, UpdateBookingData } from "@/types/bookings"
 
@@ -68,7 +65,6 @@ export default async function NewBookingPage() {
         collection_commission_amount: data.collection_commission_amount,
         tax_amount: data.tax_amount,
         net_amount: data.net_amount,
-        paid_amount: data.paid_amount,
         booking_status_id: data.booking_status_id,
         notes: data.notes,
       }
@@ -81,29 +77,12 @@ export default async function NewBookingPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/bookings">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Nueva Reserva</h1>
-          <p className="text-muted-foreground">
-            Crea una nueva reserva para una propiedad
-          </p>
-        </div>
-      </div>
-
-      <BookingForm
-        properties={properties}
-        bookingStatuses={bookingStatuses}
-        tenantId={tenantId}
-        onSave={handleSave}
-      />
-    </div>
+    <BookingForm
+      properties={properties}
+      bookingStatuses={bookingStatuses}
+      tenantId={tenantId}
+      onSave={handleSave}
+    />
   )
 }
 

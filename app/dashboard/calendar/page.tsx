@@ -1,7 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { getProperties } from "@/lib/api/properties"
-import { CalendarView } from "@/components/calendar/CalendarView"
+import { PropertyCalendarDashboard } from "@/components/calendar/PropertyCalendarDashboard"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
@@ -32,23 +32,26 @@ export default async function CalendarPage() {
   const properties = allProperties.filter((p) => p.is_active)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Calendario de Disponibilidad</h1>
-          <p className="text-muted-foreground">
-            Visualiza la disponibilidad de las propiedades y verifica disponibilidad rápida
-          </p>
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card sticky top-0 z-40">
+        <div className="flex items-center gap-3 px-6 py-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/dashboard">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Calendario de Disponibilidad</h1>
+            <p className="text-sm text-muted-foreground">
+              Visualiza la disponibilidad de las propiedades y verifica disponibilidad rápida
+            </p>
+          </div>
         </div>
-      </div>
-
-      <CalendarView properties={properties} tenantId={tenantId} />
+      </header>
+      
+      <main className="p-6">
+        <PropertyCalendarDashboard properties={properties} tenantId={tenantId} />
+      </main>
     </div>
   )
 }

@@ -8,8 +8,28 @@ import type {
   CreateMovementData,
   UpdateMovementData,
   BookingPaymentInfo,
+  CreateExpenseItemData,
 } from '@/types/movements'
 import type { ConfigurationValue } from '@/lib/api/configuration'
+
+// Helper: Calcular total de un item con impuesto
+export function calculateExpenseItemTotal(
+  amount: number,
+  taxPercentage?: number | null
+): number {
+  if (!taxPercentage || taxPercentage <= 0) {
+    return amount
+  }
+  const taxAmount = (amount * taxPercentage) / 100
+  return amount + taxAmount
+}
+
+// Helper: Calcular total del movimiento desde items
+export function calculateMovementTotal(
+  items: Array<{ total_amount: number }>
+): number {
+  return items.reduce((sum, item) => sum + Number(item.total_amount || 0), 0)
+}
 
 // Calcular importe pagado de una reserva (suma de movimientos de ingreso)
 export async function calculateBookingPaidAmount(
@@ -151,6 +171,23 @@ export async function getMovements(
           id,
           service_type:configuration_values!service_provider_services_service_type_id_fkey(id, label)
         ),
+        expense_items:movement_expense_items(
+          id,
+          service_provider_service_id,
+          service_name,
+          amount,
+          tax_type_id,
+          tax_amount,
+          total_amount,
+          notes,
+          created_at,
+          updated_at,
+          service_provider_service:service_provider_services(
+            id,
+            service_type:configuration_values!service_provider_services_service_type_id_fkey(id, label)
+          ),
+          tax_type:configuration_values!movement_expense_items_tax_type_id_fkey(id, label, value, description)
+        ),
         treasury_account:treasury_accounts(
           id,
           name,
@@ -249,8 +286,85 @@ export async function getMovementById(
   tenantId: string
 ): Promise<MovementWithDetails | null> {
   try {
-    const movements = await getMovements(tenantId)
-    return movements.find(m => m.id === id) || null
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return null
+    
+    const { data: movement, error } = await supabase
+      .from('movements')
+      .select(`
+        *,
+        booking:bookings(
+          id,
+          booking_code,
+          property:properties(id, name),
+          person:persons(id, first_name, last_name)
+        ),
+        service_provider:service_providers(
+          id,
+          person:persons(id, full_name)
+        ),
+        service_provider_service:service_provider_services(
+          id,
+          service_type:configuration_values!service_provider_services_service_type_id_fkey(id, label)
+        ),
+        expense_items:movement_expense_items(
+          id,
+          service_provider_service_id,
+          service_name,
+          amount,
+          tax_type_id,
+          tax_amount,
+          total_amount,
+          notes,
+          created_at,
+          updated_at,
+          service_provider_service:service_provider_services(
+            id,
+            service_type:configuration_values!service_provider_services_service_type_id_fkey(id, label)
+          ),
+          tax_type:configuration_values!movement_expense_items_tax_type_id_fkey(id, label, value, description)
+        ),
+        treasury_account:treasury_accounts(
+          id,
+          name,
+          account_number,
+          bank_name
+        )
+      `)
+      .eq('id', id)
+      .eq('tenant_id', tenantId)
+      .single()
+    
+    if (error || !movement) {
+      console.error('Error fetching movement:', error)
+      return null
+    }
+    
+    // Obtener tipos de configuración
+    const configTypeIds = [
+      movement.movement_type_id,
+      movement.payment_method_id,
+      movement.movement_status_id,
+    ].filter(Boolean)
+    
+    const configValuesMap = new Map<string, ConfigurationValue>()
+    if (configTypeIds.length > 0) {
+      const { data: configValues } = await supabase
+        .from('configuration_values')
+        .select('id, label, value, description, color, icon')
+        .in('id', configTypeIds)
+      
+      ;(configValues || []).forEach((cv: any) => {
+        configValuesMap.set(cv.id, cv)
+      })
+    }
+    
+    return {
+      ...movement,
+      movement_type: configValuesMap.get(movement.movement_type_id),
+      payment_method: configValuesMap.get(movement.payment_method_id),
+      movement_status: configValuesMap.get(movement.movement_status_id),
+    }
   } catch (error) {
     console.error('Error in getMovementById:', error)
     return null
@@ -266,13 +380,7 @@ export async function createMovement(
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
-    // Validaciones según tipo de movimiento
-    if (data.booking_id && data.service_provider_id) {
-      throw new Error('Un movimiento no puede tener tanto reserva como proveedor')
-    }
-    
-    // Si es ingreso, debe tener booking_id
-    // Si es gasto, debe tener service_provider_id
+    // Obtener tipo de movimiento para validaciones
     const { data: movementType } = await supabase
       .from('configuration_values')
       .select('value, label')
@@ -285,9 +393,15 @@ export async function createMovement(
     
     const isIncome = movementType.value === 'income' || movementType.label === 'Ingreso'
     
+    // Validaciones según tipo de movimiento
     if (isIncome) {
+      // INGRESO: debe tener booking_id y NO debe tener service_provider_id
       if (!data.booking_id) {
         throw new Error('Los ingresos deben estar asociados a una reserva')
+      }
+      
+      if (data.service_provider_id) {
+        throw new Error('Los ingresos no pueden tener un proveedor de servicios asociado')
       }
       
       // Validar que el importe no exceda el pendiente
@@ -296,12 +410,26 @@ export async function createMovement(
         throw new Error(`El importe del pago (${data.amount.toFixed(2)} €) excede el importe pendiente (${paymentInfo.pending_amount.toFixed(2)} €)`)
       }
     } else {
+      // GASTO: debe tener service_provider_id y puede tener booking_id (opcional)
       if (!data.service_provider_id) {
         throw new Error('Los gastos deben estar asociados a un proveedor de servicios')
+      }
+      
+      // Validar que los gastos tengan al menos un expense item
+      if (!data.expense_items || data.expense_items.length === 0) {
+        throw new Error('Los gastos deben tener al menos un servicio asociado')
       }
     }
     
     const { data: { user } } = await supabase.auth.getUser()
+    
+    // Calcular amount total si hay expense_items
+    let finalAmount = data.amount
+    if (!isIncome && data.expense_items && data.expense_items.length > 0) {
+      finalAmount = calculateMovementTotal(data.expense_items.map(item => ({
+        total_amount: item.total_amount ?? calculateExpenseItemTotal(item.amount, 0)
+      })))
+    }
     
     const { data: movement, error } = await supabase
       .from('movements')
@@ -314,7 +442,7 @@ export async function createMovement(
         treasury_account_id: data.treasury_account_id,
         payment_method_id: data.payment_method_id,
         movement_status_id: data.movement_status_id,
-        amount: data.amount,
+        amount: finalAmount,
         invoice_number: data.invoice_number?.trim() || null,
         reference: data.reference?.trim() || null,
         movement_date: data.movement_date,
@@ -327,6 +455,31 @@ export async function createMovement(
     if (error || !movement) {
       console.error('Error creating movement:', error)
       throw error || new Error('Error al crear el movimiento')
+    }
+    
+    // Crear expense items si es un gasto
+    if (!isIncome && data.expense_items && data.expense_items.length > 0) {
+      const itemsToInsert = data.expense_items.map((item: CreateExpenseItemData) => ({
+        movement_id: movement.id,
+        service_provider_service_id: item.service_provider_service_id || null,
+        service_name: item.service_name.trim(),
+        amount: item.amount,
+        tax_type_id: item.tax_type_id || null,
+        tax_amount: item.tax_amount ?? 0,
+        total_amount: item.total_amount ?? calculateExpenseItemTotal(item.amount, 0),
+        notes: item.notes?.trim() || null,
+      }))
+      
+      const { error: itemsError } = await supabase
+        .from('movement_expense_items')
+        .insert(itemsToInsert)
+      
+      if (itemsError) {
+        console.error('Error creating expense items:', itemsError)
+        // Intentar eliminar el movimiento creado
+        await supabase.from('movements').delete().eq('id', movement.id)
+        throw new Error('Error al crear los servicios del gasto')
+      }
     }
     
     return movement
@@ -358,6 +511,37 @@ export async function updateMovement(
       throw new Error('Movimiento no encontrado')
     }
     
+    // Obtener tipo de movimiento
+    const { data: movementType } = await supabase
+      .from('configuration_values')
+      .select('value, label')
+      .eq('id', currentMovement.movement_type_id)
+      .single()
+    
+    const isIncome = movementType?.value === 'income' || movementType?.label === 'Ingreso'
+    
+    // Validaciones según tipo de movimiento
+    if (isIncome) {
+      // INGRESO: debe tener booking_id y NO debe tener service_provider_id
+      const finalBookingId = data.booking_id !== undefined ? data.booking_id : currentMovement.booking_id
+      const finalServiceProviderId = data.service_provider_id !== undefined ? data.service_provider_id : currentMovement.service_provider_id
+      
+      if (!finalBookingId) {
+        throw new Error('Los ingresos deben estar asociados a una reserva')
+      }
+      
+      if (finalServiceProviderId) {
+        throw new Error('Los ingresos no pueden tener un proveedor de servicios asociado')
+      }
+    } else {
+      // GASTO: debe tener service_provider_id y puede tener booking_id (opcional)
+      const finalServiceProviderId = data.service_provider_id !== undefined ? data.service_provider_id : currentMovement.service_provider_id
+      
+      if (!finalServiceProviderId) {
+        throw new Error('Los gastos deben estar asociados a un proveedor de servicios')
+      }
+    }
+    
     // Validaciones si se cambia el importe o la reserva
     if (data.amount !== undefined || data.booking_id !== undefined) {
       const bookingId = data.booking_id !== undefined ? data.booking_id : currentMovement.booking_id
@@ -371,6 +555,72 @@ export async function updateMovement(
         if (newAmount > newPending) {
           throw new Error(`El importe del pago (${newAmount.toFixed(2)} €) excede el importe pendiente (${newPending.toFixed(2)} €)`)
         }
+      }
+    }
+    
+    // Gestionar expense items si es un gasto
+    if (!isIncome && data.expense_items !== undefined) {
+      // Obtener items actuales
+      const { data: currentItems } = await supabase
+        .from('movement_expense_items')
+        .select('id')
+        .eq('movement_id', id)
+      
+      const currentItemIds = new Set((currentItems || []).map((item: any) => item.id))
+      const newItemIds = new Set(
+        data.expense_items
+          .filter((item: any) => item.id)
+          .map((item: any) => item.id)
+      )
+      
+      // Eliminar items que ya no están
+      const itemsToDelete = Array.from(currentItemIds).filter(
+        (id) => !newItemIds.has(id)
+      )
+      if (itemsToDelete.length > 0) {
+        await supabase
+          .from('movement_expense_items')
+          .delete()
+          .in('id', itemsToDelete)
+      }
+      
+      // Crear/actualizar items
+      for (const item of data.expense_items) {
+        const itemData: any = {
+          service_provider_service_id: item.service_provider_service_id || null,
+          service_name: item.service_name.trim(),
+          amount: item.amount,
+          tax_type_id: item.tax_type_id || null,
+          tax_amount: item.tax_amount ?? 0,
+          total_amount: item.total_amount ?? calculateExpenseItemTotal(item.amount, 0),
+          notes: item.notes?.trim() || null,
+        }
+        
+        if (item.id && newItemIds.has(item.id)) {
+          // Actualizar item existente
+          await supabase
+            .from('movement_expense_items')
+            .update(itemData)
+            .eq('id', item.id)
+        } else {
+          // Crear nuevo item
+          await supabase
+            .from('movement_expense_items')
+            .insert({
+              ...itemData,
+              movement_id: id,
+            })
+        }
+      }
+      
+      // Recalcular amount total
+      const { data: updatedItems } = await supabase
+        .from('movement_expense_items')
+        .select('total_amount')
+        .eq('movement_id', id)
+      
+      if (updatedItems && updatedItems.length > 0) {
+        data.amount = calculateMovementTotal(updatedItems)
       }
     }
     

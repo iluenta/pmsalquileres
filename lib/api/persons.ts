@@ -155,7 +155,7 @@ export async function getPersons(
     // Filtrar por email si se especifica
     if (options?.searchEmail) {
       const emailPattern = options.searchEmail.toLowerCase()
-      result = result.filter((person) => 
+      result = result.filter((person: PersonWithDetails) => 
         person.email?.toLowerCase().includes(emailPattern)
       )
     }
@@ -163,7 +163,7 @@ export async function getPersons(
     // Filtrar por teléfono si se especifica
     if (options?.searchPhone) {
       const phonePattern = options.searchPhone.replace(/\s/g, '')
-      result = result.filter((person) => 
+      result = result.filter((person: PersonWithDetails) => 
         person.phone?.replace(/\s/g, '').includes(phonePattern)
       )
     }
@@ -277,12 +277,13 @@ export async function createPerson(
     if (!supabase) return null
     
     // Si no se proporciona person_type, obtener el tipo "guest" automáticamente
-    let personTypeId = data.person_type
+    let personTypeId: string | undefined = data.person_type
     if (!personTypeId) {
-      personTypeId = await getGuestPersonTypeId(tenantId)
-      if (!personTypeId) {
+      const guestTypeId = await getGuestPersonTypeId(tenantId)
+      if (!guestTypeId) {
         throw new Error('No se pudo obtener el tipo de persona "guest". Por favor, verifica la configuración.')
       }
+      personTypeId = guestTypeId
     }
     
     const { data: person, error } = await supabase

@@ -19,3 +19,6 @@ export function WeatherFooter({ lastUpdate }: WeatherFooterProps) {
 
 
 
+
+
+

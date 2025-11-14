@@ -6,12 +6,13 @@ async function getGuestPersonTypeId(tenantId: string): Promise<string | null> {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
-    // Obtener configuration_type 'person_type'
+    // Obtener configuration_type 'person_type' (buscar múltiples variantes)
     const { data: personTypeConfig } = await supabase
       .from('configuration_types')
       .select('id')
       .eq('tenant_id', tenantId)
-      .eq('name', 'person_type')
+      .or('name.eq.person_type,name.eq.Tipo de Persona,name.eq.Tipos de Persona')
+      .eq('is_active', true)
       .single()
     
     if (!personTypeConfig) return null

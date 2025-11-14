@@ -75,7 +75,6 @@ export function BookingForm({
     collection_commission_amount: booking?.collection_commission_amount || 0,
     tax_amount: booking?.tax_amount || 0,
     net_amount: booking?.net_amount || 0,
-    paid_amount: booking?.paid_amount || 0,
     booking_status_id: booking?.booking_status_id || "",
     notes: booking?.notes || "",
   })
@@ -423,17 +422,9 @@ export function BookingForm({
       }
     }
 
-    if (formData.paid_amount < 0) {
-      newErrors.paid_amount = "El importe pagado no puede ser negativo"
-    }
-
     // El estado de reserva solo es obligatorio para reservas comerciales
     if (!isClosedPeriod && !formData.booking_status_id) {
       newErrors.booking_status_id = "El estado de la reserva es obligatorio"
-    }
-
-    if (formData.paid_amount > formData.total_amount) {
-      newErrors.paid_amount = "El importe pagado no puede ser mayor al total"
     }
 
     setErrors(newErrors)
@@ -460,7 +451,6 @@ export function BookingForm({
       check_out_date: true,
       number_of_guests: true,
       total_amount: true,
-      paid_amount: true,
       channel_booking_number: true,
     })
 
@@ -495,7 +485,6 @@ export function BookingForm({
         collection_commission_amount: isClosedPeriod ? 0 : (formData.collection_commission_amount || 0),
         tax_amount: isClosedPeriod ? 0 : (formData.tax_amount || 0),
         net_amount: isClosedPeriod ? 0 : (formData.net_amount || 0),
-        paid_amount: isClosedPeriod ? 0 : formData.paid_amount,
         number_of_guests: isClosedPeriod ? 0 : formData.number_of_guests,
         notes: formData.notes || null,
       }
@@ -676,7 +665,6 @@ export function BookingForm({
                           collection_commission_amount: 0,
                           tax_amount: 0,
                           net_amount: 0,
-                          paid_amount: 0,
                           number_of_guests: 0,
                         } : {})
                       })
@@ -999,29 +987,6 @@ export function BookingForm({
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="paid_amount">
-                    Importe Pagado
-                  </Label>
-                  <Input
-                    id="paid_amount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max={formData.total_amount}
-                    value={formData.paid_amount}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        paid_amount: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full"
-                  />
-                  {errors.paid_amount && (
-                    <p className="text-sm text-red-500">{errors.paid_amount}</p>
-                  )}
-                </div>
               </div>
 
                   <Card>

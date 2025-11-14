@@ -209,6 +209,11 @@ export function PersonSearch({
               {!loading && !showCreateForm && persons.length > 0 && (
                 <CommandGroup>
                   {persons.map((person) => {
+                    // Solo mostrar personas que tienen first_name y last_name (no contactos)
+                    if (!person.first_name || !person.last_name) {
+                      return null
+                    }
+                    
                     const personDisplayName = `${person.first_name} ${person.last_name}${person.email ? ` ${person.email}` : ''}${person.phone ? ` ${person.phone}` : ''}`
                     return (
                       <CommandItem
@@ -241,6 +246,15 @@ export function PersonSearch({
                       </CommandItem>
                     )
                   })}
+                  {/* Botón para crear nuevo huésped incluso cuando hay resultados */}
+                  <CommandItem
+                    value="__create_new__"
+                    onSelect={() => setShowCreateForm(true)}
+                    className="border-t mt-2 pt-2"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    <span className="font-medium">Crear nuevo huésped</span>
+                  </CommandItem>
                 </CommandGroup>
               )}
               {showCreateForm && (

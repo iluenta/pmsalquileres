@@ -16,7 +16,8 @@ export interface Booking {
   collection_commission_amount: number // Importe de comisión de cobro (calculado, modificable)
   tax_amount: number // Importe de impuesto (calculado, modificable)
   net_amount: number // Importe neto (calculado automáticamente, no modificable)
-  paid_amount: number
+  paid_amount: number // Calculado dinámicamente desde movements
+  pending_amount: number // Calculado dinámicamente: (net_amount o total_amount) - paid_amount
   booking_status_id: string | null
   booking_type_id: string | null // Tipo de reserva: comercial o período cerrado
   notes: string | null
@@ -74,6 +75,7 @@ export interface PersonContactInfo {
   person_id: string
   contact_type: string // 'email', 'phone', etc.
   contact_value: string
+  contact_name: string | null // Nombre de la persona de contacto
   is_primary: boolean
   is_active: boolean
   created_at: string

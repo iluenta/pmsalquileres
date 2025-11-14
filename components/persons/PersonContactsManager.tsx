@@ -65,6 +65,7 @@ export function PersonContactsManager({
   const [formData, setFormData] = useState({
     contact_type: "email",
     contact_value: "",
+    contact_name: "",
     is_primary: false,
   })
 
@@ -132,6 +133,7 @@ export function PersonContactsManager({
       setFormData({
         contact_type: contact.contact_type,
         contact_value: contact.contact_value,
+        contact_name: contact.contact_name || "",
         is_primary: contact.is_primary,
       })
     } else {
@@ -139,6 +141,7 @@ export function PersonContactsManager({
       setFormData({
         contact_type: "email",
         contact_value: "",
+        contact_name: "",
         is_primary: false,
       })
     }
@@ -152,6 +155,7 @@ export function PersonContactsManager({
     setFormData({
       contact_type: "email",
       contact_value: "",
+      contact_name: "",
       is_primary: false,
     })
     setErrors({})
@@ -171,6 +175,7 @@ export function PersonContactsManager({
       const contactData: CreatePersonContactData | UpdatePersonContactData = {
         contact_type: formData.contact_type,
         contact_value: formData.contact_value.trim(),
+        contact_name: formData.contact_name.trim() || null,
         is_primary: formData.is_primary,
       }
 
@@ -286,6 +291,7 @@ export function PersonContactsManager({
               <TableHeader>
                 <TableRow>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Nombre</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Principal</TableHead>
                   <TableHead>Estado</TableHead>
@@ -299,6 +305,11 @@ export function PersonContactsManager({
                       <Badge variant="outline">
                         {contactTypes.find((t) => t.value === contact.contact_type)?.label || contact.contact_type}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {contact.contact_name || (
+                        <span className="text-muted-foreground text-sm italic">Sin nombre</span>
+                      )}
                     </TableCell>
                     <TableCell>{contact.contact_value}</TableCell>
                     <TableCell>
@@ -379,6 +390,23 @@ export function PersonContactsManager({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="contact_name">
+                Nombre de la Persona de Contacto
+              </Label>
+              <Input
+                id="contact_name"
+                value={formData.contact_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, contact_name: e.target.value })
+                }
+                placeholder="Ej: Juan Pérez, María García..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Nombre opcional de la persona asociada a este contacto
+              </p>
             </div>
 
             <div className="space-y-2">

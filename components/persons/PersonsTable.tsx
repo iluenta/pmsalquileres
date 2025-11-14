@@ -35,9 +35,10 @@ import {
 
 interface PersonsTableProps {
   persons: PersonWithDetails[]
+  onPersonDeleted?: () => void
 }
 
-export function PersonsTable({ persons }: PersonsTableProps) {
+export function PersonsTable({ persons, onPersonDeleted }: PersonsTableProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -68,7 +69,11 @@ export function PersonsTable({ persons }: PersonsTableProps) {
         description: "La persona ha sido eliminada correctamente",
       })
 
-      router.refresh()
+      if (onPersonDeleted) {
+        onPersonDeleted()
+      } else {
+        router.refresh()
+      }
     } catch (error: any) {
       toast({
         title: "Error",

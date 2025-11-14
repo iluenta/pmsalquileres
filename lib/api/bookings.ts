@@ -2,6 +2,7 @@
 // Integrado con Supabase y multi-tenant
 
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { calculateBookingPaymentInfo } from '@/lib/api/movements'
 import type {
   Booking,
   BookingWithDetails,
@@ -330,6 +331,18 @@ export function extractEmailAndPhoneFromContacts(contacts: PersonContactInfo[]):
 
 // ===== BOOKINGS =====
 
+// Obtener reservas no pagadas completamente (para selector en movimientos)
+export async function getUnpaidBookings(tenantId: string): Promise<BookingWithDetails[]> {
+  try {
+    const allBookings = await getBookings(tenantId, null)
+    // Filtrar solo las que tienen pending_amount > 0
+    return allBookings.filter((booking) => booking.pending_amount > 0)
+  } catch (error) {
+    console.error('Error in getUnpaidBookings:', error)
+    return []
+  }
+}
+
 export async function getBookings(tenantId: string, year?: number | null): Promise<BookingWithDetails[]> {
   try {
     const supabase = await getSupabaseServerClient()
@@ -505,14 +518,45 @@ export async function getBookings(tenantId: string, year?: number | null): Promi
     const statusesMap = new Map((statuses || []).map((s: any) => [s.id, s]))
     const bookingTypesMap = new Map((bookingTypes || []).map((bt: any) => [bt.id, bt]))
     
-    return bookings.map((booking: any) => ({
-      ...booking,
-      property: propertiesMap.get(booking.property_id) || null,
-      person: personsMap.get(booking.person_id) || null,
-      channel: booking.channel_id ? channelsMap.get(booking.channel_id) || null : null,
-      booking_status: booking.booking_status_id ? statusesMap.get(booking.booking_status_id) || null : null,
-      booking_type: booking.booking_type_id ? bookingTypesMap.get(booking.booking_type_id) || null : null,
-    }))
+    // Calcular paid_amount y pending_amount para cada reserva
+    // Usar Promise.allSettled para manejar errores individuales sin fallar toda la operación
+    const bookingsWithPaymentsResults = await Promise.allSettled(
+      bookings.map(async (booking: any) => {
+        const paymentInfo = await calculateBookingPaymentInfo(booking.id, tenantId)
+        return {
+          ...booking,
+          paid_amount: paymentInfo.paid_amount,
+          pending_amount: paymentInfo.pending_amount,
+          property: propertiesMap.get(booking.property_id) || null,
+          person: personsMap.get(booking.person_id) || null,
+          channel: booking.channel_id ? channelsMap.get(booking.channel_id) || null : null,
+          booking_status: booking.booking_status_id ? statusesMap.get(booking.booking_status_id) || null : null,
+          booking_type: booking.booking_type_id ? bookingTypesMap.get(booking.booking_type_id) || null : null,
+        }
+      })
+    )
+    
+    // Filtrar solo los resultados exitosos y usar valores por defecto para los que fallaron
+    const bookingsWithPayments = bookingsWithPaymentsResults.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value
+      } else {
+        // Si falló el cálculo, usar valores por defecto pero mantener la reserva
+        const booking = bookings[index]
+        return {
+          ...booking,
+          paid_amount: 0,
+          pending_amount: booking.channel_id ? (booking.net_amount || 0) : booking.total_amount,
+          property: propertiesMap.get(booking.property_id) || null,
+          person: personsMap.get(booking.person_id) || null,
+          channel: booking.channel_id ? channelsMap.get(booking.channel_id) || null : null,
+          booking_status: booking.booking_status_id ? statusesMap.get(booking.booking_status_id) || null : null,
+          booking_type: booking.booking_type_id ? bookingTypesMap.get(booking.booking_type_id) || null : null,
+        }
+      }
+    })
+    
+    return bookingsWithPayments
   } catch (error) {
     console.error('Error in getBookings:', error)
     return []
@@ -641,8 +685,13 @@ export async function getBookingById(id: string, tenantId: string): Promise<Book
       }
     }
     
+    // Calcular paid_amount y pending_amount dinámicamente
+    const paymentInfo = await calculateBookingPaymentInfo(id, tenantId)
+    
     return {
       ...booking,
+      paid_amount: paymentInfo.paid_amount,
+      pending_amount: paymentInfo.pending_amount,
       property: property || null,
       person: personWithContacts,
       channel,
@@ -682,7 +731,6 @@ export async function createBooking(data: CreateBookingData, tenantId?: string):
     collection_commission_amount: data.collection_commission_amount ?? 0,
     tax_amount: data.tax_amount ?? 0,
     net_amount: data.net_amount ?? 0,
-    paid_amount: data.paid_amount || 0,
     booking_status_id: data.booking_status_id || null,
     booking_type_id: data.booking_type_id || null,
     notes: data.notes || null,

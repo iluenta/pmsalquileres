@@ -32,30 +32,36 @@ export function calculateBookingAmounts(
     taxPercentage,
   } = params
 
-  // Calcular comisión de venta
-  const salesCommissionAmount = salesCommissionPercentage
+  // Calcular comisión de venta (sin redondear aún)
+  const salesCommissionAmountRaw = salesCommissionPercentage
     ? (totalAmount * salesCommissionPercentage) / 100
     : 0
 
-  // Calcular comisión de cobro
-  const collectionCommissionAmount = collectionCommissionPercentage
+  // Calcular comisión de cobro (sin redondear aún)
+  const collectionCommissionAmountRaw = collectionCommissionPercentage
     ? (totalAmount * collectionCommissionPercentage) / 100
     : 0
 
-  // Calcular impuesto sobre las comisiones (venta + cobro)
-  const commissionsTotal = salesCommissionAmount + collectionCommissionAmount
-  const taxAmount = taxPercentage && commissionsTotal > 0
+  // Calcular impuesto sobre las comisiones: IVA = (Comisión Venta + Comisión Cobro) * porcentaje
+  // IMPORTANTE: Sumar las comisiones sin redondear primero para mayor precisión
+  const commissionsTotal = salesCommissionAmountRaw + collectionCommissionAmountRaw
+  const taxAmountRaw = taxPercentage && commissionsTotal > 0
     ? (commissionsTotal * taxPercentage) / 100
     : 0
+
+  // Redondear todos los valores al final
+  const salesCommissionAmount = Math.round(salesCommissionAmountRaw * 100) / 100
+  const collectionCommissionAmount = Math.round(collectionCommissionAmountRaw * 100) / 100
+  const taxAmount = Math.round(taxAmountRaw * 100) / 100
 
   // Calcular importe neto: total - comisiones - impuesto
   const netAmount =
     totalAmount - salesCommissionAmount - collectionCommissionAmount - taxAmount
 
   return {
-    salesCommissionAmount: Math.round(salesCommissionAmount * 100) / 100,
-    collectionCommissionAmount: Math.round(collectionCommissionAmount * 100) / 100,
-    taxAmount: Math.round(taxAmount * 100) / 100,
+    salesCommissionAmount,
+    collectionCommissionAmount,
+    taxAmount,
     netAmount: Math.max(0, Math.round(netAmount * 100) / 100), // Asegurar que no sea negativo
   }
 }

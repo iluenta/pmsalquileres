@@ -25,6 +25,7 @@ export interface PersonContactInfo {
   person_id: string
   contact_type: string // 'email', 'phone', etc.
   contact_value: string
+  contact_name: string | null // Nombre de la persona de contacto
   is_primary: boolean
   is_active: boolean
   created_at: string
@@ -60,7 +61,7 @@ export interface PersonWithDetails extends Person {
 
 // Tipos para operaciones CRUD
 export interface CreatePersonData {
-  person_type: string // ID de configuration_value
+  person_type?: string // ID de configuration_value (opcional, se usa "guest" por defecto)
   first_name?: string | null
   last_name?: string | null
   full_name?: string | null
@@ -70,6 +71,8 @@ export interface CreatePersonData {
   nationality?: string | null
   notes?: string | null
   is_active?: boolean
+  email?: string | null // Para crear contactos automáticamente
+  phone?: string | null // Para crear contactos automáticamente
 }
 
 export interface UpdatePersonData {
@@ -88,6 +91,7 @@ export interface UpdatePersonData {
 export interface CreatePersonContactData {
   contact_type: string
   contact_value: string
+  contact_name?: string | null
   is_primary?: boolean
   is_active?: boolean
 }
@@ -95,6 +99,7 @@ export interface CreatePersonContactData {
 export interface UpdatePersonContactData {
   contact_type?: string
   contact_value?: string
+  contact_name?: string | null
   is_primary?: boolean
   is_active?: boolean
 }

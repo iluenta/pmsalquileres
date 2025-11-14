@@ -2,15 +2,17 @@ import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { getBookingById } from "@/lib/api/bookings"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Edit, Calendar, Users, Euro, Building2, User, Phone, Mail, FileText, Clock, UserCircle } from "lucide-react"
+import { ArrowLeft, Edit, Calendar, Users, Euro, Building2, User, Phone, Mail, FileText, Clock, UserCircle, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from "next/image"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { BookingPaymentsManager } from "@/components/movements/BookingPaymentsManager"
 
 export default async function ViewBookingPage({
   params,
@@ -85,7 +87,8 @@ export default async function ViewBookingPage({
   }
 
   const nights = calculateNights(booking.check_in_date, booking.check_out_date)
-  const pendingAmount = booking.total_amount - booking.paid_amount
+  const pendingAmount = booking.pending_amount || 0
+  const totalToPay = booking.channel_id ? (booking.net_amount || 0) : booking.total_amount
 
   return (
     <div className="space-y-6">
@@ -114,6 +117,16 @@ export default async function ViewBookingPage({
         </Button>
       </div>
 
+      <Tabs defaultValue="details" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="details">Detalles</TabsTrigger>
+          <TabsTrigger value="payments" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            Pagos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="details" className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Columna Principal - Información General y Fechas */}
         <div className="lg:col-span-2 space-y-6">
@@ -459,10 +472,22 @@ export default async function ViewBookingPage({
               <div className="space-y-3">
                 <div>
                   <Label className="text-sm font-medium text-muted-foreground">
-                    Importe Pagado
+                    Total a Pagar
                   </Label>
                   <p className="font-semibold text-lg mt-1">
-                    {formatCurrency(booking.paid_amount)}
+                    {formatCurrency(totalToPay)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {booking.channel_id ? "Importe neto (con canal)" : "Importe total (sin canal)"}
+                  </p>
+                </div>
+                <Separator />
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Importe Pagado
+                  </Label>
+                  <p className="font-semibold text-lg mt-1 text-green-600">
+                    {formatCurrency(booking.paid_amount || 0)}
                   </p>
                 </div>
                 <Separator />
@@ -519,6 +544,25 @@ export default async function ViewBookingPage({
           </Card>
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="payments" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Gestión de Pagos
+              </CardTitle>
+              <CardDescription>
+                Registra y gestiona los pagos recibidos para esta reserva
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BookingPaymentsManager bookingId={booking.id} tenantId={tenantId} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

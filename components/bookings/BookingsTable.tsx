@@ -43,9 +43,10 @@ interface BookingsTableProps {
   properties: Property[]
   bookingStatuses: ConfigurationValue[]
   bookingTypes: ConfigurationValue[]
+  onBookingDeleted?: () => void
 }
 
-export function BookingsTable({ bookings, properties, bookingStatuses, bookingTypes }: BookingsTableProps) {
+export function BookingsTable({ bookings, properties, bookingStatuses, bookingTypes, onBookingDeleted }: BookingsTableProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -71,22 +72,32 @@ export function BookingsTable({ bookings, properties, bookingStatuses, bookingTy
         throw new Error(error.error || "Error al eliminar la reserva")
       }
 
+      // Cerrar el diálogo primero
+      setDeleteId(null)
+      
+      // Mostrar mensaje de éxito
       toast({
         title: "Reserva eliminada",
         description: "La reserva se ha eliminado correctamente.",
+        duration: 3000,
       })
 
-      // Refrescar la página para actualizar la lista
-      router.refresh()
+      // Actualizar la lista de reservas
+      if (onBookingDeleted) {
+        onBookingDeleted()
+      } else {
+        // Fallback: refrescar la página si no hay callback
+        router.refresh()
+      }
     } catch (error: any) {
       toast({
         title: "Error",
         description: error?.message || "No se pudo eliminar la reserva",
         variant: "destructive",
+        duration: 5000,
       })
     } finally {
       setDeletingId(null)
-      setDeleteId(null)
     }
   }
 
@@ -319,25 +330,49 @@ export function BookingsTable({ bookings, properties, bookingStatuses, bookingTy
                       Pagado: {formatCurrency(booking.paid_amount)}
                     </div>
                   )}
+                  {booking.pending_amount !== undefined && booking.pending_amount > 0 && (
+                    <div className="text-sm text-orange-600 font-medium">
+                      Pendiente: {formatCurrency(booking.pending_amount)}
+                    </div>
+                  )}
                 </div>
               </TableCell>
               <TableCell>
-                {booking.booking_status ? (
-                  <Badge
-                    variant="outline"
-                    style={{
-                      backgroundColor: booking.booking_status.color
-                        ? `${booking.booking_status.color}20`
-                        : undefined,
-                      borderColor: booking.booking_status.color || undefined,
-                      color: booking.booking_status.color || undefined,
-                    }}
-                  >
-                    {booking.booking_status.label}
-                  </Badge>
-                ) : (
-                  <Badge variant="outline">Sin estado</Badge>
-                )}
+                <div className="space-y-1">
+                  {booking.booking_status ? (
+                    <Badge
+                      variant="outline"
+                      style={{
+                        backgroundColor: booking.booking_status.color
+                          ? `${booking.booking_status.color}20`
+                          : undefined,
+                        borderColor: booking.booking_status.color || undefined,
+                        color: booking.booking_status.color || undefined,
+                      }}
+                    >
+                      {booking.booking_status.label}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Sin estado</Badge>
+                  )}
+                  {booking.pending_amount !== undefined && (
+                    <div>
+                      {booking.pending_amount === 0 ? (
+                        <Badge variant="default" className="bg-green-600">
+                          Pagado
+                        </Badge>
+                      ) : booking.paid_amount > 0 ? (
+                        <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                          Parcial
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="bg-red-100 text-red-800">
+                          Pendiente
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
@@ -378,7 +413,11 @@ export function BookingsTable({ bookings, properties, bookingStatuses, bookingTy
       </div>
 
       {/* Diálogo de confirmación de eliminación */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => {
+        if (!open && !deletingId) {
+          setDeleteId(null)
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar reserva?</AlertDialogTitle>
@@ -394,7 +433,7 @@ export function BookingsTable({ bookings, properties, bookingStatuses, bookingTy
             <AlertDialogAction
               onClick={() => deleteId && handleDelete(deleteId)}
               disabled={!!deletingId}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600 text-white"
             >
               {deletingId ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>

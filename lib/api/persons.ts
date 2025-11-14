@@ -33,6 +33,11 @@ export async function getPersons(
     includeInactive?: boolean
     personType?: string // ID de configuration_value
     search?: string
+    searchName?: string
+    searchDocument?: string
+    searchEmail?: string
+    searchPhone?: string
+    isActive?: boolean | null // null = todos, true = solo activos, false = solo inactivos
   }
 ): Promise<PersonWithDetails[]> {
   try {
@@ -44,7 +49,11 @@ export async function getPersons(
       .select('*')
       .eq('tenant_id', tenantId)
     
-    if (!options?.includeInactive) {
+    // Filtro de estado
+    if (options?.isActive !== null && options?.isActive !== undefined) {
+      query = query.eq('is_active', options.isActive)
+    } else if (!options?.includeInactive) {
+      // Por defecto, solo activos si no se especifica includeInactive
       query = query.eq('is_active', true)
     }
     
@@ -52,9 +61,21 @@ export async function getPersons(
       query = query.eq('person_type', options.personType)
     }
     
+    // Búsqueda general (retrocompatibilidad)
     if (options?.search) {
       const searchPattern = `%${options.search}%`
       query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},full_name.ilike.${searchPattern},document_number.ilike.${searchPattern}`)
+    }
+    
+    // Búsquedas específicas
+    if (options?.searchName) {
+      const searchPattern = `%${options.searchName}%`
+      query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},full_name.ilike.${searchPattern}`)
+    }
+    
+    if (options?.searchDocument) {
+      const searchPattern = `%${options.searchDocument}%`
+      query = query.ilike('document_number', searchPattern)
     }
     
     const { data: persons, error } = await query
@@ -116,7 +137,7 @@ export async function getPersons(
     })
     
     // Combinar datos
-    return persons.map((person: any) => {
+    let result = persons.map((person: any) => {
       const contacts = contactsByPerson.get(person.id) || []
       const addresses = addressesByPerson.get(person.id) || []
       const { email, phone } = extractEmailAndPhoneFromContacts(contacts)
@@ -130,6 +151,24 @@ export async function getPersons(
         phone,
       }
     })
+    
+    // Filtrar por email si se especifica
+    if (options?.searchEmail) {
+      const emailPattern = options.searchEmail.toLowerCase()
+      result = result.filter((person) => 
+        person.email?.toLowerCase().includes(emailPattern)
+      )
+    }
+    
+    // Filtrar por teléfono si se especifica
+    if (options?.searchPhone) {
+      const phonePattern = options.searchPhone.replace(/\s/g, '')
+      result = result.filter((person) => 
+        person.phone?.replace(/\s/g, '').includes(phonePattern)
+      )
+    }
+    
+    return result
   } catch (error) {
     console.error('Error in getPersons:', error)
     return []
@@ -195,6 +234,39 @@ export async function getPersonById(id: string, tenantId: string): Promise<Perso
   }
 }
 
+// Función auxiliar para obtener el tipo de persona "guest"
+async function getGuestPersonTypeId(tenantId: string): Promise<string | null> {
+  try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return null
+    
+    // Obtener configuration_type 'person_type' (buscar múltiples variantes)
+    const { data: personTypeConfig } = await supabase
+      .from('configuration_types')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .or('name.eq.person_type,name.eq.Tipo de Persona,name.eq.Tipos de Persona')
+      .eq('is_active', true)
+      .maybeSingle()
+    
+    if (!personTypeConfig) return null
+    
+    // Obtener configuration_value 'guest' (buscar por value o label)
+    const { data: guestValue } = await supabase
+      .from('configuration_values')
+      .select('id')
+      .eq('configuration_type_id', personTypeConfig.id)
+      .eq('is_active', true)
+      .or('value.eq.guest,label.ilike.huésped,label.ilike.guest')
+      .maybeSingle()
+    
+    return guestValue?.id || null
+  } catch (error) {
+    console.error('Error getting guest person_type:', error)
+    return null
+  }
+}
+
 // Crear una nueva persona
 export async function createPerson(
   data: CreatePersonData,
@@ -204,11 +276,20 @@ export async function createPerson(
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
     
+    // Si no se proporciona person_type, obtener el tipo "guest" automáticamente
+    let personTypeId = data.person_type
+    if (!personTypeId) {
+      personTypeId = await getGuestPersonTypeId(tenantId)
+      if (!personTypeId) {
+        throw new Error('No se pudo obtener el tipo de persona "guest". Por favor, verifica la configuración.')
+      }
+    }
+    
     const { data: person, error } = await supabase
       .from('persons')
       .insert({
         tenant_id: tenantId,
-        person_type: data.person_type,
+        person_type: personTypeId,
         first_name: data.first_name || null,
         last_name: data.last_name || null,
         full_name: data.full_name || null,
@@ -225,6 +306,44 @@ export async function createPerson(
     if (error || !person) {
       console.error('Error creating person:', error)
       throw error || new Error('Error al crear la persona')
+    }
+    
+    // Crear contactos si se proporcionaron
+    if (data.email || data.phone) {
+      const contactInserts: any[] = []
+      
+      if (data.email) {
+        contactInserts.push({
+          tenant_id: tenantId,
+          person_id: person.id,
+          contact_type: 'email',
+          contact_value: data.email,
+          is_primary: true,
+          is_active: true,
+        })
+      }
+      
+      if (data.phone) {
+        contactInserts.push({
+          tenant_id: tenantId,
+          person_id: person.id,
+          contact_type: 'phone',
+          contact_value: data.phone,
+          is_primary: !data.email, // Solo es primario si no hay email
+          is_active: true,
+        })
+      }
+      
+      if (contactInserts.length > 0) {
+        const { error: contactsError } = await supabase
+          .from('person_contact_infos')
+          .insert(contactInserts)
+        
+        if (contactsError) {
+          console.error('Error creating contacts:', contactsError)
+          // No lanzar error, solo loguear - la persona ya se creó
+        }
+      }
     }
     
     // Retornar la persona con detalles
@@ -398,6 +517,7 @@ export async function addPersonContact(
         person_id: personId,
         contact_type: data.contact_type,
         contact_value: data.contact_value,
+        contact_name: data.contact_name || null,
         is_primary: data.is_primary || false,
         is_active: data.is_active !== undefined ? data.is_active : true,
       })
@@ -452,6 +572,7 @@ export async function updatePersonContact(
     const updateData: any = {}
     if (data.contact_type !== undefined) updateData.contact_type = data.contact_type
     if (data.contact_value !== undefined) updateData.contact_value = data.contact_value
+    if (data.contact_name !== undefined) updateData.contact_name = data.contact_name || null
     if (data.is_primary !== undefined) updateData.is_primary = data.is_primary
     if (data.is_active !== undefined) updateData.is_active = data.is_active
     

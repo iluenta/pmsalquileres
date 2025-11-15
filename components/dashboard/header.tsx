@@ -64,30 +64,38 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <Select
-            value={selectedYear?.toString() || "all"}
+            value={selectedYear.toString()}
             onValueChange={(value) => {
-              if (value === "all") {
-                setSelectedYear(null)
-              } else {
-                const year = parseInt(value, 10)
-                if (!isNaN(year)) {
-                  setSelectedYear(year)
-                }
+              const year = parseInt(value, 10)
+              if (!isNaN(year)) {
+                setSelectedYear(year)
+                // Refrescar la página para aplicar el filtro
+                router.refresh()
               }
-              // Refrescar la página para aplicar el filtro
-              router.refresh()
             }}
           >
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Todos" />
+              <SelectValue placeholder={selectedYear.toString()} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {availableYears.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
+              {/* Asegurar que el año actual siempre esté disponible */}
+              {availableYears.length > 0 ? (
+                availableYears.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value={selectedYear.toString()}>
+                  {selectedYear}
                 </SelectItem>
-              ))}
+              )}
+              {/* Si el año actual no está en availableYears, agregarlo */}
+              {availableYears.length > 0 && !availableYears.includes(selectedYear) && (
+                <SelectItem value={selectedYear.toString()}>
+                  {selectedYear}
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>

@@ -3,8 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
 
 interface SeasonContextType {
-  selectedYear: number | null
-  setSelectedYear: (year: number | null) => void
+  selectedYear: number // Siempre un número, nunca null
+  setSelectedYear: (year: number | null) => void // Permite null para "Todos"
   availableYears: number[]
   loadAvailableYears: () => Promise<void>
 }
@@ -15,7 +15,7 @@ const STORAGE_KEY = "selected-season-year"
 
 export function SeasonProvider({ children }: { children: React.ReactNode }) {
   // Inicializar con año actual por defecto (no null) para evitar que el selector aparezca vacío
-  const getInitialYear = (): number | null => {
+  const getInitialYear = (): number => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
@@ -25,11 +25,12 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
         }
       }
     }
-    // Por defecto, año actual (no null para que el selector siempre tenga un valor)
+    // Por defecto, año actual (siempre un número, nunca null)
     return new Date().getFullYear()
   }
 
-  const [selectedYear, setSelectedYearState] = useState<number | null>(getInitialYear())
+  // Estado inicial siempre es un número (año actual), nunca null
+  const [selectedYear, setSelectedYearState] = useState<number>(getInitialYear())
   const [availableYears, setAvailableYears] = useState<number[]>([])
 
   // Sincronizar con localStorage al montar (por si cambió en otra pestaña)
@@ -43,19 +44,21 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
             // Solo actualizar si es diferente
             return prev !== year ? year : prev
           })
+        } else {
+          // Si el valor almacenado no es válido, usar año actual
+          const currentYear = new Date().getFullYear()
+          setSelectedYearState(currentYear)
+          localStorage.setItem(STORAGE_KEY, currentYear.toString())
+          document.cookie = `${STORAGE_KEY}=${currentYear.toString()}; path=/; max-age=31536000`
         }
       } else {
         // Si no hay valor almacenado, asegurarse de que hay un año seleccionado
         const currentYear = new Date().getFullYear()
         setSelectedYearState((prev) => {
-          // Solo establecer si es null
-          if (prev === null) {
-            // Guardar en localStorage y cookie para persistencia
-            localStorage.setItem(STORAGE_KEY, currentYear.toString())
-            document.cookie = `${STORAGE_KEY}=${currentYear.toString()}; path=/; max-age=31536000`
-            return currentYear
-          }
-          return prev
+          // Guardar en localStorage y cookie para persistencia
+          localStorage.setItem(STORAGE_KEY, currentYear.toString())
+          document.cookie = `${STORAGE_KEY}=${currentYear.toString()}; path=/; max-age=31536000`
+          return currentYear
         })
       }
     }
@@ -63,16 +66,12 @@ export function SeasonProvider({ children }: { children: React.ReactNode }) {
 
   // Guardar en localStorage y cookies cuando cambia
   const setSelectedYear = useCallback((year: number | null) => {
-    setSelectedYearState(year)
-    if (year !== null) {
-      localStorage.setItem(STORAGE_KEY, year.toString())
-      // También guardar en cookie para acceso desde servidor
-      document.cookie = `${STORAGE_KEY}=${year.toString()}; path=/; max-age=31536000` // 1 año
-    } else {
-      localStorage.removeItem(STORAGE_KEY)
-      // Eliminar cookie
-      document.cookie = `${STORAGE_KEY}=; path=/; max-age=0`
-    }
+    // Si es null, usar año actual (nunca permitir null en el estado)
+    const yearToSet = year ?? new Date().getFullYear()
+    setSelectedYearState(yearToSet)
+    localStorage.setItem(STORAGE_KEY, yearToSet.toString())
+    // También guardar en cookie para acceso desde servidor
+    document.cookie = `${STORAGE_KEY}=${yearToSet.toString()}; path=/; max-age=31536000` // 1 año
   }, [])
 
   // Cargar años disponibles desde las reservas

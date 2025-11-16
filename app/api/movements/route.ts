@@ -31,8 +31,9 @@ export async function GET(request: Request) {
     const bookingId = searchParams.get("bookingId") || undefined
     const serviceProviderId = searchParams.get("serviceProviderId") || undefined
     const treasuryAccountId = searchParams.get("treasuryAccountId") || undefined
-    const dateFrom = searchParams.get("dateFrom") || undefined
-    const dateTo = searchParams.get("dateTo") || undefined
+    const year = searchParams.get("year") ? parseInt(searchParams.get("year")!, 10) : undefined
+    const dateFrom = searchParams.get("dateFrom")?.trim() || undefined
+    const dateTo = searchParams.get("dateTo")?.trim() || undefined
 
     const movements = await getMovements(tenantId, {
       movementType,
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
       bookingId,
       serviceProviderId,
       treasuryAccountId,
+      year,
       dateFrom,
       dateTo,
       includeInactive: true,

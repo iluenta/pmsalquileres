@@ -46,13 +46,35 @@ export default function GuidesPage() {
         return
       }
 
-      const { data, error } = await supabase
+      // Intentar obtener con slug, si falla obtener sin slug
+      let query = supabase
         .from('property_guides')
         .select(`
           *,
-          property:properties(id, name, street, city, description)
+          property:properties(id, name, slug, street, city, description)
         `)
         .order('created_at', { ascending: false })
+      
+      const { data, error } = await query
+      
+      // Si el error es porque slug no existe, intentar sin slug
+      if (error && (error.message?.includes('slug') || error.code === '42703')) {
+        console.log('Slug column not found, fetching without slug')
+        const { data: dataWithoutSlug, error: errorWithoutSlug } = await supabase
+          .from('property_guides')
+          .select(`
+            *,
+            property:properties(id, name, street, city, description)
+          `)
+          .order('created_at', { ascending: false })
+        
+        if (errorWithoutSlug) {
+          throw errorWithoutSlug
+        }
+        
+        setGuides(dataWithoutSlug || [])
+        return
+      }
 
       if (error) throw error
       setGuides(data || [])
@@ -340,7 +362,7 @@ export default function GuidesPage() {
                       </Button>
                       <Button asChild size="sm" variant="outline" className="flex-1">
                         <Link 
-                          href={`/guides/${guide.property_id}/public`}
+                          href={`/guides/${guide.property?.slug || guide.property_id}/public`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >

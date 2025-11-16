@@ -144,8 +144,9 @@ export async function getMovements(
     bookingId?: string
     serviceProviderId?: string
     treasuryAccountId?: string
-    dateFrom?: string
-    dateTo?: string
+    year?: number // Año para filtrar por defecto
+    dateFrom?: string // Fecha desde (para restringir más el rango)
+    dateTo?: string // Fecha hasta (para restringir más el rango)
     includeInactive?: boolean
   }
 ): Promise<MovementWithDetails[]> {
@@ -217,12 +218,91 @@ export async function getMovements(
       query = query.eq('treasury_account_id', options.treasuryAccountId)
     }
     
-    if (options?.dateFrom) {
-      query = query.gte('movement_date', options.dateFrom)
-    }
-    
-    if (options?.dateTo) {
-      query = query.lte('movement_date', options.dateTo)
+    // Aplicar filtro de año por defecto (del contexto)
+    // Los filtros dateFrom/dateTo son para restringir más el rango dentro del año
+    if (options?.year) {
+      const yearStart = `${options.year}-01-01`
+      const yearEnd = `${options.year}-12-31`
+      
+      // Determinar las fechas de inicio y fin efectivas
+      let effectiveDateFrom = yearStart
+      let effectiveDateTo = yearEnd
+      
+      // Si hay dateFrom, usar el máximo entre el inicio del año y dateFrom
+      if (options?.dateFrom) {
+        const dateFromValue = options.dateFrom.trim()
+        if (dateFromValue) {
+          let dateFromFormatted = dateFromValue
+          if (dateFromValue.includes('/')) {
+            const parts = dateFromValue.split('/')
+            if (parts.length === 3) {
+              const [day, month, year] = parts
+              dateFromFormatted = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+            }
+          }
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateFromFormatted)) {
+            // Usar el máximo entre el inicio del año y la fecha desde
+            effectiveDateFrom = dateFromFormatted > yearStart ? dateFromFormatted : yearStart
+          }
+        }
+      }
+      
+      // Si hay dateTo, usar el mínimo entre el fin del año y dateTo
+      if (options?.dateTo) {
+        const dateToValue = options.dateTo.trim()
+        if (dateToValue) {
+          let dateToFormatted = dateToValue
+          if (dateToValue.includes('/')) {
+            const parts = dateToValue.split('/')
+            if (parts.length === 3) {
+              const [day, month, year] = parts
+              dateToFormatted = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+            }
+          }
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateToFormatted)) {
+            // Usar el mínimo entre el fin del año y la fecha hasta
+            effectiveDateTo = dateToFormatted < yearEnd ? dateToFormatted : yearEnd
+          }
+        }
+      }
+      
+      // Aplicar los filtros de fecha efectivos
+      query = query.gte('movement_date', effectiveDateFrom).lte('movement_date', effectiveDateTo)
+    } else {
+      // Si no hay año, aplicar solo los filtros de fecha específicos (si existen)
+      if (options?.dateFrom) {
+        const dateFromValue = options.dateFrom.trim()
+        if (dateFromValue) {
+          let dateFromFormatted = dateFromValue
+          if (dateFromValue.includes('/')) {
+            const parts = dateFromValue.split('/')
+            if (parts.length === 3) {
+              const [day, month, year] = parts
+              dateFromFormatted = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+            }
+          }
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateFromFormatted)) {
+            query = query.gte('movement_date', dateFromFormatted)
+          }
+        }
+      }
+      
+      if (options?.dateTo) {
+        const dateToValue = options.dateTo.trim()
+        if (dateToValue) {
+          let dateToFormatted = dateToValue
+          if (dateToValue.includes('/')) {
+            const parts = dateToValue.split('/')
+            if (parts.length === 3) {
+              const [day, month, year] = parts
+              dateToFormatted = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+            }
+          }
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateToFormatted)) {
+            query = query.lte('movement_date', dateToFormatted)
+          }
+        }
+      }
     }
     
     const { data: movements, error } = await query

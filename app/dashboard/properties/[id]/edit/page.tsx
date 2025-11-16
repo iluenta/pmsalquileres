@@ -32,14 +32,5 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
 
   const propertyTypes = await getPropertyTypes(tenantId)
 
-  return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Editar Propiedad</h1>
-        <p className="text-muted-foreground">Actualiza la información de la propiedad</p>
-      </div>
-
-      <PropertyForm propertyTypes={propertyTypes} tenantId={tenantId} property={property} />
-    </div>
-  )
+  return <PropertyForm propertyTypes={propertyTypes} tenantId={tenantId} property={property} />
 }

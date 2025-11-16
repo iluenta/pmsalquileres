@@ -17,8 +17,10 @@ import Link from "next/link"
 import { MovementsTable } from "@/components/movements/MovementsTable"
 import type { MovementWithDetails } from "@/types/movements"
 import type { ConfigurationValue } from "@/lib/api/configuration"
+import { useSeason } from "@/lib/contexts/season-context"
 
 export default function MovementsPage() {
+  const { selectedYear } = useSeason()
   const [movements, setMovements] = useState<MovementWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   
@@ -38,7 +40,7 @@ export default function MovementsPage() {
 
   useEffect(() => {
     loadMovements()
-  }, [movementType, movementStatus, dateFrom, dateTo])
+  }, [movementType, movementStatus, dateFrom, dateTo, selectedYear])
 
   const loadConfigurationData = async () => {
     try {
@@ -63,6 +65,11 @@ export default function MovementsPage() {
     try {
       const params = new URLSearchParams()
       
+      // Añadir el año del contexto por defecto
+      if (selectedYear) {
+        params.append("year", selectedYear.toString())
+      }
+      
       if (movementType !== "all") {
         params.append("movementType", movementType)
       }
@@ -71,6 +78,7 @@ export default function MovementsPage() {
         params.append("movementStatus", movementStatus)
       }
       
+      // Los filtros de fecha desde/hasta son para restringir más el rango
       if (dateFrom) {
         params.append("dateFrom", dateFrom)
       }

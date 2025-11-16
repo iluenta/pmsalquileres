@@ -25,14 +25,5 @@ export default async function NewPropertyPage() {
   const tenantId = userInfo[0].tenant_id
   const propertyTypes = await getPropertyTypes(tenantId)
 
-  return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Nueva Propiedad</h1>
-        <p className="text-muted-foreground">Agrega una nueva propiedad vacacional a tu inventario</p>
-      </div>
-
-      <PropertyForm propertyTypes={propertyTypes} tenantId={tenantId} />
-    </div>
-  )
+  return <PropertyForm propertyTypes={propertyTypes} tenantId={tenantId} />
 }

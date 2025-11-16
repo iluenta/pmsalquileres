@@ -31,18 +31,23 @@ export default async function NewSalesChannelPage() {
   const handleSave = async (data: CreateSalesChannelData | UpdateSalesChannelData): Promise<boolean> => {
     "use server"
     // Asegurar que tenemos los campos requeridos para CreateSalesChannelData
-    if (!data.full_name || !data.email) {
-      throw new Error("Faltan campos requeridos para crear el canal de venta")
+    // Solo full_name es requerido según CreateSalesChannelData
+    if (!data.full_name || data.full_name.trim() === "") {
+      throw new Error("El nombre del canal de venta es obligatorio")
     }
     const createData: CreateSalesChannelData = {
-      full_name: data.full_name,
-      email: data.email,
-      phone: data.phone,
-      logo_url: data.logo_url,
+      full_name: data.full_name.trim(),
+      document_type: data.document_type || null,
+      document_number: data.document_number || null,
+      email: data.email?.trim() || null,
+      phone: data.phone?.trim() || null,
+      logo_url: data.logo_url?.trim() || null,
       sales_commission: data.sales_commission ?? 0,
       collection_commission: data.collection_commission ?? 0,
       apply_tax: data.apply_tax ?? false,
-      tax_type_id: data.tax_type_id,
+      tax_type_id: data.tax_type_id || null,
+      notes: data.notes?.trim() || null,
+      is_active: data.is_active ?? true,
     }
     const result = await createSalesChannel(createData, tenantId)
     return result !== null

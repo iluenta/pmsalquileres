@@ -9,16 +9,20 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, Save, Loader2, Info, MapPin, Home, DollarSign, ShoppingCart, ToggleLeft } from "lucide-react"
+import { ArrowLeft, Save, Loader2, X } from "lucide-react"
 import Link from "next/link"
-import { Separator } from "@/components/ui/separator"
-import Image from "next/image"
+import { generateSlug, checkSlugUniqueness, generateUniqueSlug } from "@/lib/utils/slug"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Image from "next/image"
+import { PropertyFormGeneral } from "./forms/property-form-general"
+import { PropertyFormLocation } from "./forms/property-form-location"
+import { PropertyFormCharacteristics } from "./forms/property-form-characteristics"
+import { PropertyFormPricing } from "./forms/property-form-pricing"
+import { PropertyFormChannels } from "./forms/property-form-channels"
 
 interface PropertyFormProps {
   propertyTypes: any[]
@@ -39,7 +43,9 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
   const [formData, setFormData] = useState({
     property_code: property?.property_code || "",
     name: property?.name || "",
+    slug: property?.slug || property?.id || "", // Usar id como fallback si slug no existe
     description: property?.description || "",
+    image_url: property?.image_url || "",
     property_type_id: property?.property_type_id || "",
     street: property?.street || "",
     number: property?.number || "",
@@ -59,6 +65,13 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     check_out_time: property?.check_out_time || "11:00",
     is_active: property?.is_active ?? true,
   })
+
+  const [imagePreview, setImagePreview] = useState<string | null>(property?.image_url || null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+
+  const [slugError, setSlugError] = useState<string | null>(null)
+  const [slugValidating, setSlugValidating] = useState(false)
+  const [autoGeneratingSlug, setAutoGeneratingSlug] = useState(false)
 
   // Cargar canales disponibles
   useEffect(() => {
@@ -104,6 +117,54 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     loadPropertyChannels()
   }, [property?.id])
 
+  // Generar slug automáticamente cuando cambia el nombre (con debounce)
+  useEffect(() => {
+    if (!property?.id && formData.name && !formData.slug) {
+      // Solo generar automáticamente si es una nueva propiedad y no hay slug
+      const timeoutId = setTimeout(async () => {
+        setAutoGeneratingSlug(true)
+        try {
+          const generatedSlug = await generateUniqueSlug(formData.name)
+          setFormData(prev => ({ ...prev, slug: generatedSlug }))
+          setSlugError(null)
+        } catch (error) {
+          console.error("Error generating slug:", error)
+        } finally {
+          setAutoGeneratingSlug(false)
+        }
+      }, 500) // Debounce de 500ms
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [formData.name, property?.id])
+
+  // Validar unicidad del slug cuando cambia (con debounce)
+  useEffect(() => {
+    if (!formData.slug) {
+      setSlugError(null)
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setSlugValidating(true)
+      try {
+        const isUnique = await checkSlugUniqueness(formData.slug, property?.id)
+        if (!isUnique) {
+          setSlugError("Este slug ya está en uso por otra propiedad")
+        } else {
+          setSlugError(null)
+        }
+      } catch (error) {
+        console.error("Error validating slug:", error)
+        setSlugError("Error al validar el slug")
+      } finally {
+        setSlugValidating(false)
+      }
+    }, 500) // Debounce de 500ms
+
+    return () => clearTimeout(timeoutId)
+  }, [formData.slug, property?.id])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -118,9 +179,28 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
         throw new Error("El código de la propiedad es obligatorio")
       }
 
+      // Validar slug
+      if (!formData.slug.trim()) {
+        throw new Error("El slug es obligatorio")
+      }
+
+      if (slugError) {
+        throw new Error(slugError)
+      }
+
+      // Verificar unicidad del slug una última vez antes de guardar
+      const isUnique = await checkSlugUniqueness(formData.slug, property?.id)
+      if (!isUnique) {
+        throw new Error("El slug ya está en uso por otra propiedad. Por favor, elige otro.")
+      }
+
+      // Normalizar slug antes de guardar
+      const normalizedSlug = generateSlug(formData.slug.trim())
+
       // Limpiar campos UUID vacíos (convertir "" a null)
       const dataToSave = {
         ...formData,
+        slug: normalizedSlug,
         property_type_id: formData.property_type_id || null,
         tenant_id: tenantId,
         updated_at: new Date().toISOString(),
@@ -201,447 +281,330 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     }
   }
 
+  const [activeTab, setActiveTab] = useState("general")
+  const [mobileTab, setMobileTab] = useState("general")
+
+  const TABS = [
+    { value: "general", label: "General" },
+    { value: "location", label: "Ubicación" },
+    { value: "characteristics", label: "Características" },
+    { value: "pricing", label: "Precios" },
+    { value: "channels", label: "Canales" },
+  ]
+
+  const handleFieldChange = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleSlugChange = (slug: string) => {
+    setFormData((prev) => ({ ...prev, slug }))
+  }
+
+  const handleChannelToggle = (channelId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedChannels([...selectedChannels, channelId])
+    } else {
+      setSelectedChannels(selectedChannels.filter((id) => id !== channelId))
+    }
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"]
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Error",
+        description: "Solo se permiten imágenes (JPEG, PNG, WebP, GIF)",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "El archivo es demasiado grande. Máximo 5MB",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setUploadingImage(true)
+    try {
+      const formDataUpload = new FormData()
+      formDataUpload.append("file", file)
+
+      const response = await fetch("/api/upload/property-image", {
+        method: "POST",
+        body: formDataUpload,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || "Error al subir la imagen")
+      }
+
+      const { url } = await response.json()
+      setFormData((prev) => ({ ...prev, image_url: url }))
+      setImagePreview(url)
+      
+      toast({
+        title: "Imagen subida",
+        description: "La imagen se ha subido correctamente",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al subir la imagen",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setFormData((prev) => ({ ...prev, image_url: "" }))
+    setImagePreview(null)
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild type="button">
+    <div className="min-h-screen bg-gradient-to-b from-muted/20 to-background p-4 md:p-6 lg:p-8">
+      {/* Header */}
+      <div className="mb-6 md:mb-8">
+        <div className="flex items-center gap-3 mb-4">
           <Link href="/dashboard/properties">
-            <ArrowLeft className="h-4 w-4" />
+            <Button variant="ghost" size="sm" className="gap-2 p-1.5 hover:bg-muted rounded-lg transition" type="button">
+              <ArrowLeft className="w-5 h-5 text-foreground" />
+            </Button>
           </Link>
-        </Button>
-      </div>
-
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="general" className="flex items-center gap-2">
-            <Info className="h-4 w-4" />
-            General
-          </TabsTrigger>
-          <TabsTrigger value="location" className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Ubicación
-          </TabsTrigger>
-          <TabsTrigger value="characteristics" className="flex items-center gap-2">
-            <Home className="h-4 w-4" />
-            Características
-          </TabsTrigger>
-          <TabsTrigger value="pricing" className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4" />
-            Precios
-          </TabsTrigger>
-          <TabsTrigger value="channels" className="flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4" />
-            Canales
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Pestaña: Información General */}
-        <TabsContent value="general" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Información Básica</CardTitle>
-              <CardDescription>Datos principales de la propiedad</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="property_code">Código de Propiedad *</Label>
-              <Input
-                id="property_code"
-                value={formData.property_code}
-                onChange={(e) => setFormData({ ...formData, property_code: e.target.value })}
-                placeholder="ej: PROP-001"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="ej: Apartamento Centro Madrid"
-                required
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Descripción</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Descripción detallada de la propiedad..."
-              disabled={loading}
-              rows={4}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="property_type_id">Tipo de Propiedad</Label>
-            <Select
-              value={formData.property_type_id}
-              onValueChange={(value) => setFormData({ ...formData, property_type_id: value })}
-            >
-              <SelectTrigger id="property_type_id">
-                <SelectValue placeholder="Selecciona un tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                {propertyTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-          {/* Estado */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Estado</CardTitle>
-              <CardDescription>Activar o desactivar la propiedad</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                  disabled={loading}
-                />
-                <Label htmlFor="is_active">Propiedad activa</Label>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Pestaña: Ubicación */}
-        <TabsContent value="location" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ubicación</CardTitle>
-              <CardDescription>Dirección de la propiedad</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="street">Calle</Label>
-              <Input
-                id="street"
-                value={formData.street}
-                onChange={(e) => setFormData({ ...formData, street: e.target.value })}
-                placeholder="Calle Principal"
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="number">Número</Label>
-              <Input
-                id="number"
-                value={formData.number}
-                onChange={(e) => setFormData({ ...formData, number: e.target.value })}
-                placeholder="123"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="city">Ciudad</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="Madrid"
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="province">Provincia</Label>
-              <Input
-                id="province"
-                value={formData.province}
-                onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                placeholder="Madrid"
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="postal_code">Código Postal</Label>
-              <Input
-                id="postal_code"
-                value={formData.postal_code}
-                onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                placeholder="28001"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="country">País</Label>
-            <Input
-              id="country"
-              value={formData.country}
-              onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-              placeholder="España"
-              disabled={loading}
-            />
-          </div>
-        </CardContent>
-      </Card>
-        </TabsContent>
-
-        {/* Pestaña: Características */}
-        <TabsContent value="characteristics" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Características</CardTitle>
-              <CardDescription>Detalles de la propiedad</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <Label htmlFor="bedrooms">Habitaciones</Label>
-              <Input
-                id="bedrooms"
-                type="number"
-                value={formData.bedrooms}
-                onChange={(e) => setFormData({ ...formData, bedrooms: Number.parseInt(e.target.value) || 0 })}
-                disabled={loading}
-                min="0"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bathrooms">Baños</Label>
-              <Input
-                id="bathrooms"
-                type="number"
-                value={formData.bathrooms}
-                onChange={(e) => setFormData({ ...formData, bathrooms: Number.parseInt(e.target.value) || 0 })}
-                disabled={loading}
-                min="0"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="max_guests">Huéspedes Máx.</Label>
-              <Input
-                id="max_guests"
-                type="number"
-                value={formData.max_guests}
-                onChange={(e) => setFormData({ ...formData, max_guests: Number.parseInt(e.target.value) || 0 })}
-                disabled={loading}
-                min="0"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="square_meters">Metros²</Label>
-              <Input
-                id="square_meters"
-                type="number"
-                value={formData.square_meters}
-                onChange={(e) => setFormData({ ...formData, square_meters: Number.parseFloat(e.target.value) || 0 })}
-                disabled={loading}
-                min="0"
-                step="0.01"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="min_nights">Noches Mínimas *</Label>
-              <Input
-                id="min_nights"
-                type="number"
-                value={formData.min_nights}
-                onChange={(e) => setFormData({ ...formData, min_nights: Number.parseInt(e.target.value) || 1 })}
-                disabled={loading}
-                min="1"
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Número mínimo de noches requeridas para reservas comerciales
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-        </TabsContent>
-
-        {/* Pestaña: Precios */}
-        <TabsContent value="pricing" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Precios</CardTitle>
-              <CardDescription>Configuración de precios y tarifas</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="base_price_per_night">Precio Base/Noche (€)</Label>
-              <Input
-                id="base_price_per_night"
-                type="number"
-                value={formData.base_price_per_night}
-                onChange={(e) =>
-                  setFormData({ ...formData, base_price_per_night: Number.parseFloat(e.target.value) || 0 })
-                }
-                disabled={loading}
-                min="0"
-                step="0.01"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cleaning_fee">Tarifa de Limpieza (€)</Label>
-              <Input
-                id="cleaning_fee"
-                type="number"
-                value={formData.cleaning_fee}
-                onChange={(e) => setFormData({ ...formData, cleaning_fee: Number.parseFloat(e.target.value) || 0 })}
-                disabled={loading}
-                min="0"
-                step="0.01"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="security_deposit">Depósito de Seguridad (€)</Label>
-              <Input
-                id="security_deposit"
-                type="number"
-                value={formData.security_deposit}
-                onChange={(e) => setFormData({ ...formData, security_deposit: Number.parseFloat(e.target.value) || 0 })}
-                disabled={loading}
-                min="0"
-                step="0.01"
-              />
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="check_in_time">Hora de Check-in</Label>
-              <Input
-                id="check_in_time"
-                type="time"
-                value={formData.check_in_time}
-                onChange={(e) => setFormData({ ...formData, check_in_time: e.target.value })}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="check_out_time">Hora de Check-out</Label>
-              <Input
-                id="check_out_time"
-                type="time"
-                value={formData.check_out_time}
-                onChange={(e) => setFormData({ ...formData, check_out_time: e.target.value })}
-                disabled={loading}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-        </TabsContent>
-
-        {/* Pestaña: Canales de Venta */}
-        <TabsContent value="channels" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Canales de Venta Activos</CardTitle>
-              <CardDescription>
-                Selecciona los canales de venta activos para esta propiedad. 
-                Solo estos canales estarán disponibles al crear reservas para esta propiedad.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-          {loadingChannels ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          ) : allChannels.length === 0 ? (
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              {property ? "Editar Propiedad" : "Nueva Propiedad"}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              No hay canales de venta disponibles. Crea canales desde la sección "Canales de Venta".
+              {property
+                ? "Actualiza la información de tu propiedad vacacional"
+                : "Crea una nueva propiedad vacacional"}
             </p>
-          ) : (
-            <div className="space-y-3">
-              {allChannels.map((channel) => (
-                <div key={channel.id} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent/50">
-                  <Checkbox
-                    id={`channel-${channel.id}`}
-                    checked={selectedChannels.includes(channel.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedChannels([...selectedChannels, channel.id])
-                      } else {
-                        setSelectedChannels(selectedChannels.filter(id => id !== channel.id))
-                      }
-                    }}
-                    disabled={loading}
-                  />
-                  <Label
-                    htmlFor={`channel-${channel.id}`}
-                    className="flex items-center gap-3 flex-1 cursor-pointer"
-                  >
-                    {channel.logo_url && (
-                      <div className="relative h-8 w-8">
-                        <Image
-                          src={channel.logo_url}
-                          alt={channel.name}
-                          fill
-                          className="object-contain rounded"
-                        />
-                      </div>
-                    )}
-                    <span className="font-medium">{channel.name}</span>
-                  </Label>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-        </TabsContent>
-      </Tabs>
+          </div>
+        </div>
 
-      {/* Actions */}
-      <div className="flex gap-3">
-        <Button type="submit" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              {property ? "Actualizar Propiedad" : "Crear Propiedad"}
-            </>
-          )}
-        </Button>
-        <Button type="button" variant="outline" asChild disabled={loading}>
-          <Link href="/dashboard/properties">Cancelar</Link>
-        </Button>
+        {/* Desktop Tabs */}
+        <div className="hidden md:block">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-5 bg-muted p-1 rounded-lg h-auto">
+              {TABS.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="text-xs sm:text-sm py-2"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* Mobile Tab Selector */}
+        <div className="md:hidden">
+          <Select value={mobileTab} onValueChange={setMobileTab}>
+            <SelectTrigger className="w-full bg-background">
+              <SelectValue placeholder="Selecciona una sección" />
+            </SelectTrigger>
+            <SelectContent>
+              {TABS.map((tab) => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  {tab.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-    </form>
+
+      {/* Content */}
+      <form onSubmit={handleSubmit} className="space-y-6 md:space-y-0">
+        <div className="hidden md:block">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsContent value="general" className="space-y-6 mt-0">
+                <PropertyFormGeneral
+                  formData={{
+                    property_code: formData.property_code,
+                    name: formData.name,
+                    slug: formData.slug,
+                    description: formData.description,
+                    image_url: formData.image_url,
+                    property_type_id: formData.property_type_id,
+                    is_active: formData.is_active,
+                  }}
+                  propertyTypes={propertyTypes}
+                  propertyId={property?.id}
+                  slugError={slugError}
+                  slugValidating={slugValidating}
+                  autoGeneratingSlug={autoGeneratingSlug}
+                  imagePreview={imagePreview}
+                  uploadingImage={uploadingImage}
+                  onFieldChange={handleFieldChange}
+                  onSlugChange={handleSlugChange}
+                  onImageUpload={handleImageUpload}
+                  onRemoveImage={handleRemoveImage}
+                />
+              </TabsContent>
+
+              <TabsContent value="location" className="space-y-6 mt-0">
+                <PropertyFormLocation
+                  formData={{
+                    street: formData.street,
+                    number: formData.number,
+                    city: formData.city,
+                    province: formData.province,
+                    postal_code: formData.postal_code,
+                    country: formData.country,
+                  }}
+                  onFieldChange={handleFieldChange}
+                />
+              </TabsContent>
+
+              <TabsContent value="characteristics" className="space-y-6 mt-0">
+                <PropertyFormCharacteristics
+                  formData={{
+                    bedrooms: formData.bedrooms,
+                    bathrooms: formData.bathrooms,
+                    max_guests: formData.max_guests,
+                    square_meters: formData.square_meters,
+                    min_nights: formData.min_nights,
+                  }}
+                  onFieldChange={handleFieldChange}
+                />
+              </TabsContent>
+
+              <TabsContent value="pricing" className="space-y-6 mt-0">
+                <PropertyFormPricing
+                  formData={{
+                    base_price_per_night: formData.base_price_per_night,
+                    cleaning_fee: formData.cleaning_fee,
+                    security_deposit: formData.security_deposit,
+                    check_in_time: formData.check_in_time,
+                    check_out_time: formData.check_out_time,
+                  }}
+                  onFieldChange={handleFieldChange}
+                />
+              </TabsContent>
+
+              <TabsContent value="channels" className="space-y-6 mt-0">
+                <PropertyFormChannels
+                  allChannels={allChannels}
+                  selectedChannels={selectedChannels}
+                  loadingChannels={loadingChannels}
+                  onChannelToggle={handleChannelToggle}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Mobile Content */}
+          <div className="md:hidden space-y-6">
+            {mobileTab === "general" && (
+              <PropertyFormGeneral
+                formData={{
+                  property_code: formData.property_code,
+                  name: formData.name,
+                  slug: formData.slug,
+                  description: formData.description,
+                  image_url: formData.image_url,
+                  property_type_id: formData.property_type_id,
+                  is_active: formData.is_active,
+                }}
+                propertyTypes={propertyTypes}
+                propertyId={property?.id}
+                slugError={slugError}
+                slugValidating={slugValidating}
+                autoGeneratingSlug={autoGeneratingSlug}
+                imagePreview={imagePreview}
+                uploadingImage={uploadingImage}
+                onFieldChange={handleFieldChange}
+                onSlugChange={handleSlugChange}
+                onImageUpload={handleImageUpload}
+                onRemoveImage={handleRemoveImage}
+              />
+            )}
+            {mobileTab === "location" && (
+              <PropertyFormLocation
+                formData={{
+                  street: formData.street,
+                  number: formData.number,
+                  city: formData.city,
+                  province: formData.province,
+                  postal_code: formData.postal_code,
+                  country: formData.country,
+                }}
+                onFieldChange={handleFieldChange}
+              />
+            )}
+            {mobileTab === "characteristics" && (
+              <PropertyFormCharacteristics
+                formData={{
+                  bedrooms: formData.bedrooms,
+                  bathrooms: formData.bathrooms,
+                  max_guests: formData.max_guests,
+                  square_meters: formData.square_meters,
+                  min_nights: formData.min_nights,
+                }}
+                onFieldChange={handleFieldChange}
+              />
+            )}
+            {mobileTab === "pricing" && (
+              <PropertyFormPricing
+                formData={{
+                  base_price_per_night: formData.base_price_per_night,
+                  cleaning_fee: formData.cleaning_fee,
+                  security_deposit: formData.security_deposit,
+                  check_in_time: formData.check_in_time,
+                  check_out_time: formData.check_out_time,
+                }}
+                onFieldChange={handleFieldChange}
+              />
+            )}
+            {mobileTab === "channels" && (
+              <PropertyFormChannels
+                allChannels={allChannels}
+                selectedChannels={selectedChannels}
+                loadingChannels={loadingChannels}
+                onChannelToggle={handleChannelToggle}
+              />
+            )}
+          </div>
+
+        {/* Footer Actions */}
+        <div className="border-t border-border bg-card sticky bottom-0 z-40 mt-8">
+          <div className="py-4">
+            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end">
+              <Link href="/dashboard/properties">
+                <Button variant="outline" className="w-full sm:w-auto" type="button" disabled={loading}>
+                  Cancelar
+                </Button>
+              </Link>
+              <Button type="submit" disabled={loading} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    {property ? "Actualizar Propiedad" : "Crear Propiedad"}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
   )
 }

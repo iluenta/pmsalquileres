@@ -199,12 +199,38 @@ export async function getCompleteGuideData(propertyId: string) {
     
     console.log('[v0] Supabase client created successfully')
     
-    // Obtener la propiedad
-    const { data: property, error: propertyError } = await supabase
+    // Obtener la propiedad (intentar con slug, si falla sin slug)
+    let property: any = null
+    let propertyError: any = null
+    
+    // Primero intentar con slug incluido
+    const { data: propertyWithSlug, error: errorWithSlug } = await supabase
       .from('properties')
-      .select('id, name, street, city, province, country, description')
+      .select('id, name, slug, street, city, province, country, description')
       .eq('id', propertyId)
       .maybeSingle()
+
+    if (errorWithSlug) {
+      // Si el error es porque slug no existe, intentar sin slug
+      if (errorWithSlug.message?.includes('slug') || errorWithSlug.code === '42703') {
+        console.log('[v0] Slug column not found, fetching without slug')
+        const { data: propertyWithoutSlug, error: errorWithoutSlug } = await supabase
+          .from('properties')
+          .select('id, name, street, city, province, country, description')
+          .eq('id', propertyId)
+          .maybeSingle()
+        
+        if (errorWithoutSlug) {
+          propertyError = errorWithoutSlug
+        } else {
+          property = propertyWithoutSlug
+        }
+      } else {
+        propertyError = errorWithSlug
+      }
+    } else {
+      property = propertyWithSlug
+    }
 
     if (propertyError) {
       console.error('[v0] Error fetching property:')
@@ -214,7 +240,8 @@ export async function getCompleteGuideData(propertyId: string) {
       console.error('- Error hint:', propertyError.hint)
       console.error('- Error code:', propertyError.code)
       console.error('- Property ID:', propertyId)
-      throw propertyError
+      // No lanzar el error, retornar null para que el componente maneje el error
+      return null
     }
 
     if (!property) {

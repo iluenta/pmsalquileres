@@ -7,11 +7,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 const supabasePublic = createClient(supabaseUrl, supabaseAnonKey)
 
-export async function getCompleteGuideDataPublic(propertyId: string) {
+export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
   try {
-    console.log('[v0] Fetching complete guide data for property (public):', propertyId)
-    console.log('[v0] Property ID type:', typeof propertyId)
-    console.log('[v0] Property ID length:', propertyId?.length)
+    console.log('[v0] Fetching complete guide data for property (public):', propertyIdOrSlug)
+    console.log('[v0] Property ID/Slug type:', typeof propertyIdOrSlug)
+    console.log('[v0] Property ID/Slug length:', propertyIdOrSlug?.length)
     
     if (!supabasePublic) {
       console.error('[v0] No Supabase public client available')
@@ -19,6 +19,29 @@ export async function getCompleteGuideDataPublic(propertyId: string) {
     }
     
     console.log('[v0] Supabase public client created successfully')
+    
+    // Primero intentar buscar por slug (si no es un UUID)
+    let propertyId = propertyIdOrSlug
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyIdOrSlug)
+    
+    if (!isUUID) {
+      // Buscar propiedad por slug
+      const { data: property, error: propertyError } = await supabasePublic
+        .from('properties')
+        .select('id')
+        .eq('slug', propertyIdOrSlug)
+        .maybeSingle()
+      
+      if (propertyError) {
+        console.error('[v0] Error fetching property by slug:', propertyError)
+      } else if (property) {
+        propertyId = property.id
+        console.log('[v0] Property found by slug, ID:', propertyId)
+      } else {
+        console.log('[v0] No property found with slug:', propertyIdOrSlug)
+        return null
+      }
+    }
     
     // Obtener la guía (que contiene la información básica de la propiedad)
     const { data: guide, error: guideError } = await supabasePublic

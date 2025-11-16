@@ -48,13 +48,60 @@ export default async function NewBookingPage() {
   const handleSave = async (data: CreateBookingData | UpdateBookingData): Promise<boolean> => {
     "use server"
     try {
+      // Debug: Log de los datos recibidos
+      console.log("[handleSave] Datos recibidos:", {
+        property_id: data.property_id,
+        person_id: data.person_id,
+        booking_type_id: data.booking_type_id,
+        check_in_date: data.check_in_date,
+        check_out_date: data.check_out_date,
+      })
+      
       // Asegurar que tenemos los campos requeridos para CreateBookingData
-      if (!data.property_id || !data.person_id || !data.check_in_date || !data.check_out_date) {
-        throw new Error("Faltan campos requeridos para crear la reserva")
+      // Normalizar booking_type_id: convertir cadena vacía a null para la validación
+      const normalizedBookingTypeId = data.booking_type_id && typeof data.booking_type_id === 'string' && data.booking_type_id.trim() !== "" ? data.booking_type_id.trim() : null
+      
+      if (!normalizedBookingTypeId) {
+        throw new Error("Faltan campos requeridos: El tipo de reserva es obligatorio.")
+      }
+
+      // Determinar si es período cerrado consultando la base de datos
+      let isClosedPeriod = false
+      const supabase = await getSupabaseServerClient()
+      if (normalizedBookingTypeId && supabase) {
+        const { data: bookingType } = await supabase
+          .from('configuration_values')
+          .select('value')
+          .eq('id', normalizedBookingTypeId)
+          .single()
+        
+        isClosedPeriod = bookingType?.value === 'closed_period'
+      }
+      
+      // Validaciones comunes (siempre requeridas)
+      if (!data.property_id) {
+        throw new Error("Faltan campos requeridos: La propiedad es obligatoria.")
+      }
+      if (!data.check_in_date) {
+        throw new Error("Faltan campos requeridos: La fecha de entrada es obligatoria.")
+      }
+      if (!data.check_out_date) {
+        throw new Error("Faltan campos requeridos: La fecha de salida es obligatoria.")
+      }
+
+      // Validaciones específicas para reservas comerciales (no períodos cerrados)
+      if (!isClosedPeriod) {
+        if (!data.person_id) {
+          throw new Error("Faltan campos requeridos: El huésped es obligatorio para reservas comerciales.")
+        }
+        if (!data.booking_status_id) {
+          throw new Error("Faltan campos requeridos: El estado de la reserva es obligatorio para reservas comerciales.")
+        }
       }
       const createData: CreateBookingData = {
         property_id: data.property_id,
         person_id: data.person_id,
+        booking_type_id: normalizedBookingTypeId, // Usar el valor normalizado
         channel_id: data.channel_id,
         channel_booking_number: data.channel_booking_number,
         check_in_date: data.check_in_date,

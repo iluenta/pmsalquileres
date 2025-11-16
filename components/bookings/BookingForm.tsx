@@ -318,7 +318,7 @@ export function BookingForm({
       newErrors.property_id = "Debe seleccionar una propiedad"
     }
 
-    if (!formData.booking_type_id) {
+    if (!formData.booking_type_id || formData.booking_type_id.trim() === "") {
       newErrors.booking_type_id = "Debe seleccionar un tipo de reserva"
     }
 
@@ -446,6 +446,7 @@ export function BookingForm({
     setTouched({
       person: true,
       property_id: true,
+      booking_type_id: true, // Añadir booking_type_id a los campos tocados
       check_in_date: true,
       check_out_date: true,
       number_of_guests: true,
@@ -471,13 +472,24 @@ export function BookingForm({
     setLoading(true)
 
     try {
+      // Validar booking_type_id antes de construir bookingData
+      if (!formData.booking_type_id || formData.booking_type_id.trim() === "") {
+        toast({
+          title: "Error de validación",
+          description: "Debe seleccionar un tipo de reserva",
+          variant: "destructive",
+        })
+        setLoading(false)
+        return
+      }
+
       const bookingData = {
         ...formData,
         person_id: isClosedPeriod ? null : (selectedPerson?.id || null),
         channel_id: isClosedPeriod ? null : (formData.channel_id || null),
         channel_booking_number: isClosedPeriod ? null : (formData.channel_booking_number || null),
         booking_status_id: isClosedPeriod ? null : (formData.booking_status_id || null),
-        booking_type_id: formData.booking_type_id || null,
+        booking_type_id: formData.booking_type_id.trim(), // Ya validado arriba, solo hacer trim
         // Asegurar que períodos cerrados tengan importes en 0
         total_amount: isClosedPeriod ? 0 : formData.total_amount,
         sales_commission_amount: isClosedPeriod ? 0 : (formData.sales_commission_amount || 0),

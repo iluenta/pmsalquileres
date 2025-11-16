@@ -432,7 +432,7 @@ export async function getBookings(tenantId: string, year?: number | null): Promi
     const { data: bookingTypes } = bookingTypeIds.length > 0
       ? await supabase
           .from('configuration_values')
-          .select('id, label, color, icon')
+          .select('id, label, color, icon, value')
           .in('id', bookingTypeIds)
       : { data: [] }
     
@@ -722,17 +722,23 @@ export async function createBooking(data: CreateBookingData, tenantId?: string):
   
   const { data: { user } } = await supabase.auth.getUser()
   
+  // Normalizar channel_id y channel_booking_number: convertir cadenas vacías a null
+  const normalizedChannelId = data.channel_id && typeof data.channel_id === 'string' && data.channel_id.trim() !== "" ? data.channel_id.trim() : null
+  const normalizedChannelBookingNumber = data.channel_booking_number && typeof data.channel_booking_number === 'string' && data.channel_booking_number.trim() !== "" ? data.channel_booking_number.trim() : null
+
   const bookingData = {
     ...data,
     tenant_id: userTenantId,
     booking_code: bookingCode || `BK-${Date.now()}`,
     person_id: data.person_id || null, // Permitir NULL para períodos cerrados
+    channel_id: normalizedChannelId, // Incluir explícitamente channel_id normalizado
+    channel_booking_number: normalizedChannelBookingNumber, // Incluir explícitamente channel_booking_number normalizado
     sales_commission_amount: data.sales_commission_amount ?? 0,
     collection_commission_amount: data.collection_commission_amount ?? 0,
     tax_amount: data.tax_amount ?? 0,
     net_amount: data.net_amount ?? 0,
     booking_status_id: data.booking_status_id || null,
-    booking_type_id: data.booking_type_id || null,
+    booking_type_id: data.booking_type_id && typeof data.booking_type_id === 'string' && data.booking_type_id.trim() !== "" ? data.booking_type_id.trim() : null, // Normalizar booking_type_id
     notes: data.notes || null,
     created_by: user?.id || null,
   }

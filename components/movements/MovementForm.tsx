@@ -27,6 +27,7 @@ import type { ServiceProviderWithDetails } from "@/types/service-providers"
 import type { TreasuryAccount } from "@/types/treasury-accounts"
 import { ServiceProviderSelector } from "./ServiceProviderSelector"
 import { ExpenseItemsManager } from "./ExpenseItemsManager"
+import { BookingSearch } from "./BookingSearch"
 import type { CreateExpenseItemData } from "@/types/movements"
 
 interface MovementFormProps {
@@ -80,6 +81,7 @@ export function MovementForm({
   useEffect(() => {
     loadInitialData()
   }, [])
+
 
   useEffect(() => {
     if (movement) {
@@ -270,7 +272,16 @@ export function MovementForm({
     selectedMovementType?.value === "income" ||
     selectedMovementType?.label === "Ingreso"
 
-  const selectedBooking = bookings.find((b) => b.id === formData.booking_id)
+  // Filtrar reservas: solo comerciales para gastos (el componente BookingSearch maneja su propia búsqueda)
+  const filteredBookings = isIncome 
+    ? bookings 
+    : bookings.filter((booking) => {
+        // Para gastos, solo mostrar reservas comerciales (no períodos cerrados)
+        if (!booking.booking_type) return true
+        return booking.booking_type.value !== 'closed_period'
+      })
+
+  const selectedBooking = filteredBookings.find((b) => b.id === formData.booking_id) || bookings.find((b) => b.id === formData.booking_id)
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -541,36 +552,74 @@ export function MovementForm({
                       <span className="text-muted-foreground text-xs ml-1">(Opcional)</span>
                     )}
                   </Label>
-                  <Select
-                    value={isIncome ? formData.booking_id : (formData.booking_id || "none")}
-                    onValueChange={(value) => {
-                      if (isIncome) {
+                  
+                  {isIncome ? (
+                    // Para ingresos, mantener el Select original
+                    <Select
+                      value={formData.booking_id}
+                      onValueChange={(value) => {
                         setFormData({ ...formData, booking_id: value })
                         loadUnpaidBookings()
-                      } else {
-                        setFormData({ ...formData, booking_id: value === "none" ? "" : value })
-                        if (value !== "none") {
-                          loadUnpaidBookings()
-                        }
-                      }
-                    }}
-                  >
-                    <SelectTrigger id="booking_id" className="w-full bg-background">
-                      <SelectValue 
-                        placeholder={isIncome ? "Seleccionar reserva" : "Sin reserva asociada"} 
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {!isIncome && <SelectItem value="none">Sin reserva asociada</SelectItem>}
-                      {bookings.map((booking) => (
-                        <SelectItem key={booking.id} value={booking.id}>
-                          {booking.booking_code} - {booking.property?.name}
-                          {isIncome && booking.person && ` - ${booking.person.first_name} ${booking.person.last_name}`}
-                          {isIncome && ` (Pendiente: ${booking.pending_amount.toFixed(2)} €)`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      }}
+                    >
+                      <SelectTrigger id="booking_id" className="w-full bg-background">
+                        <SelectValue placeholder="Seleccionar reserva" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[400px]">
+                        {filteredBookings.map((booking) => {
+                          const formatDate = (dateString: string) => {
+                            try {
+                              const date = new Date(dateString)
+                              return date.toLocaleDateString('es-ES', { 
+                                day: '2-digit', 
+                                month: '2-digit', 
+                                year: 'numeric' 
+                              })
+                            } catch {
+                              return dateString
+                            }
+                          }
+                          
+                          const checkIn = booking.check_in_date ? formatDate(booking.check_in_date) : 'N/A'
+                          const checkOut = booking.check_out_date ? formatDate(booking.check_out_date) : 'N/A'
+                          const guestName = booking.person 
+                            ? `${booking.person.first_name || ''} ${booking.person.last_name || ''}`.trim()
+                            : null
+                          const displayText = `${booking.booking_code} - ${booking.property?.name || 'N/A'}${guestName ? ` (${guestName})` : ''}`
+                          
+                          return (
+                            <SelectItem 
+                              key={booking.id} 
+                              value={booking.id} 
+                              className="py-2.5 min-h-[3.5rem]"
+                              textValue={displayText}
+                            >
+                              <div className="flex flex-col gap-0.5 w-full pr-6">
+                                <span className="font-medium text-sm leading-tight">
+                                  {booking.booking_code} - {booking.property?.name || 'N/A'}
+                                </span>
+                                <span className="text-xs text-muted-foreground leading-tight">
+                                  {guestName && `${guestName} • `}
+                                  {checkIn} / {checkOut}
+                                  {` • Pendiente: ${booking.pending_amount.toFixed(2)} €`}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          )
+                        })}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    // Para gastos, usar el componente de búsqueda
+                    <BookingSearch
+                      bookings={bookings}
+                      selectedBookingId={formData.booking_id}
+                      onSelect={(bookingId) => {
+                        setFormData({ ...formData, booking_id: bookingId })
+                      }}
+                      filterCommercialOnly={true}
+                    />
+                  )}
                   {errors.booking_id && (
                     <p className="text-sm text-destructive mt-1">{errors.booking_id}</p>
                   )}

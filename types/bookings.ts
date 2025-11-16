@@ -145,6 +145,7 @@ export interface BookingWithDetails extends Omit<Booking, 'property' | 'person' 
     label: string
     color: string | null
     icon: string | null
+    value: string | null
   } | null
 }
 

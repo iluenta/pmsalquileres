@@ -2,7 +2,7 @@ import { getProperties } from "@/lib/api/properties"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Plus, Book } from "lucide-react"
+import { Plus } from "lucide-react"
 import Link from "next/link"
 import { PropertiesTable } from "@/components/properties/properties-table"
 
@@ -32,22 +32,16 @@ export default async function PropertiesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Propiedades</h1>
-          <p className="text-muted-foreground">Gestiona tus propiedades vacacionales</p>
+          <p className="text-muted-foreground">
+            Gestiona tu cartera de propiedades vacacionales
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href="/dashboard/guides">
-              <Book className="mr-2 h-4 w-4" />
-              Ver Guías
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link href="/dashboard/properties/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Nueva Propiedad
-            </Link>
-          </Button>
-        </div>
+        <Button asChild className="gap-2">
+          <Link href="/dashboard/properties/new">
+            <Plus className="w-4 h-4" />
+            Nueva Propiedad
+          </Link>
+        </Button>
       </div>
 
       <PropertiesTable properties={properties} />

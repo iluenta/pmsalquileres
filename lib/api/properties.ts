@@ -319,6 +319,18 @@ export async function getPropertyTypes(tenantId: string) {
     return []
   }
 
+  // Si tenemos datos y la columna is_default existe, ordenar manualmente
+  // para poner los valores por defecto primero
+  if (data && data.length > 0 && 'is_default' in (data[0] || {})) {
+    return data.sort((a: any, b: any) => {
+      // Primero por is_default (true primero)
+      if (a.is_default && !b.is_default) return -1
+      if (!a.is_default && b.is_default) return 1
+      // Luego por sort_order
+      return (a.sort_order || 0) - (b.sort_order || 0)
+    })
+  }
+
   console.log("[v0] Found property types:", data?.length || 0)
   return data || []
 }

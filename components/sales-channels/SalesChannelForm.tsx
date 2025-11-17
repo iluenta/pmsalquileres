@@ -68,6 +68,14 @@ export function SalesChannelForm({
         if (response.ok) {
           const data = await response.json()
           setTaxTypes(data)
+          
+          // Aplicar valor por defecto si no hay channel y apply_tax está activo
+          if (!channel && formData.apply_tax && !formData.tax_type_id && data.length > 0) {
+            const defaultTaxType = data.find((t: ConfigurationValue) => t.is_default === true)
+            if (defaultTaxType) {
+              setFormData(prev => ({ ...prev, tax_type_id: defaultTaxType.id }))
+            }
+          }
         }
       } catch (error) {
         console.error("Error loading tax types:", error)
@@ -76,7 +84,7 @@ export function SalesChannelForm({
       }
     }
     loadTaxTypes()
-  }, [])
+  }, [channel])
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -494,13 +502,21 @@ export function SalesChannelForm({
             <Checkbox
               id="apply_tax"
               checked={formData.apply_tax}
-              onCheckedChange={(checked) =>
+              onCheckedChange={(checked) => {
+                // Si se activa apply_tax y no hay tax_type_id, aplicar el valor por defecto
+                let newTaxTypeId = checked ? formData.tax_type_id : ""
+                if (checked && !formData.tax_type_id && taxTypes.length > 0) {
+                  const defaultTaxType = taxTypes.find((t: ConfigurationValue) => t.is_default === true)
+                  if (defaultTaxType) {
+                    newTaxTypeId = defaultTaxType.id
+                  }
+                }
                 setFormData({ 
                   ...formData, 
                   apply_tax: checked as boolean,
-                  tax_type_id: checked ? formData.tax_type_id : ""
+                  tax_type_id: newTaxTypeId
                 })
-              }
+              }}
             />
             <div className="space-y-1">
               <Label htmlFor="apply_tax" className="cursor-pointer">
@@ -518,7 +534,7 @@ export function SalesChannelForm({
                 Tipo de Impuesto <span className="text-red-500">*</span>
               </Label>
               <Select
-                value={formData.tax_type_id || ""}
+                value={formData.tax_type_id || undefined}
                 onValueChange={(value) =>
                   setFormData({ ...formData, tax_type_id: value })
                 }

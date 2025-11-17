@@ -194,21 +194,52 @@ export function MovementForm({
         fetch("/api/treasury-accounts"),
       ])
 
-      if (movementTypesRes.ok) {
-        setMovementTypes(await movementTypesRes.json())
-      }
-      if (paymentMethodsRes.ok) {
-        setPaymentMethods(await paymentMethodsRes.json())
-      }
-      if (movementStatusesRes.ok) {
-        setMovementStatuses(await movementStatusesRes.json())
-      }
-      if (taxTypesRes.ok) {
-        setTaxTypes(await taxTypesRes.json())
-      }
+      const movementTypesData = movementTypesRes.ok ? await movementTypesRes.json() : []
+      const paymentMethodsData = paymentMethodsRes.ok ? await paymentMethodsRes.json() : []
+      const movementStatusesData = movementStatusesRes.ok ? await movementStatusesRes.json() : []
+      const taxTypesData = taxTypesRes.ok ? await taxTypesRes.json() : []
+
+      setMovementTypes(movementTypesData)
+      setPaymentMethods(paymentMethodsData)
+      setMovementStatuses(movementStatusesData)
+      setTaxTypes(taxTypesData)
+
       if (treasuryAccountsRes.ok) {
         const accounts = await treasuryAccountsRes.json()
         setTreasuryAccounts(accounts.filter((a: TreasuryAccount) => a.is_active))
+      }
+
+      // Aplicar valores por defecto solo si no hay movement existente
+      if (!movement) {
+        setFormData((prev) => {
+          const updates: Partial<typeof prev> = {}
+          
+          // Aplicar valor por defecto de movement_type_id
+          if (!prev.movement_type_id && movementTypesData.length > 0) {
+            const defaultType = movementTypesData.find((t: ConfigurationValue) => t.is_default === true)
+            if (defaultType) {
+              updates.movement_type_id = defaultType.id
+            }
+          }
+          
+          // Aplicar valor por defecto de payment_method_id
+          if (!prev.payment_method_id && paymentMethodsData.length > 0) {
+            const defaultMethod = paymentMethodsData.find((m: ConfigurationValue) => m.is_default === true)
+            if (defaultMethod) {
+              updates.payment_method_id = defaultMethod.id
+            }
+          }
+          
+          // Aplicar valor por defecto de movement_status_id
+          if (!prev.movement_status_id && movementStatusesData.length > 0) {
+            const defaultStatus = movementStatusesData.find((s: ConfigurationValue) => s.is_default === true)
+            if (defaultStatus) {
+              updates.movement_status_id = defaultStatus.id
+            }
+          }
+          
+          return { ...prev, ...updates }
+        })
       }
     } catch (error) {
       console.error("Error loading initial data:", error)
@@ -295,8 +326,13 @@ export function MovementForm({
         newErrors.booking_id = "Debe seleccionar una reserva para ingresos"
       } else if (selectedBooking) {
         const amount = parseFloat(formData.amount) || 0
-        if (amount > selectedBooking.pending_amount) {
-          newErrors.amount = `El importe no puede exceder el pendiente (${selectedBooking.pending_amount.toFixed(2)} €)`
+        // Si se está editando un movimiento, restar el importe actual del pending_amount
+        // porque el pending_amount ya incluye el importe del movimiento que se está editando
+        const currentMovementAmount = movement ? Number(movement.amount) : 0
+        const availableAmount = selectedBooking.pending_amount + currentMovementAmount
+        
+        if (amount > availableAmount) {
+          newErrors.amount = `El importe no puede exceder el pendiente (${availableAmount.toFixed(2)} €)`
         }
       }
     } else {
@@ -523,7 +559,7 @@ export function MovementForm({
                     Tipo de Movimiento <span className="text-destructive">*</span>
                   </Label>
                   <Select
-                    value={formData.movement_type_id}
+                    value={formData.movement_type_id || undefined}
                     onValueChange={(value) =>
                       setFormData({ ...formData, movement_type_id: value })
                     }
@@ -698,7 +734,7 @@ export function MovementForm({
                     Método de Pago <span className="text-destructive">*</span>
                   </Label>
                   <Select
-                    value={formData.payment_method_id}
+                    value={formData.payment_method_id || undefined}
                     onValueChange={(value) =>
                       setFormData({ ...formData, payment_method_id: value })
                     }
@@ -896,7 +932,7 @@ export function MovementForm({
                     Estado del Movimiento <span className="text-destructive">*</span>
                   </Label>
                   <Select
-                    value={formData.movement_status_id}
+                    value={formData.movement_status_id || undefined}
                     onValueChange={(value) =>
                       setFormData({ ...formData, movement_status_id: value })
                     }

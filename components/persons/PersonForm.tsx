@@ -63,6 +63,14 @@ export function PersonForm({
         if (response.ok) {
           const types = await response.json()
           setPersonTypes(types)
+          
+          // Aplicar valor por defecto si no hay person y no hay tipo seleccionado
+          if (!person && !formData.person_type && types.length > 0) {
+            const defaultType = types.find((t: ConfigurationValue) => t.is_default === true)
+            if (defaultType) {
+              setFormData(prev => ({ ...prev, person_type: defaultType.id }))
+            }
+          }
         }
       } catch (error) {
         console.error("Error loading person types:", error)
@@ -71,7 +79,7 @@ export function PersonForm({
       }
     }
     loadPersonTypes()
-  }, [])
+  }, [person])
 
   const isJuridicalPerson = () => {
     if (!formData.person_type) return false
@@ -224,7 +232,7 @@ export function PersonForm({
                     Tipo de Persona <span className="text-red-500">*</span>
                   </Label>
                   <Select
-                    value={formData.person_type}
+                    value={formData.person_type || undefined}
                     onValueChange={(value) =>
                       setFormData({ ...formData, person_type: value })
                     }

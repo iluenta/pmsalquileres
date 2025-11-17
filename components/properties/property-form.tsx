@@ -73,6 +73,16 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
   const [slugValidating, setSlugValidating] = useState(false)
   const [autoGeneratingSlug, setAutoGeneratingSlug] = useState(false)
 
+  // Aplicar valor por defecto de property type cuando se cargan los tipos
+  useEffect(() => {
+    if (!property && propertyTypes.length > 0 && !formData.property_type_id) {
+      const defaultType = propertyTypes.find((t: any) => t.is_default === true)
+      if (defaultType) {
+        setFormData(prev => ({ ...prev, property_type_id: defaultType.id }))
+      }
+    }
+  }, [propertyTypes, property, formData.property_type_id])
+
   // Cargar canales disponibles
   useEffect(() => {
     const loadChannels = async () => {

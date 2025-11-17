@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, use } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ export default function NewConfigurationValuePage({ params }: { params: Promise<
   const supabase = getSupabaseBrowserClient()
 
   const [loading, setLoading] = useState(false)
+  const [hasIsDefaultColumn, setHasIsDefaultColumn] = useState(true) // Por defecto asumimos que existe
   const [formData, setFormData] = useState({
     value: "",
     label: "",
@@ -32,17 +33,91 @@ export default function NewConfigurationValuePage({ params }: { params: Promise<
     icon: "",
     is_active: true,
     sort_order: 0,
+    is_default: false,
   })
+
+  // Verificar si la columna is_default existe
+  useEffect(() => {
+    const checkColumn = async () => {
+      try {
+        // Intentar obtener cualquier valor existente para verificar si tiene la columna
+        const { data, error } = await supabase
+          .from("configuration_values")
+          .select("*")
+          .limit(1)
+          .maybeSingle()
+
+        if (!error && data) {
+          // Si tenemos datos, verificar si tienen la propiedad is_default
+          setHasIsDefaultColumn('is_default' in data)
+        } else if (error) {
+          // Si hay error, intentar hacer un select específico de is_default
+          // para ver si el error es por columna no existente
+          const { error: testError } = await supabase
+            .from("configuration_values")
+            .select("is_default")
+            .limit(0)
+
+          if (testError) {
+            // Verificar si el error es por columna no existente
+            const errorMsg = testError.message?.toLowerCase() || ''
+            const isColumnError = errorMsg.includes('column') && 
+                                  errorMsg.includes('is_default') ||
+                                  testError.code === '42703' ||
+                                  errorMsg.includes('does not exist')
+            setHasIsDefaultColumn(!isColumnError)
+          } else {
+            setHasIsDefaultColumn(true)
+          }
+        } else {
+          // Si no hay datos ni error, asumir que la columna existe
+          setHasIsDefaultColumn(true)
+        }
+      } catch (err: any) {
+        // Si hay una excepción, verificar si es por columna no existente
+        const errorMsg = err?.message?.toLowerCase() || ''
+        const isColumnError = errorMsg.includes('column') && 
+                              errorMsg.includes('is_default') ||
+                              err?.code === '42703'
+        setHasIsDefaultColumn(!isColumnError)
+      }
+    }
+    checkColumn()
+  }, [typeId, supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      const { error } = await supabase.from("configuration_values").insert({
+      // Preparar los datos para insertar
+      const insertData: any = {
         configuration_type_id: typeId,
-        ...formData,
-      })
+        value: formData.value,
+        label: formData.label,
+        description: formData.description || null,
+        color: formData.color,
+        icon: formData.icon || null,
+        is_active: formData.is_active,
+        sort_order: formData.sort_order,
+      }
+
+      // Solo procesar is_default si la columna existe
+      if (hasIsDefaultColumn) {
+        // Si se está marcando como default, desmarcar otros valores del mismo tipo
+        if (formData.is_default) {
+          const { error: updateError } = await supabase
+            .from("configuration_values")
+            .update({ is_default: false })
+            .eq("configuration_type_id", typeId)
+            .eq("is_default", true)
+
+          if (updateError) throw updateError
+        }
+        insertData.is_default = formData.is_default
+      }
+
+      const { error } = await supabase.from("configuration_values").insert(insertData)
 
       if (error) throw error
 
@@ -179,6 +254,23 @@ export default function NewConfigurationValuePage({ params }: { params: Promise<
               />
               <Label htmlFor="is_active">Activo</Label>
             </div>
+
+            {hasIsDefaultColumn && (
+              <>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="is_default"
+                    checked={formData.is_default}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_default: checked })}
+                    disabled={loading}
+                  />
+                  <Label htmlFor="is_default">Valor por defecto</Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Solo puede haber un valor por defecto dentro de cada tipo de configuración. Si marcas este como predeterminado, se desmarcará automáticamente el valor que actualmente tenga esta opción.
+                </p>
+              </>
+            )}
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={loading}>

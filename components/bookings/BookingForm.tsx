@@ -61,6 +61,21 @@ export function BookingForm({
     } : null
   )
 
+  // Función helper para obtener el valor por defecto de booking status
+  const getDefaultBookingStatusId = (): string => {
+    if (!booking && bookingStatuses && bookingStatuses.length > 0) {
+      // Buscar el valor por defecto
+      const defaultStatus = bookingStatuses.find((status: ConfigurationValue) => {
+        // Verificar que la propiedad is_default existe y es true
+        return status && 'is_default' in status && status.is_default === true
+      })
+      return defaultStatus?.id || ""
+    }
+    return ""
+  }
+
+  const initialBookingStatusId = booking?.booking_status_id || getDefaultBookingStatusId()
+
   const [formData, setFormData] = useState({
     property_id: booking?.property_id || "",
     booking_type_id: booking?.booking_type_id || "",
@@ -74,7 +89,7 @@ export function BookingForm({
     collection_commission_amount: booking?.collection_commission_amount || 0,
     tax_amount: booking?.tax_amount || 0,
     net_amount: booking?.net_amount || 0,
-    booking_status_id: booking?.booking_status_id || "",
+    booking_status_id: initialBookingStatusId,
     notes: booking?.notes || "",
   })
   
@@ -101,13 +116,40 @@ export function BookingForm({
         if (response.ok) {
           const data = await response.json()
           setBookingTypes(data)
+          
+          // Aplicar valor por defecto si no hay booking y no hay tipo seleccionado
+          if (!booking && !formData.booking_type_id && data.length > 0) {
+            const defaultType = data.find((type: ConfigurationValue) => type.is_default === true)
+            if (defaultType) {
+              setFormData(prev => ({ ...prev, booking_type_id: defaultType.id }))
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading booking types:', error)
       }
     }
     loadBookingTypes()
-  }, [])
+  }, [booking])
+
+  // Aplicar valor por defecto de booking status cuando se cargan los estados
+  // Este useEffect es necesario por si bookingStatuses se carga después del montaje inicial
+  useEffect(() => {
+    if (!booking && bookingStatuses.length > 0 && !formData.booking_status_id) {
+      const defaultStatus = bookingStatuses.find((status: ConfigurationValue) => {
+        return status && 'is_default' in status && status.is_default === true
+      })
+      if (defaultStatus) {
+        setFormData(prev => {
+          // Solo actualizar si realmente no hay valor
+          if (!prev.booking_status_id) {
+            return { ...prev, booking_status_id: defaultStatus.id }
+          }
+          return prev
+        })
+      }
+    }
+  }, [bookingStatuses, booking, formData.booking_status_id])
 
   // Cargar todos los canales
   useEffect(() => {
@@ -661,7 +703,7 @@ export function BookingForm({
                     Tipo de Reserva <span className="text-destructive">*</span>
                   </Label>
                   <Select
-                    value={formData.booking_type_id}
+                    value={formData.booking_type_id || undefined}
                     onValueChange={(value) => {
                       const newType = bookingTypes.find(bt => bt.id === value)
                       const isNewClosedPeriod = newType?.value === 'closed_period'

@@ -33,7 +33,10 @@ export default function EditConfigurationValuePage({ params }: { params: Promise
     icon: "",
     is_active: true,
     sort_order: 0,
+    is_default: false,
   })
+
+  const [hasIsDefaultColumn, setHasIsDefaultColumn] = useState(true) // Por defecto asumimos que existe
 
   useEffect(() => {
     const fetchValue = async () => {
@@ -47,6 +50,10 @@ export default function EditConfigurationValuePage({ params }: { params: Promise
         if (error) throw error
 
         if (data) {
+          // Verificar si la columna is_default existe en los datos devueltos
+          const hasColumn = 'is_default' in data
+          setHasIsDefaultColumn(hasColumn)
+
           setFormData({
             value: data.value || "",
             label: data.label || "",
@@ -55,9 +62,16 @@ export default function EditConfigurationValuePage({ params }: { params: Promise
             icon: data.icon || "",
             is_active: data.is_active ?? true,
             sort_order: data.sort_order || 0,
+            is_default: hasColumn ? (data.is_default ?? false) : false,
           })
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Si el error es porque la columna no existe, ocultar el campo
+        if (error?.message?.includes('column') && error?.message?.includes('is_default') ||
+            error?.code === '42703') {
+          setHasIsDefaultColumn(false)
+        }
+        
         console.error("[v0] Error fetching configuration value:", error)
         toast({
           title: "Error",
@@ -77,12 +91,41 @@ export default function EditConfigurationValuePage({ params }: { params: Promise
     setLoading(true)
 
     try {
+      // Solo procesar is_default si la columna existe
+      if (hasIsDefaultColumn) {
+        // Si se está marcando como default, desmarcar otros valores del mismo tipo
+        if (formData.is_default) {
+          const { error: updateError } = await supabase
+            .from("configuration_values")
+            .update({ is_default: false })
+            .eq("configuration_type_id", typeId)
+            .eq("is_default", true)
+            .neq("id", valueId)
+
+          if (updateError) throw updateError
+        }
+      }
+
+      // Preparar los datos para actualizar, excluyendo is_default si la columna no existe
+      const updateData: any = {
+        value: formData.value,
+        label: formData.label,
+        description: formData.description || null,
+        color: formData.color,
+        icon: formData.icon || null,
+        is_active: formData.is_active,
+        sort_order: formData.sort_order,
+        updated_at: new Date().toISOString(),
+      }
+
+      // Solo incluir is_default si la columna existe
+      if (hasIsDefaultColumn) {
+        updateData.is_default = formData.is_default
+      }
+
       const { error } = await supabase
         .from("configuration_values")
-        .update({
-          ...formData,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", valueId)
 
       if (error) throw error
@@ -228,6 +271,23 @@ export default function EditConfigurationValuePage({ params }: { params: Promise
               />
               <Label htmlFor="is_active">Activo</Label>
             </div>
+
+            {hasIsDefaultColumn && (
+              <>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="is_default"
+                    checked={formData.is_default}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_default: checked })}
+                    disabled={loading}
+                  />
+                  <Label htmlFor="is_default">Valor por defecto</Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Solo puede haber un valor por defecto dentro de cada tipo de configuración. Si marcas este como predeterminado, se desmarcará automáticamente el valor que actualmente tenga esta opción.
+                </p>
+              </>
+            )}
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={loading}>

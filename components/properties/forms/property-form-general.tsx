@@ -185,7 +185,7 @@ export function PropertyFormGeneral({
               Tipo de Propiedad <span className="text-destructive">*</span>
             </Label>
             <Select
-              value={formData.property_type_id}
+              value={formData.property_type_id || undefined}
               onValueChange={(value) => onFieldChange("property_type_id", value)}
             >
               <SelectTrigger className="mt-2 bg-background">

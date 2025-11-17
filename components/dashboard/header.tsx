@@ -64,20 +64,25 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <Select
-            value={selectedYear.toString()}
+            value={selectedYear === null ? "all" : selectedYear.toString()}
             onValueChange={(value) => {
-              const year = parseInt(value, 10)
-              if (!isNaN(year)) {
-                setSelectedYear(year)
-                // Refrescar la página para aplicar el filtro
-                router.refresh()
+              if (value === "all") {
+                setSelectedYear(null)
+              } else {
+                const year = parseInt(value, 10)
+                if (!isNaN(year)) {
+                  setSelectedYear(year)
+                }
               }
+              // Refrescar la página para aplicar el filtro
+              router.refresh()
             }}
           >
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder={selectedYear.toString()} />
+              <SelectValue placeholder={selectedYear === null ? "Todos" : selectedYear.toString()} />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
               {/* Asegurar que el año actual siempre esté disponible */}
               {availableYears.length > 0 ? (
                 availableYears.map((year) => (
@@ -86,12 +91,14 @@ export function Header() {
                   </SelectItem>
                 ))
               ) : (
-                <SelectItem value={selectedYear.toString()}>
-                  {selectedYear}
-                </SelectItem>
+                selectedYear !== null && (
+                  <SelectItem value={selectedYear.toString()}>
+                    {selectedYear}
+                  </SelectItem>
+                )
               )}
               {/* Si el año actual no está en availableYears, agregarlo */}
-              {availableYears.length > 0 && !availableYears.includes(selectedYear) && (
+              {availableYears.length > 0 && selectedYear !== null && !availableYears.includes(selectedYear) && (
                 <SelectItem value={selectedYear.toString()}>
                   {selectedYear}
                 </SelectItem>

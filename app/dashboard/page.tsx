@@ -30,7 +30,9 @@ export default async function DashboardPage() {
   // Obtener año seleccionado desde cookies (si existe)
   const cookieStore = await cookies()
   const selectedYearCookie = cookieStore.get("selected-season-year")
-  const selectedYear = selectedYearCookie?.value ? parseInt(selectedYearCookie.value, 10) : null
+  const selectedYear = selectedYearCookie?.value && selectedYearCookie.value !== "all"
+    ? parseInt(selectedYearCookie.value, 10) 
+    : null // null significa "Todos"
 
   // Fetch dashboard data inicial
   const [stats, recentBookings, propertyOccupancy] = await Promise.all([

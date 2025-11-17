@@ -40,9 +40,10 @@ import {
 
 interface MovementsTableProps {
   movements: MovementWithDetails[]
+  onMovementDeleted?: () => void
 }
 
-export function MovementsTable({ movements }: MovementsTableProps) {
+export function MovementsTable({ movements, onMovementDeleted }: MovementsTableProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -73,7 +74,12 @@ export function MovementsTable({ movements }: MovementsTableProps) {
         description: "El movimiento ha sido eliminado correctamente",
       })
 
-      router.refresh()
+      // Recargar los movimientos
+      if (onMovementDeleted) {
+        onMovementDeleted()
+      } else {
+        router.refresh()
+      }
     } catch (error: any) {
       toast({
         title: "Error",

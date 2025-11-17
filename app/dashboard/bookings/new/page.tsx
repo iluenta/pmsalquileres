@@ -100,10 +100,10 @@ export default async function NewBookingPage() {
       }
       const createData: CreateBookingData = {
         property_id: data.property_id,
-        person_id: data.person_id,
+        person_id: data.person_id ?? null, // Normalizar undefined a null
         booking_type_id: normalizedBookingTypeId, // Usar el valor normalizado
-        channel_id: data.channel_id,
-        channel_booking_number: data.channel_booking_number,
+        channel_id: data.channel_id ?? null, // Normalizar undefined a null
+        channel_booking_number: data.channel_booking_number ?? null, // Normalizar undefined a null
         check_in_date: data.check_in_date,
         check_out_date: data.check_out_date,
         number_of_guests: data.number_of_guests ?? 1,
@@ -112,8 +112,8 @@ export default async function NewBookingPage() {
         collection_commission_amount: data.collection_commission_amount,
         tax_amount: data.tax_amount,
         net_amount: data.net_amount,
-        booking_status_id: data.booking_status_id,
-        notes: data.notes,
+        booking_status_id: data.booking_status_id ?? null, // Normalizar undefined a null
+        notes: data.notes ?? null, // Normalizar undefined a null
       }
       const result = await createBooking(createData)
       return result !== null

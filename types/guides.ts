@@ -4,6 +4,7 @@ export interface Property {
   id: string
   property_code: string
   name: string
+  slug?: string // Slug único para URLs de guías públicas (opcional hasta que se ejecute el script SQL)
   description: string | null
   property_type_id: string | null
   property_type?: {

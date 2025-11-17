@@ -65,8 +65,8 @@ export default function MovementsPage() {
     try {
       const params = new URLSearchParams()
       
-      // Añadir el año del contexto por defecto
-      if (selectedYear) {
+      // Añadir el año del contexto por defecto (solo si no es null)
+      if (selectedYear !== null) {
         params.append("year", selectedYear.toString())
       }
       
@@ -214,7 +214,7 @@ export default function MovementsPage() {
           <p className="text-sm text-muted-foreground mt-2">Cargando movimientos...</p>
         </div>
       ) : (
-        <MovementsTable movements={movements} />
+        <MovementsTable movements={movements} onMovementDeleted={loadMovements} />
       )}
     </div>
   )

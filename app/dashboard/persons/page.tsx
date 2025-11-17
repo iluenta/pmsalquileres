@@ -57,6 +57,27 @@ export default function PersonsPage() {
             }
           )
           setPersonTypes(filteredTypes)
+          
+          // Establecer "Huésped" como tipo seleccionado por defecto
+          const guestType = filteredTypes.find(
+            (type: ConfigurationValue) => {
+              const labelLower = type.label?.toLowerCase() || ""
+              const valueLower = type.value?.toLowerCase() || ""
+              return (
+                labelLower === "huésped" ||
+                labelLower === "huesped" ||
+                valueLower === "guest" ||
+                valueLower === "huesped"
+              )
+            }
+          )
+          
+          if (guestType) {
+            setSelectedPersonType(guestType.id)
+          } else if (filteredTypes.length > 0) {
+            // Si no se encuentra "Huésped", seleccionar el primer tipo disponible
+            setSelectedPersonType(filteredTypes[0].id)
+          }
         }
       } catch (error) {
         console.error("Error loading person types:", error)
@@ -139,7 +160,20 @@ export default function PersonsPage() {
     setSearchEmail("")
     setSearchPhone("")
     setIsActive(true)
-    setSelectedPersonType(null)
+    // Restaurar la pestaña de "Huésped" por defecto
+    const guestType = personTypes.find(
+      (type: ConfigurationValue) => {
+        const labelLower = type.label?.toLowerCase() || ""
+        const valueLower = type.value?.toLowerCase() || ""
+        return (
+          labelLower === "huésped" ||
+          labelLower === "huesped" ||
+          valueLower === "guest" ||
+          valueLower === "huesped"
+        )
+      }
+    )
+    setSelectedPersonType(guestType?.id || personTypes[0]?.id || null)
   }
 
   const hasActiveFilters = 

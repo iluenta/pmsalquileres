@@ -287,9 +287,9 @@ export function BookingsTable({ bookings, properties, bookingStatuses, bookingTy
                         {booking.person.phone}
                       </div>
                     )}
-                    {booking.channel_booking_number && (
+                    {booking.channel && (
                       <div className="text-xs text-blue-600 mt-1">
-                        Ref. Canal: {booking.channel_booking_number}
+                        {booking.channel.person.full_name}
                       </div>
                     )}
                   </div>

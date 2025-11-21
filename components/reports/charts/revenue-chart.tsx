@@ -13,7 +13,17 @@ interface RevenueChartProps {
 }
 
 export function RevenueChart({ data, comparisonData, showComparison = false }: RevenueChartProps) {
-  const chartData = data.map((item) => ({
+  type ChartDataPoint = {
+    month: string
+    revenue: number
+    netRevenue: number
+    adr: number
+    revpar: number
+    trevpar: number
+    previousRevenue?: number
+  }
+
+  const chartData: ChartDataPoint[] = data.map((item) => ({
     month: item.month,
     revenue: item.revenue,
     netRevenue: item.netRevenue,
@@ -28,7 +38,7 @@ export function RevenueChart({ data, comparisonData, showComparison = false }: R
       if (chartData[index]) {
         chartData[index] = {
           ...chartData[index],
-          previousRevenue: comp.previousValue,
+          previousRevenue: comp.previousValue || undefined,
         }
       }
     })

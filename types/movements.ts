@@ -48,6 +48,8 @@ export interface MovementWithDetails extends Movement {
   booking?: {
     id: string
     booking_code: string
+    check_in_date?: string
+    check_out_date?: string
     property?: {
       name: string
     }

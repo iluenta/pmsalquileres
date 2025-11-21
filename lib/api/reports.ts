@@ -372,14 +372,14 @@ export async function getExpensesByProperty(
   expenseMovements.forEach((movement) => {
     if (!movement.booking?.property?.name) return
     
-    const propertyId = movement.booking.property.id || ""
+    // Usar el nombre de la propiedad como clave ya que no tenemos property.id en el tipo
     const propertyName = movement.booking.property.name
     
-    if (!propertyMap.has(propertyId)) {
-      propertyMap.set(propertyId, { expenses: [], total: 0 })
+    if (!propertyMap.has(propertyName)) {
+      propertyMap.set(propertyName, { expenses: [], total: 0 })
     }
     
-    const data = propertyMap.get(propertyId)!
+    const data = propertyMap.get(propertyName)!
     
     // Obtener categoría
     let category = "Otros"
@@ -409,11 +409,11 @@ export async function getExpensesByProperty(
     })
   })
 
-  return Array.from(propertyMap.entries()).map(([propertyId, data]) => {
-    const property = allProperties.find((p) => p.id === propertyId)
+  return Array.from(propertyMap.entries()).map(([propertyName, data]) => {
+    const property = allProperties.find((p) => p.name === propertyName)
     return {
-      propertyId,
-      propertyName: property?.name || "Propiedad desconocida",
+      propertyId: property?.id || "",
+      propertyName: property?.name || propertyName || "Propiedad desconocida",
       totalExpenses: data.total,
       categories: data.expenses.sort((a, b) => b.amount - a.amount),
     }
@@ -450,7 +450,7 @@ export async function getProfitabilityData(
     
     // Gastos asociados a esta propiedad (a través de bookings)
     const propertyExpenses = expenseMovements
-      .filter((m) => m.booking?.property?.id === property.id)
+      .filter((m) => m.booking?.property?.name === property.name)
       .reduce((sum, m) => sum + (m.amount || 0), 0)
     
     const netProfit = revenue - propertyExpenses
@@ -640,12 +640,14 @@ function getDateRange(filters: ReportsFilters): { dateFrom: string; dateTo: stri
   }
   
   if (filters.year) {
-    return getYearDateRange(filters.year)
+    const yearRange = getYearDateRange(filters.year)
+    return { dateFrom: yearRange.start, dateTo: yearRange.end }
   }
   
   // Por defecto, año actual
   const currentYear = new Date().getFullYear()
-  return getYearDateRange(currentYear)
+  const yearRange = getYearDateRange(currentYear)
+  return { dateFrom: yearRange.start, dateTo: yearRange.end }
 }
 
 async function getBookingsInRange(

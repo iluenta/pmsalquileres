@@ -105,7 +105,7 @@ export function calculateAvailableNights(
 /**
  * Calcula el número de noches reservadas de una lista de bookings
  */
-export function calculateBookedNights(bookings: Booking[]): number {
+export function calculateBookedNights(bookings: Array<{ check_in_date: string; check_out_date: string }>): number {
   return bookings.reduce((total, booking) => {
     const nights = calculateStayDuration(booking.check_in_date, booking.check_out_date)
     return total + nights

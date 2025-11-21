@@ -1,0 +1,78 @@
+warning: in the working copy of 'app/api/bookings/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/persons/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/dashboard/bookings/[id]/edit/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/dashboard/bookings/new/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/dashboard/bookings/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/dashboard/guides/[propertyId]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/dashboard/guides/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/dashboard/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/dashboard/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/dashboard/properties/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/guides/[propertyId]/public/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/admin/ActivitiesEditForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/admin/ApartmentSectionsManager.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/admin/BeachesEditForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/admin/HouseGuideManager.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/admin/HouseRulesManager.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/admin/RestaurantsEditForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/admin/SectionManager.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/admin/TipsManager.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/bookings/BookingForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/bookings/BookingsTable.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/bookings/PersonSearch.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/dashboard/header.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/dashboard/sidebar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/guides/PropertyGuideManager.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/properties/properties-table.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/properties/property-form.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/sections/ApartmentSectionsDisplay.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ui/toaster.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/weather/CurrentWeather.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/weather/ForecastDay.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/weather/WeatherHeader.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/weather/WeatherWidget.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'hooks/use-toast.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'hooks/useGuideData.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/api/bookings.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/api/dashboard.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/api/guides-client-additional.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/api/guides-client-missing.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/api/guides-client.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/api/guides-public.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/api/properties.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/api/weather.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'middleware.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'types/bookings.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'types/guides.ts', LF will be replaced by CRLF the next time Git touches it
+ README_BOOKINGS.md                          |   23 [32m+[m[31m-[m
+ app/api/bookings/route.ts                   |   35 [32m+[m[31m-[m
+ app/api/persons/route.ts                    |    7 [32m+[m[31m-[m
+ app/dashboard/bookings/[id]/edit/page.tsx   |   12 [32m+[m[31m-[m
+ app/dashboard/bookings/new/page.tsx         |   34 [32m+[m[31m-[m
+ app/dashboard/bookings/page.tsx             |   52 [32m+[m[31m-[m
+ app/dashboard/layout.tsx                    |   17 [32m+[m[31m-[m
+ app/dashboard/page.tsx                      |   56 [32m+[m[31m-[m
+ app/guides/[propertyId]/public-new/page.tsx |   12 [31m-[m
+ app/guides/[propertyId]/public/page.tsx     |  650 [32m+[m[31m--------------[m
+ app/layout.tsx                              |    4 [32m+[m[31m-[m
+ components/bookings/BookingForm.tsx         | 1202 [32m++++++++++++++++++++++[m[31m-----[m
+ components/bookings/BookingsTable.tsx       |  275 [32m+++++[m[31m-[m
+ components/bookings/PersonSearch.tsx        |  142 [32m++[m[31m--[m
+ components/dashboard/header.tsx             |   51 [32m+[m[31m-[m
+ components/dashboard/sidebar.tsx            |   12 [32m+[m[31m-[m
+ components/properties/property-form.tsx     |  288 [32m+++++[m[31m--[m
+ components/ui/toaster.tsx                   |   39 [32m+[m[31m-[m
+ components/weather/ForecastList.tsx         |    8 [32m+[m
+ components/weather/SunriseSunset.tsx        |    8 [32m+[m
+ components/weather/WeatherFooter.tsx        |    8 [32m+[m
+ hooks/use-toast.ts                          |   14 [32m+[m
+ hooks/useWeather.ts                         |    8 [32m+[m
+ lib/api/bookings.ts                         |  870 [32m++++++++++++++++[m[31m---[m
+ lib/api/dashboard.ts                        |  194 [32m++++[m[31m-[m
+ lib/api/properties.ts                       |    1 [32m+[m
+ middleware.ts                               |    4 [32m+[m[31m-[m
+ scripts/021_create_bookings_table.sql       |   21 [32m+[m[31m-[m
+ scripts/023_create_persons_table.sql        |   79 [31m--[m
+ types/bookings.ts                           |  115 [32m++[m[31m-[m
+ types/weather.ts                            |    8 [32m+[m
+ 31 files changed, 2945 insertions(+), 1304 deletions(-)

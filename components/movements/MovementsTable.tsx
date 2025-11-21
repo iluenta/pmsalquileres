@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -137,13 +137,53 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
                 movement.movement_type?.value === "income" ||
                 movement.movement_type?.label === "Ingreso"
               
-              const concept = isIncome
-                ? movement.booking
-                  ? `Reserva ${movement.booking.booking_code}`
-                  : "Ingreso"
-                : movement.service_provider
-                ? movement.service_provider.person?.full_name || "Gasto"
-                : "Gasto"
+              // Construir el concepto con información detallada de la reserva si existe
+              let concept: string | React.ReactNode = ""
+              if (isIncome) {
+                if (movement.booking) {
+                  const guestName = movement.booking.person
+                    ? `${movement.booking.person.first_name || ""} ${movement.booking.person.last_name || ""}`.trim()
+                    : null
+                  
+                  const formatBookingDate = (dateString?: string) => {
+                    if (!dateString) return ""
+                    return new Date(dateString).toLocaleDateString("es-ES", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })
+                  }
+                  
+                  const checkInDate = formatBookingDate(movement.booking.check_in_date)
+                  const checkOutDate = formatBookingDate(movement.booking.check_out_date)
+                  
+                  concept = (
+                    <div className="space-y-1">
+                      <div className="font-medium">
+                        Reserva {movement.booking.booking_code}
+                      </div>
+                      {guestName && (
+                        <div className="text-sm text-muted-foreground">
+                          {guestName}
+                        </div>
+                      )}
+                      {(checkInDate || checkOutDate) && (
+                        <div className="text-xs text-muted-foreground">
+                          {checkInDate && checkOutDate 
+                            ? `${checkInDate} / ${checkOutDate}`
+                            : checkInDate || checkOutDate}
+                        </div>
+                      )}
+                    </div>
+                  )
+                } else {
+                  concept = "Ingreso"
+                }
+              } else {
+                concept = movement.service_provider
+                  ? movement.service_provider.person?.full_name || "Gasto"
+                  : "Gasto"
+              }
               
               const expenseItemsCount = movement.expense_items?.length || 0
               const hasMultipleServices = expenseItemsCount > 1
@@ -161,7 +201,7 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
                   </TableCell>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      <span>{concept}</span>
+                      {concept}
                       {!isIncome && hasMultipleServices && (
                         <HoverCard>
                           <HoverCardTrigger asChild>

@@ -161,6 +161,8 @@ export async function getMovements(
         booking:bookings(
           id,
           booking_code,
+          check_in_date,
+          check_out_date,
           property:properties(id, name),
           person:persons(id, first_name, last_name)
         ),
@@ -376,6 +378,8 @@ export async function getMovementById(
         booking:bookings(
           id,
           booking_code,
+          check_in_date,
+          check_out_date,
           property:properties(id, name),
           person:persons(id, first_name, last_name)
         ),
@@ -628,8 +632,12 @@ export async function updateMovement(
       if (bookingId) {
         const paymentInfo = await calculateBookingPaymentInfo(bookingId, tenantId)
         const newAmount = data.amount !== undefined ? data.amount : currentMovement.amount
-        // Restar el importe actual del movimiento
-        const currentPaid = paymentInfo.paid_amount - Number(currentMovement.amount)
+        // Restar el importe actual del movimiento solo si está en la misma reserva
+        // Si el movimiento cambia de reserva, el paid_amount de la nueva reserva no incluye este movimiento
+        const isSameBooking = bookingId === currentMovement.booking_id
+        const currentPaid = isSameBooking 
+          ? paymentInfo.paid_amount - Number(currentMovement.amount)
+          : paymentInfo.paid_amount
         const newPending = paymentInfo.total_to_pay - currentPaid
         
         if (newAmount > newPending) {

@@ -47,3 +47,5 @@ COMMENT ON FUNCTION copy_property_coordinates_to_guide() IS 'Función que copia 
 
 
 
+
+

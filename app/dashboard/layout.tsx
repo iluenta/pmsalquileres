@@ -13,10 +13,13 @@ export default function DashboardLayout({
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
       <SeasonProvider>
         <div className="flex h-screen overflow-hidden">
-          <Sidebar />
+          {/* Sidebar - Oculto en móvil */}
+          <aside className="hidden md:flex">
+            <Sidebar />
+          </aside>
           <div className="flex flex-1 flex-col overflow-hidden">
             <Header />
-            <main className="flex-1 overflow-y-auto bg-background p-6">
+            <main className="flex-1 overflow-y-auto bg-background p-4 md:p-6">
               {children}
             </main>
           </div>

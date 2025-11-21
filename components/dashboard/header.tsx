@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useTenant } from "@/lib/auth/tenant-context"
 import { useSeason } from "@/lib/contexts/season-context"
@@ -19,11 +20,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Building2, User, Settings, LogOut, Moon, Sun, Calendar } from "lucide-react"
+import { Building2, User, Settings, LogOut, Moon, Sun, Calendar, Menu } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { useEffect } from "react"
+import { MobileSidebar } from "@/components/dashboard/mobile-sidebar"
 
 export function Header() {
   const { user, userInfo, signOut } = useAuth()
@@ -52,9 +59,21 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-6">
-      {/* Tenant Info y Selector de Año */}
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
+      {/* Menú Hamburguesa (solo móvil) y Tenant Info */}
       <div className="flex items-center gap-3">
+        {/* Botón hamburguesa - solo visible en móvil */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Abrir menú</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 p-0">
+            <MobileSidebar />
+          </SheetContent>
+        </Sheet>
         <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1.5">
           <Building2 className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold text-primary">{tenantName || "Cargando..."}</span>

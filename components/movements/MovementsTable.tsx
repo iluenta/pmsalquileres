@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
-import { MoreHorizontal, Edit, Trash2, Package } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Package, ChevronLeft, ChevronRight } from "lucide-react"
 import type { MovementWithDetails } from "@/types/movements"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -43,11 +43,14 @@ interface MovementsTableProps {
   onMovementDeleted?: () => void
 }
 
+const ITEMS_PER_PAGE = 6
+
 export function MovementsTable({ movements, onMovementDeleted }: MovementsTableProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
@@ -107,6 +110,27 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
     }).format(amount)
   }
 
+  // Calcular paginación
+  const totalPages = Math.ceil(movements.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const paginatedMovements = useMemo(() => {
+    return movements.slice(startIndex, endIndex)
+  }, [movements, startIndex, endIndex])
+
+  // Resetear a la primera página cuando cambian los movimientos
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [movements.length])
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1))
+  }
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+  }
+
   if (movements.length === 0) {
     return (
       <div className="text-center py-12">
@@ -132,7 +156,7 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
             </TableRow>
           </TableHeader>
           <TableBody>
-            {movements.map((movement) => {
+            {paginatedMovements.map((movement) => {
               const isIncome =
                 movement.movement_type?.value === "income" ||
                 movement.movement_type?.label === "Ingreso"
@@ -315,6 +339,38 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
           </TableBody>
         </Table>
       </div>
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-muted-foreground">
+            Mostrando {startIndex + 1} - {Math.min(endIndex, movements.length)} de {movements.length} movimientos
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Anterior
+            </Button>
+            <div className="text-sm font-medium">
+              Página {currentPage} de {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+            >
+              Siguiente
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

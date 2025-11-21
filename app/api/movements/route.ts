@@ -34,6 +34,7 @@ export async function GET(request: Request) {
     const year = searchParams.get("year") ? parseInt(searchParams.get("year")!, 10) : undefined
     const dateFrom = searchParams.get("dateFrom")?.trim() || undefined
     const dateTo = searchParams.get("dateTo")?.trim() || undefined
+    const bookingSearch = searchParams.get("bookingSearch")?.trim() || undefined
 
     const movements = await getMovements(tenantId, {
       movementType,
@@ -44,6 +45,7 @@ export async function GET(request: Request) {
       year,
       dateFrom,
       dateTo,
+      bookingSearch,
       includeInactive: true,
     })
 

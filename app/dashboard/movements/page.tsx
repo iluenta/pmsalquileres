@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Search, X, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { MovementsTable } from "@/components/movements/MovementsTable"
@@ -21,14 +22,17 @@ import { useSeason } from "@/lib/contexts/season-context"
 
 export default function MovementsPage() {
   const { selectedYear } = useSeason()
-  const [movements, setMovements] = useState<MovementWithDetails[]>([])
+  const [allMovements, setAllMovements] = useState<MovementWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   
+  // Pestaña activa: "income" o "expense"
+  const [activeTab, setActiveTab] = useState<"income" | "expense">("income")
+  
   // Filtros
-  const [movementType, setMovementType] = useState<string>("all")
   const [movementStatus, setMovementStatus] = useState<string>("all")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  const [bookingSearch, setBookingSearch] = useState("")
   
   // Datos de configuración
   const [movementTypes, setMovementTypes] = useState<ConfigurationValue[]>([])
@@ -40,7 +44,7 @@ export default function MovementsPage() {
 
   useEffect(() => {
     loadMovements()
-  }, [movementType, movementStatus, dateFrom, dateTo, selectedYear])
+  }, [activeTab, movementStatus, dateFrom, dateTo, bookingSearch, selectedYear])
 
   const loadConfigurationData = async () => {
     try {
@@ -70,8 +74,14 @@ export default function MovementsPage() {
         params.append("year", selectedYear.toString())
       }
       
-      if (movementType !== "all") {
-        params.append("movementType", movementType)
+      // Filtrar por tipo según la pestaña activa
+      const incomeType = movementTypes.find(t => t.value === "income" || t.label === "Ingreso")
+      const expenseType = movementTypes.find(t => t.value === "expense" || t.label === "Gasto")
+      
+      if (activeTab === "income" && incomeType) {
+        params.append("movementType", incomeType.id)
+      } else if (activeTab === "expense" && expenseType) {
+        params.append("movementType", expenseType.id)
       }
       
       if (movementStatus !== "all") {
@@ -86,11 +96,16 @@ export default function MovementsPage() {
       if (dateTo) {
         params.append("dateTo", dateTo)
       }
+      
+      // Búsqueda por reserva
+      if (bookingSearch) {
+        params.append("bookingSearch", bookingSearch)
+      }
 
       const response = await fetch(`/api/movements?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
-        setMovements(data)
+        setAllMovements(data)
       }
     } catch (error) {
       console.error("Error loading movements:", error)
@@ -100,17 +115,17 @@ export default function MovementsPage() {
   }
 
   const handleClearFilters = () => {
-    setMovementType("all")
     setMovementStatus("all")
     setDateFrom("")
     setDateTo("")
+    setBookingSearch("")
   }
 
   const hasActiveFilters =
-    movementType !== "all" ||
     movementStatus !== "all" ||
     dateFrom !== "" ||
-    dateTo !== ""
+    dateTo !== "" ||
+    bookingSearch !== ""
 
   return (
     <div className="space-y-6">
@@ -150,20 +165,18 @@ export default function MovementsPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="movementType">Tipo</Label>
-                <Select value={movementType} onValueChange={setMovementType}>
-                  <SelectTrigger id="movementType">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {movementTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="bookingSearch">Buscar por Reserva</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="bookingSearch"
+                    type="text"
+                    placeholder="Código, huésped o fecha..."
+                    value={bookingSearch}
+                    onChange={(e) => setBookingSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -207,15 +220,35 @@ export default function MovementsPage() {
         </CardContent>
       </Card>
 
-      {/* Tabla de movimientos */}
-      {loading ? (
-        <div className="text-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-          <p className="text-sm text-muted-foreground mt-2">Cargando movimientos...</p>
-        </div>
-      ) : (
-        <MovementsTable movements={movements} onMovementDeleted={loadMovements} />
-      )}
+      {/* Pestañas y Tabla de movimientos */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "income" | "expense")}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="income">Ingresos</TabsTrigger>
+          <TabsTrigger value="expense">Gastos</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="income" className="mt-6">
+          {loading ? (
+            <div className="text-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mt-2">Cargando ingresos...</p>
+            </div>
+          ) : (
+            <MovementsTable movements={allMovements} onMovementDeleted={loadMovements} />
+          )}
+        </TabsContent>
+        
+        <TabsContent value="expense" className="mt-6">
+          {loading ? (
+            <div className="text-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mt-2">Cargando gastos...</p>
+            </div>
+          ) : (
+            <MovementsTable movements={allMovements} onMovementDeleted={loadMovements} />
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

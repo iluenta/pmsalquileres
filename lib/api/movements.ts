@@ -147,6 +147,7 @@ export async function getMovements(
     year?: number // Año para filtrar por defecto
     dateFrom?: string // Fecha desde (para restringir más el rango)
     dateTo?: string // Fecha hasta (para restringir más el rango)
+    bookingSearch?: string // Búsqueda por código de reserva, nombre de huésped o fecha
     includeInactive?: boolean
   }
 ): Promise<MovementWithDetails[]> {
@@ -219,6 +220,10 @@ export async function getMovements(
     if (options?.treasuryAccountId) {
       query = query.eq('treasury_account_id', options.treasuryAccountId)
     }
+    
+    // Búsqueda por reserva (código, nombre de huésped o fecha)
+    // Esta búsqueda se aplicará después de obtener los movimientos
+    // porque necesitamos filtrar por los datos relacionados de booking
     
     // Aplicar filtro de año por defecto (del contexto)
     // Los filtros dateFrom/dateTo son para restringir más el rango dentro del año
@@ -342,12 +347,76 @@ export async function getMovements(
     }
     
     // Combinar datos
-    return movements.map((movement: any) => ({
+    let result = movements.map((movement: any) => ({
       ...movement,
       movement_type: configValuesMap.get(movement.movement_type_id),
       payment_method: configValuesMap.get(movement.payment_method_id),
       movement_status: configValuesMap.get(movement.movement_status_id),
     }))
+    
+    // Aplicar búsqueda por reserva si existe (después de obtener los datos relacionados)
+    if (options?.bookingSearch) {
+      const searchTerm = options.bookingSearch.trim().toLowerCase()
+      
+      result = result.filter((movement: any) => {
+        if (!movement.booking) return false
+        
+        // Buscar en código de reserva
+        const bookingCode = movement.booking.booking_code?.toLowerCase() || ""
+        if (bookingCode.includes(searchTerm)) return true
+        
+        // Buscar en nombre de huésped
+        const person = movement.booking.person
+        if (person) {
+          const firstName = (person.first_name || "").toLowerCase()
+          const lastName = (person.last_name || "").toLowerCase()
+          const fullName = `${firstName} ${lastName}`.trim()
+          if (firstName.includes(searchTerm) || lastName.includes(searchTerm) || fullName.includes(searchTerm)) {
+            return true
+          }
+        }
+        
+        // Buscar en fechas de reserva (formato ISO y formato DD/MM/YYYY)
+        const checkIn = movement.booking.check_in_date || ""
+        const checkOut = movement.booking.check_out_date || ""
+        if (checkIn.includes(searchTerm) || checkOut.includes(searchTerm)) {
+          return true
+        }
+        
+        // Formatear fechas para búsqueda en formato DD/MM/YYYY
+        if (checkIn) {
+          try {
+            const checkInDate = new Date(checkIn)
+            const formattedCheckIn = checkInDate.toLocaleDateString("es-ES", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })
+            if (formattedCheckIn.toLowerCase().includes(searchTerm)) return true
+          } catch (e) {
+            // Ignorar errores de fecha
+          }
+        }
+        
+        if (checkOut) {
+          try {
+            const checkOutDate = new Date(checkOut)
+            const formattedCheckOut = checkOutDate.toLocaleDateString("es-ES", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })
+            if (formattedCheckOut.toLowerCase().includes(searchTerm)) return true
+          } catch (e) {
+            // Ignorar errores de fecha
+          }
+        }
+        
+        return false
+      })
+    }
+    
+    return result
   } catch (error) {
     console.error('Error in getMovements:', error)
     return []

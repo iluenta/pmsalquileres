@@ -146,43 +146,28 @@ export default function MovementsPage() {
 
       {/* Filtros */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Filtros</h3>
-              {hasActiveFilters && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearFilters}
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Limpiar Filtros
-                </Button>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="bookingSearch">Buscar por Reserva</Label>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="bookingSearch" className="text-xs font-medium">Buscar por Reserva</Label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
                     id="bookingSearch"
                     type="text"
                     placeholder="Código, huésped o fecha..."
                     value={bookingSearch}
                     onChange={(e) => setBookingSearch(e.target.value)}
-                    className="pl-9"
+                    className="pl-8 h-9 text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="movementStatus">Estado</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="movementStatus" className="text-xs font-medium">Estado</Label>
                 <Select value={movementStatus} onValueChange={setMovementStatus}>
-                  <SelectTrigger id="movementStatus">
+                  <SelectTrigger id="movementStatus" className="h-9 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -196,26 +181,41 @@ export default function MovementsPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="dateFrom">Fecha Desde</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="dateFrom" className="text-xs font-medium">Fecha Desde</Label>
                 <Input
                   id="dateFrom"
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
+                  className="h-9 text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="dateTo">Fecha Hasta</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="dateTo" className="text-xs font-medium">Fecha Hasta</Label>
                 <Input
                   id="dateTo"
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
+                  className="h-9 text-sm"
                 />
               </div>
             </div>
+            
+            {hasActiveFilters && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="h-9 shrink-0"
+              >
+                <X className="mr-1.5 h-3.5 w-3.5" />
+                Limpiar
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -126,11 +126,11 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
   return (
     <div className="space-y-6">
       {/* Header con botón de agregar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <h3 className="text-lg font-semibold">
           Elementos de la Guía de la Casa ({items.length})
         </h3>
-        <Button onClick={handleAddNew} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={handleAddNew} className="w-full md:w-auto">
           <i className="fas fa-plus mr-2"></i>
           Agregar Elemento
         </Button>

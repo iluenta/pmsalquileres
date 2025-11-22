@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -30,11 +30,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { MoreHorizontal, Edit, Trash2, Eye } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Eye, ChevronLeft, ChevronRight } from "lucide-react"
 import { format, startOfMonth, endOfMonth, addMonths, subDays, addDays } from "date-fns"
 import { es } from "date-fns/locale"
 import type { BookingWithDetails } from "@/types/bookings"
 import { BookingsFilters, type BookingsFiltersState } from "./BookingsFilters"
+import { BookingCard } from "./BookingCard"
 import type { Property } from "@/lib/api/properties"
 import type { ConfigurationValue } from "@/lib/api/configuration"
 
@@ -46,11 +47,14 @@ interface BookingsTableProps {
   onBookingDeleted?: () => void
 }
 
+const ITEMS_PER_PAGE = 5
+
 export function BookingsTable({ bookings, properties, bookingStatuses, bookingTypes, onBookingDeleted }: BookingsTableProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
   const [filters, setFilters] = useState<BookingsFiltersState>({
     propertyId: "all",
     guestName: "",
@@ -205,6 +209,22 @@ export function BookingsTable({ bookings, properties, bookingStatuses, bookingTy
     return result
   }, [bookings, filters])
 
+  // Resetear a página 1 cuando cambien los filtros
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filters])
+
+  // Calcular paginación solo para vista de escritorio
+  const paginatedBookings = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    const endIndex = startIndex + ITEMS_PER_PAGE
+    return filteredBookings.slice(startIndex, endIndex)
+  }, [filteredBookings, currentPage])
+
+  const totalPages = Math.ceil(filteredBookings.length / ITEMS_PER_PAGE)
+  const startItem = filteredBookings.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1
+  const endItem = Math.min(currentPage * ITEMS_PER_PAGE, filteredBookings.length)
+
   if (bookings.length === 0) {
     return (
       <div className="space-y-4">
@@ -235,10 +255,33 @@ export function BookingsTable({ bookings, properties, bookingStatuses, bookingTy
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <p>
           Mostrando {filteredBookings.length} de {bookings.length} reserva{bookings.length !== 1 ? "s" : ""}
+          {filteredBookings.length > 0 && (
+            <span className="hidden md:inline">
+              {" "}(Página {currentPage} de {totalPages})
+            </span>
+          )}
         </p>
       </div>
 
-      <div className="rounded-md border">
+      {/* Vista de tarjetas para móvil */}
+      <div className="block md:hidden space-y-4">
+        {filteredBookings.length === 0 ? (
+          <div className="text-center py-12 rounded-md border">
+            <p className="text-gray-500">No se encontraron reservas con los filtros aplicados</p>
+          </div>
+        ) : (
+          filteredBookings.map((booking) => (
+            <BookingCard
+              key={booking.id}
+              booking={booking}
+              onDelete={onBookingDeleted}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Vista de tabla para escritorio */}
+      <div className="hidden md:block rounded-md border">
         <Table>
         <TableHeader>
           <TableRow>
@@ -254,14 +297,14 @@ export function BookingsTable({ bookings, properties, bookingStatuses, bookingTy
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredBookings.length === 0 ? (
+          {paginatedBookings.length === 0 ? (
             <TableRow>
               <TableCell colSpan={9} className="text-center py-12">
                 <p className="text-gray-500">No se encontraron reservas con los filtros aplicados</p>
               </TableCell>
             </TableRow>
           ) : (
-            filteredBookings.map((booking) => (
+            paginatedBookings.map((booking) => (
             <TableRow key={booking.id}>
               <TableCell className="font-medium">{booking.booking_code}</TableCell>
               <TableCell>
@@ -411,6 +454,38 @@ export function BookingsTable({ bookings, properties, bookingStatuses, bookingTy
         </TableBody>
       </Table>
       </div>
+
+      {/* Controles de paginación (solo escritorio) */}
+      {filteredBookings.length > ITEMS_PER_PAGE && (
+        <div className="hidden md:flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Mostrando {startItem}-{endItem} de {filteredBookings.length} reserva{filteredBookings.length !== 1 ? "s" : ""}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Anterior
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              Página {currentPage} de {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Siguiente
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Diálogo de confirmación de eliminación */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => {

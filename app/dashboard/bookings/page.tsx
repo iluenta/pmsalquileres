@@ -73,14 +73,14 @@ export default async function BookingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reservas</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex-1">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Reservas</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Gestiona las reservas de tus propiedades
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full md:w-auto">
           <Link href="/dashboard/bookings/new">
             <Plus className="mr-2 h-4 w-4" />
             Nueva Reserva

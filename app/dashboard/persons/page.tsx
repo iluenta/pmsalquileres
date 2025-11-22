@@ -5,13 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Search, X, Loader2 } from "lucide-react"
@@ -190,14 +184,14 @@ export default function PersonsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Personas</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Personas</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Gestiona todas las personas del sistema (huéspedes, propietarios, contactos, proveedores, etc.)
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full md:w-auto">
           <Link href="/dashboard/persons/new">
             <Plus className="mr-2 h-4 w-4" />
             Nueva Persona
@@ -307,18 +301,46 @@ export default function PersonsPage() {
         </CardContent>
       </Card>
 
-      {/* Pestañas por tipo de persona */}
+      {/* Selector de tipo de persona */}
       {personTypes.length > 0 ? (
-        <Tabs value={selectedPersonType || ""} onValueChange={(value) => setSelectedPersonType(value || null)}>
-          <TabsList className="w-full justify-start">
-            {personTypes.map((type) => (
-              <TabsTrigger key={type.id} value={type.id}>
-                {type.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <>
+          {/* Móvil: Select */}
+          <div className="block md:hidden">
+            <Label htmlFor="person-type-select" className="mb-2 block">
+              Tipo de Persona
+            </Label>
+            <Select
+              value={selectedPersonType || ""}
+              onValueChange={(value) => setSelectedPersonType(value || null)}
+            >
+              <SelectTrigger id="person-type-select" className="w-full">
+                <SelectValue placeholder="Seleccione un tipo de persona" />
+              </SelectTrigger>
+              <SelectContent>
+                {personTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <TabsContent value={selectedPersonType || ""} className="mt-4">
+          {/* Desktop: Tabs */}
+          <div className="hidden md:block">
+            <Tabs value={selectedPersonType || ""} onValueChange={(value) => setSelectedPersonType(value || null)}>
+              <TabsList className="w-full justify-start">
+                {personTypes.map((type) => (
+                  <TabsTrigger key={type.id} value={type.id}>
+                    {type.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {/* Contenido común para móvil y desktop */}
+          <div className="mt-4">
             {loading ? (
               <div className="text-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
@@ -338,8 +360,8 @@ export default function PersonsPage() {
                 onPersonDeleted={handlePersonDeleted}
               />
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </>
       ) : (
         <div className="mt-4">
           {loading ? (

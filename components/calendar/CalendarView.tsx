@@ -62,29 +62,33 @@ export function CalendarView({ propertyId, currentMonth, onMonthChange, days = [
   return (
     <div className="space-y-4">
       {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handlePrevMonth}
-          className="gap-2"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Mes Anterior
-        </Button>
-        <h3 className="text-lg font-semibold text-foreground">
-          {monthDisplay}
-        </h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleNextMonth}
-          className="gap-2"
-        >
-          Mes Siguiente
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      <Card className="p-3 md:p-0 md:bg-transparent md:border-0 md:shadow-none">
+        <div className="flex items-center justify-center gap-4 md:justify-between">
+          {/* Botón Anterior - Más grande y visual */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrevMonth}
+            className="gap-2 h-14 w-14 md:h-10 md:w-auto md:px-4 md:py-2 flex-shrink-0 shadow-md hover:shadow-lg transition-shadow"
+            aria-label="Mes anterior"
+          >
+            <ChevronLeft className="h-7 w-7 md:h-4 md:w-4" />
+            <span className="hidden md:inline">Mes Anterior</span>
+          </Button>
+          
+          {/* Botón Siguiente - Más grande y visual */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNextMonth}
+            className="gap-2 h-14 w-14 md:h-10 md:w-auto md:px-4 md:py-2 flex-shrink-0 shadow-md hover:shadow-lg transition-shadow"
+            aria-label="Mes siguiente"
+          >
+            <span className="hidden md:inline">Mes Siguiente</span>
+            <ChevronRight className="h-7 w-7 md:h-4 md:w-4" />
+          </Button>
+        </div>
+      </Card>
 
       {/* Three Month Calendar Grid */}
       {loading ? (

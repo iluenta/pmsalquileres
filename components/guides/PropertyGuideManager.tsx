@@ -13,6 +13,7 @@ import { TipsManager } from "@/components/admin/TipsManager"
 import { ApartmentSectionsManager } from "@/components/admin/ApartmentSectionsManager"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -357,7 +358,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
       <div className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-4">
               <Button asChild variant="ghost" size="sm">
                 <Link href="/dashboard/guides">
@@ -366,11 +367,11 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                 </Link>
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Editar Guía: {data.property?.name || 'Propiedad'}</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900">Editar Guía: {data.property?.name || 'Propiedad'}</h1>
                 <p className="text-sm text-gray-600">{data.property?.address || 'Dirección no disponible'}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 md:ml-auto">
               <Badge variant="default">Editando</Badge>
             </div>
           </div>
@@ -379,58 +380,95 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
       <div className="container mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
-            <TabsTrigger value="overview" className="text-xs">
-              Resumen
-            </TabsTrigger>
-            <TabsTrigger value="guide" className="text-xs">
-              Guía
-            </TabsTrigger>
-            <TabsTrigger 
-              value="apartment" 
-              className="text-xs"
-              disabled={!hasSectionType('apartment')}
-            >
-              Apartamento
-            </TabsTrigger>
-            <TabsTrigger 
-              value="rules" 
-              className="text-xs"
-              disabled={!hasSectionType('rules')}
-            >
-              Normas
-            </TabsTrigger>
-            <TabsTrigger 
-              value="house_guide" 
-              className="text-xs"
-              disabled={!hasSectionType('house_guide')}
-            >
-              Guía Casa
-            </TabsTrigger>
-            <TabsTrigger 
-              value="tips" 
-              className="text-xs"
-              disabled={!hasSectionType('tips')}
-            >
-              Consejos
-            </TabsTrigger>
-            <TabsTrigger 
-              value="contact" 
-              className="text-xs"
-              disabled={!hasSectionType('contact')}
-            >
-              Contacto
-            </TabsTrigger>
-            <TabsTrigger value="beaches" className="text-xs">
-              Playas
-            </TabsTrigger>
-            <TabsTrigger value="restaurants" className="text-xs">
-              Restaurantes
-            </TabsTrigger>
-            <TabsTrigger value="activities" className="text-xs">
-              Actividades
-            </TabsTrigger>
-          </TabsList>
+          {/* Móvil: Select */}
+          <div className="block md:hidden">
+            <Label htmlFor="tab-select" className="mb-2 block">
+              Sección
+            </Label>
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger id="tab-select" className="w-full">
+                <SelectValue placeholder="Seleccione una sección" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="overview">Resumen</SelectItem>
+                <SelectItem value="guide">Guía</SelectItem>
+                {hasSectionType('apartment') && (
+                  <SelectItem value="apartment">Apartamento</SelectItem>
+                )}
+                {hasSectionType('rules') && (
+                  <SelectItem value="rules">Normas</SelectItem>
+                )}
+                {hasSectionType('house_guide') && (
+                  <SelectItem value="house_guide">Guía Casa</SelectItem>
+                )}
+                {hasSectionType('tips') && (
+                  <SelectItem value="tips">Consejos</SelectItem>
+                )}
+                {hasSectionType('contact') && (
+                  <SelectItem value="contact">Contacto</SelectItem>
+                )}
+                <SelectItem value="beaches">Playas</SelectItem>
+                <SelectItem value="restaurants">Restaurantes</SelectItem>
+                <SelectItem value="activities">Actividades</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Desktop: Tabs */}
+          <div className="hidden md:block">
+            <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
+              <TabsTrigger value="overview" className="text-xs">
+                Resumen
+              </TabsTrigger>
+              <TabsTrigger value="guide" className="text-xs">
+                Guía
+              </TabsTrigger>
+              <TabsTrigger 
+                value="apartment" 
+                className="text-xs"
+                disabled={!hasSectionType('apartment')}
+              >
+                Apartamento
+              </TabsTrigger>
+              <TabsTrigger 
+                value="rules" 
+                className="text-xs"
+                disabled={!hasSectionType('rules')}
+              >
+                Normas
+              </TabsTrigger>
+              <TabsTrigger 
+                value="house_guide" 
+                className="text-xs"
+                disabled={!hasSectionType('house_guide')}
+              >
+                Guía Casa
+              </TabsTrigger>
+              <TabsTrigger 
+                value="tips" 
+                className="text-xs"
+                disabled={!hasSectionType('tips')}
+              >
+                Consejos
+              </TabsTrigger>
+              <TabsTrigger 
+                value="contact" 
+                className="text-xs"
+                disabled={!hasSectionType('contact')}
+              >
+                Contacto
+              </TabsTrigger>
+              <TabsTrigger value="beaches" className="text-xs">
+                Playas
+              </TabsTrigger>
+              <TabsTrigger value="restaurants" className="text-xs">
+                Restaurantes
+              </TabsTrigger>
+              <TabsTrigger value="activities" className="text-xs">
+                Actividades
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview">
             <div className="space-y-6">
@@ -597,12 +635,12 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button type="submit">
+                    <div className="flex flex-col md:flex-row gap-2">
+                      <Button type="submit" className="w-full md:w-auto">
                         <i className="fas fa-save mr-2"></i>
                         Guardar Cambios
                       </Button>
-                      <Button type="button" variant="outline">
+                      <Button type="button" variant="outline" className="w-full md:w-auto">
                         <i className="fas fa-undo mr-2"></i>
                         Descartar
                       </Button>
@@ -622,21 +660,22 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                   <div className="space-y-4">
                     {sections.map((section) => (
                       <div key={section.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3 flex-1">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                               <i className={`${section.icon || 'fas fa-info-circle'} text-blue-600`}></i>
                             </div>
-                            <div className="flex-1">
-                              <h4 className="font-medium">{section.title}</h4>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium truncate">{section.title}</h4>
                               <p className="text-xs text-gray-500 capitalize">{section.section_type}</p>
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-shrink-0">
                             <Button 
                               size="sm" 
                               variant="outline"
                               onClick={() => handleEditSection(section)}
+                              className="flex-1 md:flex-initial"
                             >
                               <i className="fas fa-edit mr-2"></i>
                               Editar
@@ -645,12 +684,13 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                               size="sm" 
                               variant="destructive"
                               onClick={() => handleDeleteSection(section.id)}
+                              className="flex-shrink-0"
                             >
                               <i className="fas fa-trash"></i>
                             </Button>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-600">{section.content}</p>
+                        <p className="text-sm text-gray-600 break-words">{section.content}</p>
                       </div>
                     ))}
                     <Button 
@@ -715,8 +755,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                             />
                           </div>
                           
-                          <div className="flex gap-2">
-                            <Button onClick={handleAddSection} size="sm">
+                          <div className="flex flex-col md:flex-row gap-2">
+                            <Button onClick={handleAddSection} size="sm" className="w-full md:w-auto">
                               <i className="fas fa-save mr-2"></i>
                               {editingSection ? 'Actualizar Sección' : 'Guardar Sección'}
                             </Button>
@@ -728,6 +768,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                                 setEditingSection(null)
                                 setNewSection({ section_type: "apartment", title: "", content: "", icon: "fas fa-home" })
                               }}
+                              className="w-full md:w-auto"
                             >
                               <i className="fas fa-times mr-2"></i>
                               Cancelar

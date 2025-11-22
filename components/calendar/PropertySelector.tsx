@@ -18,12 +18,20 @@ interface PropertySelectorProps {
 
 export function PropertySelector({ selectedProperty, onPropertyChange, properties }: PropertySelectorProps) {
   const property = properties.find(p => p.id === selectedProperty)
+  
+  // Asegurar que el valor sea válido (existe en las propiedades) o undefined
+  const validValue = selectedProperty && properties.some(p => p.id === selectedProperty) 
+    ? selectedProperty 
+    : undefined
 
   return (
     <Card className="p-4 bg-card border-border">
       <div className="space-y-2">
         <label className="text-sm font-semibold text-foreground">Propiedad</label>
-        <Select value={selectedProperty} onValueChange={onPropertyChange}>
+        <Select 
+          value={validValue} 
+          onValueChange={onPropertyChange}
+        >
           <SelectTrigger className="w-full md:w-64 bg-background">
             <SelectValue placeholder="Seleccione una propiedad" />
           </SelectTrigger>

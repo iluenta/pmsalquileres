@@ -161,6 +161,7 @@ export function ServiceProviderForm({
           toast({
             title: provider ? "Proveedor actualizado" : "Proveedor creado",
             description: `El proveedor de servicios ha sido ${provider ? "actualizado" : "creado"} correctamente`,
+            duration: 3000,
           })
           router.push("/dashboard/service-providers")
         }
@@ -184,6 +185,7 @@ export function ServiceProviderForm({
         toast({
           title: provider ? "Proveedor actualizado" : "Proveedor creado",
           description: `El proveedor de servicios ha sido ${provider ? "actualizado" : "creado"} correctamente`,
+          duration: 3000,
         })
         router.push("/dashboard/service-providers")
       }

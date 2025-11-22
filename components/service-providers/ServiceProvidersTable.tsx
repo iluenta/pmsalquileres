@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import type { ServiceProviderWithDetails } from "@/types/service-providers"
 import { useToast } from "@/hooks/use-toast"
@@ -38,16 +38,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { ServiceProviderCard } from "./ServiceProviderCard"
 
 interface ServiceProvidersTableProps {
   providers: ServiceProviderWithDetails[]
 }
+
+const ITEMS_PER_PAGE = 5
 
 export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
@@ -79,6 +83,27 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
     }
   }
 
+  // Pagination logic
+  const totalPages = Math.ceil(providers.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const paginatedProviders = useMemo(() => {
+    return providers.slice(startIndex, endIndex)
+  }, [providers, startIndex, endIndex])
+
+  // Reset page to 1 when providers change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [providers.length])
+
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1))
+  }
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+  }
+
   if (providers.length === 0) {
     return (
       <div className="text-center py-12">
@@ -89,8 +114,22 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
 
   return (
     <>
-      <div className="rounded-md border">
-        <Table>
+      {/* Mobile View: Cards */}
+      <div className="block md:hidden space-y-4">
+        {providers.map((provider) => (
+          <ServiceProviderCard key={provider.id} provider={provider} onDelete={() => router.refresh()} />
+        ))}
+      </div>
+
+      {/* Desktop View: Table */}
+      <div className="hidden md:block">
+        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+          <p>
+            Mostrando {startIndex + 1} - {Math.min(endIndex, providers.length)} de {providers.length} proveedor{providers.length !== 1 ? "es" : ""}
+          </p>
+        </div>
+        <div className="rounded-md border">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Logo</TableHead>
@@ -103,7 +142,7 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
             </TableRow>
           </TableHeader>
           <TableBody>
-            {providers.map((provider) => (
+            {paginatedProviders.map((provider) => (
               <TableRow key={provider.id}>
                 <TableCell>
                   {provider.logo_url ? (
@@ -244,6 +283,34 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
             ))}
           </TableBody>
         </Table>
+        </div>
+
+        {/* Pagination Controls for Desktop */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-end space-x-2 py-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Anterior
+            </Button>
+            <div className="text-sm font-medium">
+              Página {currentPage} de {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+            >
+              Siguiente
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

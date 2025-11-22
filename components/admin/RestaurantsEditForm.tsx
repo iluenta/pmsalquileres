@@ -135,12 +135,12 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
               <i className="fas fa-utensils text-orange-600"></i>
               Restaurantes ({restaurants.length})
             </CardTitle>
-            <Button onClick={handleAddNew} disabled={loading}>
+            <Button onClick={handleAddNew} disabled={loading} className="w-full md:w-auto">
               <i className="fas fa-plus mr-2"></i>
               Agregar Restaurante
             </Button>
@@ -158,22 +158,22 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
               {restaurants.map((restaurant) => (
                 <Card key={restaurant.id} className="border border-gray-200">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-start gap-3 flex-1">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                           <i className="fas fa-utensils text-orange-600"></i>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <CardTitle className="text-lg">{restaurant.name}</CardTitle>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <CardTitle className="text-lg truncate">{restaurant.name}</CardTitle>
                             {restaurant.badge && (
-                              <Badge variant="secondary">{restaurant.badge}</Badge>
+                              <Badge variant="secondary" className="flex-shrink-0">{restaurant.badge}</Badge>
                             )}
                           </div>
                           {restaurant.description && (
-                            <p className="text-sm text-gray-600 mb-2">{restaurant.description}</p>
+                            <p className="text-sm text-gray-600 mb-2 break-words">{restaurant.description}</p>
                           )}
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                             {restaurant.rating && restaurant.rating > 0 && (
                               <div className="flex items-center gap-1">
                                 {renderStars(restaurant.rating)}
@@ -189,13 +189,13 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(restaurant)}
                           disabled={loading}
-                          className="text-blue-600 hover:text-blue-700"
+                          className="text-blue-600 hover:text-blue-700 w-full sm:w-auto"
                         >
                           <i className="fas fa-edit"></i>
                         </Button>
@@ -204,7 +204,7 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
                           size="sm"
                           onClick={() => handleDelete(restaurant.id)}
                           disabled={loading}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 w-full sm:w-auto"
                         >
                           <i className="fas fa-trash"></i>
                         </Button>
@@ -324,12 +324,12 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
                 />
               </div>
 
-              <div className="flex gap-2">
-                <Button onClick={handleSave} disabled={loading}>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
                   <i className="fas fa-save mr-2"></i>
                   {loading ? 'Guardando...' : 'Guardar'}
                 </Button>
-                <Button variant="outline" onClick={handleCancel} disabled={loading}>
+                <Button variant="outline" onClick={handleCancel} disabled={loading} className="w-full sm:w-auto">
                   Cancelar
                 </Button>
               </div>

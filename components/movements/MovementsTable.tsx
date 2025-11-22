@@ -27,6 +27,7 @@ import {
 import { MoreHorizontal, Edit, Trash2, Package, ChevronLeft, ChevronRight } from "lucide-react"
 import type { MovementWithDetails } from "@/types/movements"
 import { useToast } from "@/hooks/use-toast"
+import { MovementCard } from "./MovementCard"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +44,7 @@ interface MovementsTableProps {
   onMovementDeleted?: () => void
 }
 
-const ITEMS_PER_PAGE = 6
+const ITEMS_PER_PAGE = 5
 
 export function MovementsTable({ movements, onMovementDeleted }: MovementsTableProps) {
   const router = useRouter()
@@ -141,7 +142,19 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
 
   return (
     <>
-      <div className="rounded-md border">
+      {/* Vista de tarjetas para móvil */}
+      <div className="block md:hidden space-y-4">
+        {movements.map((movement) => (
+          <MovementCard
+            key={movement.id}
+            movement={movement}
+            onDelete={onMovementDeleted}
+          />
+        ))}
+      </div>
+
+      {/* Vista de tabla para escritorio */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -340,9 +353,9 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
         </Table>
       </div>
 
-      {/* Paginación */}
+      {/* Controles de paginación (solo escritorio) */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
+        <div className="hidden md:flex items-center justify-between mt-4">
           <div className="text-sm text-muted-foreground">
             Mostrando {startIndex + 1} - {Math.min(endIndex, movements.length)} de {movements.length} movimientos
           </div>

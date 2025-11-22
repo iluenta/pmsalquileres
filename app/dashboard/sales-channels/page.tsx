@@ -31,14 +31,14 @@ export default async function SalesChannelsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Canales de Venta</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Canales de Venta</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Gestiona los canales de venta (Booking, Airbnb, propio, etc.)
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full md:w-auto">
           <Link href="/dashboard/sales-channels/new">
             <Plus className="mr-2 h-4 w-4" />
             Nuevo Canal

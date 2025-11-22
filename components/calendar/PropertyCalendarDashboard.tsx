@@ -22,6 +22,16 @@ export function PropertyCalendarDashboard({ properties, tenantId }: PropertyCale
   const [days, setDays] = useState<CalendarDay[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Seleccionar automáticamente la primera propiedad activa cuando se cargan las propiedades
+  useEffect(() => {
+    if (properties.length > 0 && !selectedPropertyId) {
+      const firstActiveProperty = properties.find(p => p.is_active) || properties[0]
+      if (firstActiveProperty?.id) {
+        setSelectedPropertyId(firstActiveProperty.id)
+      }
+    }
+  }, [properties.length, selectedPropertyId])
+
   // Cargar disponibilidad cuando cambia la propiedad o el mes
   useEffect(() => {
     if (!selectedPropertyId) {

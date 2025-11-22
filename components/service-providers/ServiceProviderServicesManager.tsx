@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,7 +41,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { Plus, Edit, Trash2, Loader2 } from "lucide-react"
+import { Plus, Edit, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+import { ServiceCard } from "./ServiceCard"
 import type {
   ServiceProviderServiceWithDetails,
   CreateServiceProviderServiceData,
@@ -69,6 +70,7 @@ export function ServiceProviderServicesManager({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingService, setEditingService] = useState<ServiceProviderServiceWithDetails | null>(null)
   const [deletingServiceId, setDeletingServiceId] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const [formData, setFormData] = useState({
     service_type_id: "",
@@ -312,17 +314,22 @@ export function ServiceProviderServicesManager({
     (st) => !assignedServiceTypeIds.includes(st.id)
   )
 
+  // Reset page when services change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [services.length])
+
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
           <div>
             <h3 className="text-lg font-semibold mb-2">Servicios del Proveedor</h3>
             <p className="text-sm text-muted-foreground">
               Gestiona los servicios que ofrece este proveedor y sus precios
             </p>
           </div>
-          <Button type="button" onClick={() => handleOpenDialog()} size="sm">
+          <Button type="button" onClick={() => handleOpenDialog()} size="sm" className="w-full md:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Añadir Servicio
           </Button>
@@ -344,79 +351,38 @@ export function ServiceProviderServicesManager({
             </CardContent>
           </Card>
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tipo de Servicio</TableHead>
-                  <TableHead>Tipo de Precio</TableHead>
-                  <TableHead>Precio</TableHead>
-                  <TableHead>Impuesto</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {services.map((service) => (
-                  <TableRow key={service.id}>
-                    <TableCell className="font-medium">
-                      {service.service_type?.label || "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {service.price_type === "fixed" ? "Precio Fijo" : "Porcentaje"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {service.price_type === "fixed" ? (
-                        <span>{service.price.toFixed(2)} €</span>
-                      ) : (
-                        <span>{service.price.toFixed(2)}%</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {service.apply_tax && service.tax_type ? (
-                        <Badge variant="secondary">
-                          {service.tax_type.label} ({service.tax_type.description}%)
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">Sin impuesto</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={service.is_active ? "default" : "secondary"}>
-                        {service.is_active ? "Activo" : "Inactivo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenDialog(service)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setDeletingServiceId(service.id)
-                            setDeleteDialogOpen(true)
-                          }}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <>
+            {/* Mobile View: Cards */}
+            <div className="block md:hidden space-y-4">
+              {services.map((service) => (
+                <ServiceCard
+                  key={service.id}
+                  service={service}
+                  onEdit={() => handleOpenDialog(service)}
+                  onDelete={() => {
+                    setDeletingServiceId(service.id)
+                    setDeleteDialogOpen(true)
+                  }}
+                  deleting={deletingServiceId === service.id}
+                />
+              ))}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block">
+              <ServicesTable
+                services={services}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onEdit={handleOpenDialog}
+                onDelete={(serviceId) => {
+                  setDeletingServiceId(serviceId)
+                  setDeleteDialogOpen(true)
+                }}
+                deletingServiceId={deletingServiceId}
+              />
+            </div>
+          </>
         )}
       </div>
 
@@ -631,6 +597,151 @@ export function ServiceProviderServicesManager({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </>
+  )
+}
+
+// Componente de tabla para desktop con paginación
+const ITEMS_PER_PAGE = 5
+
+interface ServicesTableProps {
+  services: ServiceProviderServiceWithDetails[]
+  currentPage: number
+  onPageChange: (page: number) => void
+  onEdit: (service: ServiceProviderServiceWithDetails) => void
+  onDelete: (serviceId: string) => void
+  deletingServiceId: string | null
+}
+
+function ServicesTable({
+  services,
+  currentPage,
+  onPageChange,
+  onEdit,
+  onDelete,
+  deletingServiceId,
+}: ServicesTableProps) {
+  const totalPages = Math.ceil(services.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const paginatedServices = useMemo(() => {
+    return services.slice(startIndex, endIndex)
+  }, [services, startIndex, endIndex])
+
+  const handlePreviousPage = () => {
+    onPageChange(Math.max(1, currentPage - 1))
+  }
+
+  const handleNextPage = () => {
+    onPageChange(Math.min(totalPages, currentPage + 1))
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+        <p>
+          Mostrando {startIndex + 1} - {Math.min(endIndex, services.length)} de {services.length} servicio{services.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tipo de Servicio</TableHead>
+              <TableHead>Tipo de Precio</TableHead>
+              <TableHead>Precio</TableHead>
+              <TableHead>Impuesto</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedServices.map((service) => (
+              <TableRow key={service.id}>
+                <TableCell className="font-medium">
+                  {service.service_type?.label || "N/A"}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {service.price_type === "fixed" ? "Precio Fijo" : "Porcentaje"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {service.price_type === "fixed" ? (
+                    <span>{service.price.toFixed(2)} €</span>
+                  ) : (
+                    <span>{service.price.toFixed(2)}%</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {service.apply_tax && service.tax_type ? (
+                    <Badge variant="secondary">
+                      {service.tax_type.label} ({service.tax_type.description}%)
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">Sin impuesto</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={service.is_active ? "default" : "secondary"}>
+                    {service.is_active ? "Activo" : "Inactivo"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onEdit(service)}
+                      disabled={deletingServiceId === service.id}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(service.id)}
+                      disabled={deletingServiceId === service.id}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination Controls for Desktop */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end space-x-2 py-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Anterior
+          </Button>
+          <div className="text-sm font-medium">
+            Página {currentPage} de {totalPages}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+          >
+            Siguiente
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      )}
     </>
   )
 }

@@ -24,6 +24,7 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetTitle,
 } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Building2, User, Settings, LogOut, Moon, Sun, Calendar, Menu } from "lucide-react"
@@ -71,6 +72,7 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
+            <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
             <MobileSidebar />
           </SheetContent>
         </Sheet>

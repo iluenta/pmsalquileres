@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { createGuide } from "@/lib/api/guides-client"
 import { Button } from "@/components/ui/button"
@@ -11,12 +11,14 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import Link from "next/link"
-import { Trash2, Eye, Edit } from "lucide-react"
+import { Trash2, Eye, Edit, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Guide, Property } from "@/types/guides"
 
 interface GuideWithProperty extends Guide {
   property: Property
 }
+
+const ITEMS_PER_PAGE = 6
 
 export default function GuidesPage() {
   const [guides, setGuides] = useState<GuideWithProperty[]>([])
@@ -25,6 +27,7 @@ export default function GuidesPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [selectedPropertyId, setSelectedPropertyId] = useState("")
   const [properties, setProperties] = useState<Property[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
   const [formData, setFormData] = useState({
     title: "Guía del Huésped",
     welcome_message: "",
@@ -193,15 +196,15 @@ export default function GuidesPage() {
 
   return (
     <div className="space-y-6">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Guías del Huésped</h1>
-            <p className="text-gray-600 mt-2">Gestiona las guías de tus propiedades</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Guías del Huésped</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-2">Gestiona las guías de tus propiedades</p>
           </div>
           
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full md:w-auto">
                 <i className="fas fa-plus mr-2"></i>
                 Crear Nueva Guía
               </Button>
@@ -322,69 +325,207 @@ export default function GuidesPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {guides.map((guide) => (
-              <Card key={guide.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{guide.property.name}</CardTitle>
-                    <Badge variant="secondary">Activa</Badge>
-                  </div>
-                  <p className="text-sm text-gray-600">{guide.property.street || guide.property.city}</p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Título</p>
-                      <p className="text-sm text-gray-600">{guide.title}</p>
+          <>
+            {/* Mobile View: Cards (all visible) */}
+            <div className="block md:hidden space-y-4">
+              {guides.map((guide) => (
+                <Card key={guide.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{guide.property.name}</CardTitle>
+                      <Badge variant="secondary">Activa</Badge>
                     </div>
-                    
-                    {guide.host_names && (
+                    <p className="text-sm text-gray-600">{guide.property.street || guide.property.city}</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">Anfitriones</p>
-                        <p className="text-sm text-gray-600">{guide.host_names}</p>
+                        <p className="text-sm font-medium text-gray-900">Título</p>
+                        <p className="text-sm text-gray-600">{guide.title}</p>
                       </div>
-                    )}
+                      
+                      {guide.host_names && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Anfitriones</p>
+                          <p className="text-sm text-gray-600">{guide.host_names}</p>
+                        </div>
+                      )}
 
-                    {guide.welcome_message && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Mensaje</p>
-                        <p className="text-sm text-gray-600 line-clamp-2">{guide.welcome_message}</p>
-                      </div>
-                    )}
+                      {guide.welcome_message && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Mensaje</p>
+                          <p className="text-sm text-gray-600 line-clamp-2">{guide.welcome_message}</p>
+                        </div>
+                      )}
 
-                    <div className="flex gap-2 pt-4">
-                      <Button asChild size="sm" className="flex-1">
-                        <Link href={`/dashboard/guides/${guide.property_id}`}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </Link>
-                      </Button>
-                      <Button asChild size="sm" variant="outline" className="flex-1">
-                        <Link 
-                          href={`/guides/${guide.property?.slug || guide.property_id}/public`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      <div className="flex gap-2 pt-4">
+                        <Button asChild size="sm" className="flex-1">
+                          <Link href={`/dashboard/guides/${guide.property_id}`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </Link>
+                        </Button>
+                        <Button asChild size="sm" variant="outline" className="flex-1">
+                          <Link 
+                            href={`/guides/${guide.property?.slug || guide.property_id}/public`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ver
+                          </Link>
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => handleDeleteGuide(guide.id)}
+                          title="Eliminar guía"
                         >
-                          <Eye className="mr-2 h-4 w-4" />
-                          Ver
-                        </Link>
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive"
-                        onClick={() => handleDeleteGuide(guide.id)}
-                        title="Eliminar guía"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop View: Grid with pagination */}
+            <div className="hidden md:block">
+              <GuidesGrid guides={guides} currentPage={currentPage} onPageChange={setCurrentPage} onDelete={handleDeleteGuide} />
+            </div>
+          </>
         )}
     </div>
+  )
+}
+
+// Componente de grid con paginación para desktop
+interface GuidesGridProps {
+  guides: GuideWithProperty[]
+  currentPage: number
+  onPageChange: (page: number) => void
+  onDelete: (guideId: string) => void
+}
+
+function GuidesGrid({ guides, currentPage, onPageChange, onDelete }: GuidesGridProps) {
+  const totalPages = Math.ceil(guides.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const paginatedGuides = useMemo(() => {
+    return guides.slice(startIndex, endIndex)
+  }, [guides, startIndex, endIndex])
+
+  useEffect(() => {
+    if (guides.length > 0 && currentPage > totalPages && totalPages > 0) {
+      onPageChange(1)
+    }
+  }, [guides.length])
+
+  const handlePreviousPage = () => {
+    onPageChange(Math.max(1, currentPage - 1))
+  }
+
+  const handleNextPage = () => {
+    onPageChange(Math.min(totalPages, currentPage + 1))
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+        <p>
+          Mostrando {startIndex + 1} - {Math.min(endIndex, guides.length)} de {guides.length} guía{guides.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {paginatedGuides.map((guide) => (
+          <Card key={guide.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">{guide.property.name}</CardTitle>
+                <Badge variant="secondary">Activa</Badge>
+              </div>
+              <p className="text-sm text-gray-600">{guide.property.street || guide.property.city}</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Título</p>
+                  <p className="text-sm text-gray-600">{guide.title}</p>
+                </div>
+                
+                {guide.host_names && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Anfitriones</p>
+                    <p className="text-sm text-gray-600">{guide.host_names}</p>
+                  </div>
+                )}
+
+                {guide.welcome_message && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Mensaje</p>
+                    <p className="text-sm text-gray-600 line-clamp-2">{guide.welcome_message}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-4">
+                  <Button asChild size="sm" className="flex-1">
+                    <Link href={`/dashboard/guides/${guide.property_id}`}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="flex-1">
+                    <Link 
+                      href={`/guides/${guide.property?.slug || guide.property_id}/public`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Ver
+                    </Link>
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="destructive"
+                    onClick={() => onDelete(guide.id)}
+                    title="Eliminar guía"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Pagination Controls for Desktop */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end space-x-2 py-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Anterior
+          </Button>
+          <div className="text-sm font-medium">
+            Página {currentPage} de {totalPages}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+          >
+            Siguiente
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      )}
+    </>
   )
 }

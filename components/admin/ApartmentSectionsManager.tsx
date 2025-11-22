@@ -226,12 +226,12 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
               <i className="fas fa-home text-blue-600"></i>
               Secciones del Apartamento ({sections.length})
             </CardTitle>
-            <Button onClick={handleAddNew}>
+            <Button onClick={handleAddNew} className="w-full md:w-auto">
               <i className="fas fa-plus mr-2"></i>
               Agregar Sección
             </Button>
@@ -249,27 +249,27 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
               {sections.map((section) => (
                 <Card key={section.id} className="border border-gray-200">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
                         {section.icon && (
-                          <i className={`${section.icon} text-blue-600 text-lg`}></i>
+                          <i className={`${section.icon} text-blue-600 text-lg flex-shrink-0`}></i>
                         )}
-                        <div>
-                          <CardTitle className="text-lg">{section.title}</CardTitle>
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-lg truncate">{section.title}</CardTitle>
                           <p className="text-sm text-gray-600">
                             {sectionTypeLabels[section.section_type as keyof typeof sectionTypeLabels] || section.section_type}
                           </p>
                           {section.description && (
-                            <p className="text-sm text-gray-600 mt-1">{section.description}</p>
+                            <p className="text-sm text-gray-600 mt-1 break-words">{section.description}</p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(section)}
-                          className="text-blue-600 hover:text-blue-700"
+                          className="text-blue-600 hover:text-blue-700 flex-1 md:flex-initial"
                         >
                           <i className="fas fa-edit"></i>
                         </Button>
@@ -277,7 +277,7 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(section.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 flex-shrink-0"
                         >
                           <i className="fas fa-trash"></i>
                         </Button>

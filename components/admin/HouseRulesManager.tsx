@@ -127,12 +127,12 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
               <i className="fas fa-clipboard-list text-blue-600"></i>
               Normas de la Casa ({rules.length})
             </CardTitle>
-            <Button onClick={handleAddNew}>
+            <Button onClick={handleAddNew} className="w-full md:w-auto">
               <i className="fas fa-plus mr-2"></i>
               Agregar Norma
             </Button>

@@ -131,12 +131,12 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
               <i className="fas fa-umbrella-beach text-blue-600"></i>
               Playas ({beaches.length})
             </CardTitle>
-            <Button onClick={handleAddNew} disabled={loading}>
+            <Button onClick={handleAddNew} disabled={loading} className="w-full md:w-auto">
               <i className="fas fa-plus mr-2"></i>
               Agregar Playa
             </Button>
@@ -154,22 +154,22 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
               {beaches.map((beach) => (
                 <Card key={beach.id} className="border border-gray-200">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-start gap-3 flex-1">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                           <i className="fas fa-umbrella-beach text-blue-600"></i>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <CardTitle className="text-lg">{beach.name}</CardTitle>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <CardTitle className="text-lg truncate">{beach.name}</CardTitle>
                             {beach.badge && (
-                              <Badge variant="secondary">{beach.badge}</Badge>
+                              <Badge variant="secondary" className="flex-shrink-0">{beach.badge}</Badge>
                             )}
                           </div>
                           {beach.description && (
-                            <p className="text-sm text-gray-600 mb-2">{beach.description}</p>
+                            <p className="text-sm text-gray-600 mb-2 break-words">{beach.description}</p>
                           )}
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                             {beach.distance && (
                               <span className="flex items-center gap-1">
                                 <i className="fas fa-map-marker-alt"></i>
@@ -185,13 +185,13 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(beach)}
                           disabled={loading}
-                          className="text-blue-600 hover:text-blue-700"
+                          className="text-blue-600 hover:text-blue-700 w-full sm:w-auto"
                         >
                           <i className="fas fa-edit"></i>
                         </Button>
@@ -200,7 +200,7 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
                           size="sm"
                           onClick={() => handleDelete(beach.id)}
                           disabled={loading}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 w-full sm:w-auto"
                         >
                           <i className="fas fa-trash"></i>
                         </Button>
@@ -309,12 +309,12 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
                 />
               </div>
 
-              <div className="flex gap-2">
-                <Button onClick={handleSave} disabled={loading}>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
                   <i className="fas fa-save mr-2"></i>
                   {loading ? 'Guardando...' : 'Guardar'}
                 </Button>
-                <Button variant="outline" onClick={handleCancel} disabled={loading}>
+                <Button variant="outline" onClick={handleCancel} disabled={loading} className="w-full sm:w-auto">
                   Cancelar
                 </Button>
               </div>

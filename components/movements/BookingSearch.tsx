@@ -117,7 +117,7 @@ export function BookingSearch({
   }
 
   return (
-    <div className="w-full space-y-3" ref={containerRef}>
+    <div className="w-full space-y-2" ref={containerRef}>
       <div className="relative">
         <Input
           type="text"

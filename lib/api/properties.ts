@@ -347,8 +347,12 @@ export async function getPropertyBySlugPublic(slug: string): Promise<Property | 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+  console.log("[getPropertyBySlugPublic] Starting search for slug:", slug)
+  console.log("[getPropertyBySlugPublic] Supabase URL exists:", !!supabaseUrl)
+  console.log("[getPropertyBySlugPublic] Supabase Anon Key exists:", !!supabaseAnonKey)
+
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("[v0] Missing Supabase environment variables for public access")
+    console.error("[getPropertyBySlugPublic] Missing Supabase environment variables for public access")
     return null
   }
 
@@ -356,8 +360,60 @@ export async function getPropertyBySlugPublic(slug: string): Promise<Property | 
 
   // Normalizar el slug a minúsculas para la búsqueda (los slugs se guardan en minúsculas)
   const normalizedSlug = slug.toLowerCase().trim()
+  console.log("[getPropertyBySlugPublic] Normalized slug:", normalizedSlug)
 
-  // Verificar primero si la columna slug existe
+  // Primero intentar una consulta simple solo para verificar que el slug existe
+  const { data: simpleData, error: simpleError } = await supabasePublic
+    .from("properties")
+    .select("id, slug, name")
+    .eq("slug", normalizedSlug)
+    .maybeSingle()
+
+  console.log("[getPropertyBySlugPublic] Simple query result:", { 
+    found: !!simpleData, 
+    error: simpleError ? {
+      code: simpleError.code,
+      message: simpleError.message,
+      details: simpleError.details,
+      hint: simpleError.hint
+    } : null,
+    data: simpleData ? { id: simpleData.id, slug: simpleData.slug, name: simpleData.name } : null
+  })
+
+  if (simpleError) {
+    console.error("[getPropertyBySlugPublic] Simple query error:", {
+      code: simpleError.code,
+      message: simpleError.message,
+      details: simpleError.details,
+      hint: simpleError.hint
+    })
+    // Si hay un error de RLS, informar claramente
+    if (simpleError.code === '42501' || simpleError.message?.includes('permission') || simpleError.message?.includes('policy') || simpleError.message?.includes('RLS')) {
+      console.error("[getPropertyBySlugPublic] RLS policy is blocking access. You need to create a public read policy for properties table.")
+      console.error("[getPropertyBySlugPublic] Run this SQL in Supabase:")
+      console.error("[getPropertyBySlugPublic] CREATE POLICY public_read_properties ON properties FOR SELECT USING (true);")
+    }
+    return null
+  }
+
+  if (!simpleData) {
+    console.log("[getPropertyBySlugPublic] No property found with slug:", normalizedSlug)
+    // Intentar buscar sin normalizar para ver si hay diferencia
+    const { data: withoutNormalize, error: withoutError } = await supabasePublic
+      .from("properties")
+      .select("id, slug, name")
+      .eq("slug", slug)
+      .maybeSingle()
+    console.log("[getPropertyBySlugPublic] Search without normalization:", { 
+      found: !!withoutNormalize,
+      error: withoutError ? { code: withoutError.code, message: withoutError.message } : null
+    })
+    return null
+  }
+
+  // Si encontramos el slug, ahora obtener todos los datos
+  console.log("[getPropertyBySlugPublic] Property found, fetching full data for ID:", simpleData.id)
+  
   const { data, error } = await supabasePublic
     .from("properties")
     .select(
@@ -383,7 +439,7 @@ export async function getPropertyBySlugPublic(slug: string): Promise<Property | 
       property_type:configuration_values!properties_property_type_id_fkey(label, color)
     `,
     )
-    .eq("slug", normalizedSlug)
+    .eq("id", simpleData.id)
     .maybeSingle()
 
   if (error) {

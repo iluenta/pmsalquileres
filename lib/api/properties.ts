@@ -370,7 +370,7 @@ export async function getPropertyBySlug(slug: string): Promise<Property | null> 
     `,
     )
     .eq("slug", slug)
-    .single()
+    .maybeSingle()
 
   if (error) {
     // Si el error es porque la columna slug o image_url no existe, retornar null

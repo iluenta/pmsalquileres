@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { MovementForm } from "./MovementForm"
+import { PaymentCard } from "./PaymentCard"
 
 interface BookingPaymentsManagerProps {
   bookingId: string
@@ -95,7 +96,7 @@ export function BookingPaymentsManager({
     <>
       <div className="space-y-4">
         {paymentInfo && (
-          <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
             <div>
               <p className="text-sm text-muted-foreground">Total a Pagar</p>
               <p className="text-lg font-semibold">
@@ -117,7 +118,7 @@ export function BookingPaymentsManager({
           </div>
         )}
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold mb-2">Pagos de la Reserva</h3>
             <p className="text-sm text-muted-foreground">
@@ -129,6 +130,7 @@ export function BookingPaymentsManager({
             onClick={() => setDialogOpen(true)}
             size="sm"
             disabled={paymentInfo?.pending_amount === 0}
+            className="w-full md:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
             Añadir Pago
@@ -156,66 +158,76 @@ export function BookingPaymentsManager({
             )}
           </div>
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Importe</TableHead>
-                  <TableHead>Método</TableHead>
-                  <TableHead>Cuenta</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Referencia</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell>{formatDate(payment.movement_date)}</TableCell>
-                    <TableCell className="font-semibold text-green-600">
-                      {formatCurrency(payment.amount)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {payment.payment_method?.label || "N/A"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {payment.treasury_account?.name || "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          payment.movement_status?.value === "paid" ||
-                          payment.movement_status?.label === "Pagado"
-                            ? "default"
-                            : "secondary"
-                        }
-                      >
-                        {payment.movement_status?.label || "N/A"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {payment.reference || payment.invoice_number || "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                      >
-                        <Link href={`/dashboard/movements/${payment.id}/edit`}>
-                          Editar
-                        </Link>
-                      </Button>
-                    </TableCell>
+          <>
+            {/* Desktop: Table */}
+            <div className="hidden md:block rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Importe</TableHead>
+                    <TableHead>Método</TableHead>
+                    <TableHead>Cuenta</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Referencia</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {payments.map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell>{formatDate(payment.movement_date)}</TableCell>
+                      <TableCell className="font-semibold text-green-600">
+                        {formatCurrency(payment.amount)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {payment.payment_method?.label || "N/A"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {payment.treasury_account?.name || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            payment.movement_status?.value === "paid" ||
+                            payment.movement_status?.label === "Pagado"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          {payment.movement_status?.label || "N/A"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {payment.reference || payment.invoice_number || "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                        >
+                          <Link href={`/dashboard/movements/${payment.id}/edit`}>
+                            Editar
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile: Cards */}
+            <div className="block md:hidden space-y-4">
+              {payments.map((payment) => (
+                <PaymentCard key={payment.id} payment={payment} />
+              ))}
+            </div>
+          </>
         )}
       </div>
 

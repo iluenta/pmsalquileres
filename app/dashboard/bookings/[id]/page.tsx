@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Image from "next/image"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { BookingPaymentsManager } from "@/components/movements/BookingPaymentsManager"
+import { BookingDetailTabs } from "@/components/bookings/BookingDetailTabs"
 
 export default async function ViewBookingPage({
   params,
@@ -92,7 +92,7 @@ export default async function ViewBookingPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/dashboard/bookings">
@@ -101,7 +101,7 @@ export default async function ViewBookingPage({
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               Reserva {booking.booking_code}
             </h1>
             <p className="text-muted-foreground">
@@ -109,7 +109,7 @@ export default async function ViewBookingPage({
             </p>
           </div>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full md:w-auto">
           <Link href={`/dashboard/bookings/${booking.id}/edit`}>
             <Edit className="mr-2 h-4 w-4" />
             Editar
@@ -117,16 +117,8 @@ export default async function ViewBookingPage({
         </Button>
       </div>
 
-      <Tabs defaultValue="details" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="details">Detalles</TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Pagos
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="details" className="space-y-6">
+      <BookingDetailTabs
+        detailsContent={
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Columna Principal - Información General y Fechas */}
         <div className="lg:col-span-2 space-y-6">
@@ -544,9 +536,8 @@ export default async function ViewBookingPage({
           </Card>
         </div>
       </div>
-        </TabsContent>
-
-        <TabsContent value="payments" className="space-y-6">
+        }
+        paymentsContent={
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -561,8 +552,8 @@ export default async function ViewBookingPage({
               <BookingPaymentsManager bookingId={booking.id} tenantId={tenantId} />
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        }
+      />
     </div>
   )
 }

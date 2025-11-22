@@ -343,6 +343,9 @@ export async function getPropertyTypes(tenantId: string) {
 export async function getPropertyBySlug(slug: string): Promise<Property | null> {
   const supabase = await getSupabaseServerClient()
 
+  // Normalizar el slug a minúsculas para la búsqueda (los slugs se guardan en minúsculas)
+  const normalizedSlug = slug.toLowerCase().trim()
+
   // Verificar primero si la columna slug existe
   const { data, error } = await supabase
     .from("properties")
@@ -369,7 +372,7 @@ export async function getPropertyBySlug(slug: string): Promise<Property | null> 
       property_type:configuration_values!properties_property_type_id_fkey(label, color)
     `,
     )
-    .eq("slug", slug)
+    .eq("slug", normalizedSlug)
     .maybeSingle()
 
   if (error) {

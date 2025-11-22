@@ -1,5 +1,5 @@
 import { PropertyGuidePublicNew } from "@/components/guides/PropertyGuidePublicNew"
-import { getPropertyBySlug } from "@/lib/api/properties"
+import { getPropertyBySlugPublic } from "@/lib/api/properties"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   let property
   
   if (!isUUID) {
-    property = await getPropertyBySlug(slug)
+    property = await getPropertyBySlugPublic(slug)
   }
   
   return {
@@ -49,8 +49,8 @@ export default async function GuidePublicPage({ params }: PageProps) {
       const normalizedSlug = slug.toLowerCase().trim()
       console.log(`[GuidePublicPage] Normalized slug: "${normalizedSlug}"`)
       
-      // Buscar propiedad por slug
-      const property = await getPropertyBySlug(normalizedSlug)
+      // Buscar propiedad por slug usando cliente público (sin autenticación)
+      const property = await getPropertyBySlugPublic(normalizedSlug)
       
       if (!property) {
         console.error(`[GuidePublicPage] Property not found with slug: "${normalizedSlug}" (original: "${slug}")`)

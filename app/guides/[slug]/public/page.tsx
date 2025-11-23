@@ -1,7 +1,8 @@
 import { PropertyGuidePublicNew } from "@/components/guides/PropertyGuidePublicNew"
-import { getPropertyBySlugPublic } from "@/lib/api/properties"
+import { getPropertyBySlugPublic } from "@/lib/api/properties-public"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
+import { cache } from "react"
 
 interface PageProps {
   params: Promise<{
@@ -9,22 +10,40 @@ interface PageProps {
   }>
 }
 
+// Cachear la función para evitar llamadas duplicadas entre generateMetadata y el componente
+const getCachedProperty = cache(async (slug: string) => {
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
+  
+  if (isUUID) {
+    return { id: slug, isUUID: true }
+  }
+  
+  const normalizedSlug = slug.toLowerCase().trim()
+  const property = await getPropertyBySlugPublic(normalizedSlug)
+  
+  if (!property) {
+    return null
+  }
+  
+  return { id: property.id, property, isUUID: false }
+})
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const awaitedParams = await params
   const { slug } = awaitedParams
   
-  // Verificar si es un UUID (formato antiguo) o un slug
-  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
+  const result = await getCachedProperty(slug)
   
-  let property
-  
-  if (!isUUID) {
-    property = await getPropertyBySlugPublic(slug)
+  if (!result || result.isUUID || !result.property) {
+    return {
+      title: "Guía de la Propiedad",
+      description: "Guía de la propiedad",
+    }
   }
   
   return {
-    title: property ? `Guía - ${property.name}` : "Guía de la Propiedad",
-    description: property?.description || "Guía de la propiedad",
+    title: `Guía - ${result.property.name}`,
+    description: result.property.description || "Guía de la propiedad",
   }
 }
 
@@ -33,36 +52,14 @@ export default async function GuidePublicPage({ params }: PageProps) {
     const awaitedParams = await params
     const { slug } = awaitedParams
 
-    console.log(`[GuidePublicPage] Looking for property with slug: "${slug}"`)
-
-    // Verificar si es un UUID (formato antiguo) o un slug
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
+    const result = await getCachedProperty(slug)
     
-    let propertyId: string
-
-    if (isUUID) {
-      // Si es un UUID, usarlo directamente (compatibilidad con URLs antiguas)
-      console.log(`[GuidePublicPage] Using UUID directly: ${slug}`)
-      propertyId = slug
-    } else {
-      // Normalizar slug antes de buscar
-      const normalizedSlug = slug.toLowerCase().trim()
-      console.log(`[GuidePublicPage] Normalized slug: "${normalizedSlug}"`)
-      
-      // Buscar propiedad por slug usando cliente público (sin autenticación)
-      const property = await getPropertyBySlugPublic(normalizedSlug)
-      
-      if (!property) {
-        console.error(`[GuidePublicPage] Property not found with slug: "${normalizedSlug}" (original: "${slug}")`)
-        notFound()
-      }
-      
-      console.log(`[GuidePublicPage] Property found: ${property.name} (ID: ${property.id})`)
-      propertyId = property.id
+    if (!result) {
+      notFound()
     }
 
     // Pasar el propertyId al componente (mantiene compatibilidad)
-    return <PropertyGuidePublicNew propertyId={propertyId} />
+    return <PropertyGuidePublicNew propertyId={result.id} />
   } catch (error) {
     console.error("[GuidePublicPage] Error:", error)
     notFound()

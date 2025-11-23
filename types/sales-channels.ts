@@ -9,6 +9,7 @@ export interface SalesChannel {
   collection_commission: number // Porcentaje (0-100)
   apply_tax: boolean // Indica si se aplica IVA sobre las comisiones
   tax_type_id: string | null // Referencia al tipo de impuesto (configuration_value)
+  is_own_channel: boolean // Indica si es el canal propio para reservas de la landing pública
   is_active: boolean
   created_at: string
   updated_at: string
@@ -69,6 +70,7 @@ export interface CreateSalesChannelData {
   collection_commission: number
   apply_tax?: boolean
   tax_type_id?: string | null
+  is_own_channel?: boolean // Indica si es el canal propio para reservas de la landing pública
   notes?: string | null
   is_active?: boolean
 }
@@ -84,6 +86,7 @@ export interface UpdateSalesChannelData {
   collection_commission?: number
   apply_tax?: boolean
   tax_type_id?: string | null
+  is_own_channel?: boolean // Indica si es el canal propio para reservas de la landing pública
   notes?: string | null
   is_active?: boolean
 }

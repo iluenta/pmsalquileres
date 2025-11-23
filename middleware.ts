@@ -66,6 +66,7 @@ export const config = {
     // - api routes (except auth)
     // - login/register pages
     // - public guide pages
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/(?!auth)|login|register|guides/.*/public).*)",
+    // - public landing pages
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/(?!auth)|login|register|guides/.*/public|landing/.*).*)",
   ],
 }

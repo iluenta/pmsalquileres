@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Eye, Pencil, Trash2 } from "lucide-react"
+import { Eye, Pencil, Trash2, ExternalLink } from "lucide-react"
 import Image from "next/image"
 import type { Property } from "@/lib/api/properties"
 import { useRouter } from "next/navigation"
@@ -137,6 +137,18 @@ export function PropertyCard({ property, onEdit, onDelete, onViewGuide }: Proper
             <Pencil className="w-4 h-4 mr-2" />
             Editar
           </Button>
+          {property.slug && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                window.open(`/landing/${property.slug}`, "_blank")
+              }}
+              title="Ver Landing Pública"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -147,6 +159,7 @@ export function PropertyCard({ property, onEdit, onDelete, onViewGuide }: Proper
                 window.open(`/guides/${property.slug || property.id}/public`, "_blank")
               }
             }}
+            title="Ver Guía del Huésped"
           >
             <Eye className="w-4 h-4" />
           </Button>
@@ -155,6 +168,7 @@ export function PropertyCard({ property, onEdit, onDelete, onViewGuide }: Proper
               variant="ghost"
               size="sm"
               onClick={() => onDelete(property.id)}
+              title="Eliminar Propiedad"
             >
               <Trash2 className="w-4 h-4 text-destructive" />
             </Button>

@@ -341,130 +341,14 @@ export async function getPropertyTypes(tenantId: string) {
  * @param slug Slug de la propiedad
  * @returns Propiedad encontrada o null
  */
+/**
+ * @deprecated Usar getPropertyBySlugPublic de lib/api/properties-public.ts en su lugar
+ * Esta función se mantiene solo para compatibilidad
+ */
 export async function getPropertyBySlugPublic(slug: string): Promise<Property | null> {
-  const { createClient } = await import('@supabase/supabase-js')
-  
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  console.log("[getPropertyBySlugPublic] Starting search for slug:", slug)
-  console.log("[getPropertyBySlugPublic] Supabase URL exists:", !!supabaseUrl)
-  console.log("[getPropertyBySlugPublic] Supabase Anon Key exists:", !!supabaseAnonKey)
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("[getPropertyBySlugPublic] Missing Supabase environment variables for public access")
-    return null
-  }
-
-  const supabasePublic = createClient(supabaseUrl, supabaseAnonKey)
-
-  // Normalizar el slug a minúsculas para la búsqueda (los slugs se guardan en minúsculas)
-  const normalizedSlug = slug.toLowerCase().trim()
-  console.log("[getPropertyBySlugPublic] Normalized slug:", normalizedSlug)
-
-  // Primero intentar una consulta simple solo para verificar que el slug existe
-  const { data: simpleData, error: simpleError } = await supabasePublic
-    .from("properties")
-    .select("id, slug, name")
-    .eq("slug", normalizedSlug)
-    .maybeSingle()
-
-  console.log("[getPropertyBySlugPublic] Simple query result:", { 
-    found: !!simpleData, 
-    error: simpleError ? {
-      code: simpleError.code,
-      message: simpleError.message,
-      details: simpleError.details,
-      hint: simpleError.hint
-    } : null,
-    data: simpleData ? { id: simpleData.id, slug: simpleData.slug, name: simpleData.name } : null
-  })
-
-  if (simpleError) {
-    console.error("[getPropertyBySlugPublic] Simple query error:", {
-      code: simpleError.code,
-      message: simpleError.message,
-      details: simpleError.details,
-      hint: simpleError.hint
-    })
-    // Si hay un error de RLS, informar claramente
-    if (simpleError.code === '42501' || simpleError.message?.includes('permission') || simpleError.message?.includes('policy') || simpleError.message?.includes('RLS')) {
-      console.error("[getPropertyBySlugPublic] RLS policy is blocking access. You need to create a public read policy for properties table.")
-      console.error("[getPropertyBySlugPublic] Run this SQL in Supabase:")
-      console.error("[getPropertyBySlugPublic] CREATE POLICY public_read_properties ON properties FOR SELECT USING (true);")
-    }
-    return null
-  }
-
-  if (!simpleData) {
-    console.log("[getPropertyBySlugPublic] No property found with slug:", normalizedSlug)
-    // Intentar buscar sin normalizar para ver si hay diferencia
-    const { data: withoutNormalize, error: withoutError } = await supabasePublic
-      .from("properties")
-      .select("id, slug, name")
-      .eq("slug", slug)
-      .maybeSingle()
-    console.log("[getPropertyBySlugPublic] Search without normalization:", { 
-      found: !!withoutNormalize,
-      error: withoutError ? { code: withoutError.code, message: withoutError.message } : null
-    })
-    return null
-  }
-
-  // Si encontramos el slug, ahora obtener todos los datos
-  console.log("[getPropertyBySlugPublic] Property found, fetching full data for ID:", simpleData.id)
-  
-  const { data, error } = await supabasePublic
-    .from("properties")
-    .select(
-      `
-      id,
-      property_code,
-      name,
-      slug,
-      description,
-      image_url,
-      property_type_id,
-      street,
-      city,
-      province,
-      country,
-      bedrooms,
-      bathrooms,
-      max_guests,
-      min_nights,
-      base_price_per_night,
-      is_active,
-      created_at,
-      property_type:configuration_values!properties_property_type_id_fkey(label, color)
-    `,
-    )
-    .eq("id", simpleData.id)
-    .maybeSingle()
-
-  if (error) {
-    // Si el error es porque la columna slug o image_url no existe, retornar null
-    if (error.message?.includes('slug') || error.message?.includes('image_url') || error.code === '42703') {
-      console.log("[v0] Slug or image_url column does not exist yet. Please run the migration script.")
-      return null
-    }
-    console.error("[v0] Error fetching property by slug (public):", error)
-    return null
-  }
-
-  if (!data) {
-    return null
-  }
-
-  // Asegurar que property_type sea un objeto único, no un array
-  const property: Property = {
-    ...data,
-    property_type: Array.isArray(data.property_type) 
-      ? (data.property_type[0] || null)
-      : (data.property_type || null)
-  }
-
-  return property
+  // Re-exportar la función limpia desde properties-public
+  const { getPropertyBySlugPublic: getPropertyBySlugPublicClean } = await import('./properties-public')
+  return getPropertyBySlugPublicClean(slug)
 }
 
 /**

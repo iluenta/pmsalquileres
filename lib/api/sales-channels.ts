@@ -46,6 +46,34 @@ async function getSalesChannelPersonTypeId(tenantId: string): Promise<string | n
   }
 }
 
+/**
+ * Obtiene el canal propio (is_own_channel = true) para un tenant
+ */
+export async function getOwnSalesChannel(tenantId: string): Promise<SalesChannel | null> {
+  try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return null
+    
+    const { data: channel, error } = await supabase
+      .from('sales_channels')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .eq('is_own_channel', true)
+      .eq('is_active', true)
+      .maybeSingle()
+    
+    if (error) {
+      console.error('Error fetching own sales channel:', error)
+      return null
+    }
+    
+    return channel as SalesChannel | null
+  } catch (error) {
+    console.error('Error in getOwnSalesChannel:', error)
+    return null
+  }
+}
+
 // Obtener todos los canales de venta
 export async function getSalesChannels(tenantId: string, includeInactive: boolean = false): Promise<SalesChannelWithDetails[]> {
   try {
@@ -288,6 +316,15 @@ export async function createSalesChannel(
       }
     }
     
+    // Si se marca como canal propio, desmarcar otros canales propios del mismo tenant
+    if (data.is_own_channel) {
+      await supabase
+        .from('sales_channels')
+        .update({ is_own_channel: false })
+        .eq('tenant_id', tenantId)
+        .eq('is_own_channel', true)
+    }
+
     // Crear el canal de venta
     const { data: channel, error: channelError } = await supabase
       .from('sales_channels')
@@ -299,6 +336,7 @@ export async function createSalesChannel(
         collection_commission: data.collection_commission,
         apply_tax: data.apply_tax !== undefined ? data.apply_tax : false,
         tax_type_id: data.tax_type_id || null,
+        is_own_channel: data.is_own_channel !== undefined ? data.is_own_channel : false,
         is_active: data.is_active !== undefined ? data.is_active : true,
       })
       .select()
@@ -414,9 +452,20 @@ export async function updateSalesChannel(
       }
     }
     
+    // Si se marca como canal propio, desmarcar otros canales propios del mismo tenant
+    if (data.is_own_channel === true) {
+      await supabase
+        .from('sales_channels')
+        .update({ is_own_channel: false })
+        .eq('tenant_id', tenantId)
+        .eq('is_own_channel', true)
+        .neq('id', id)
+    }
+
     // Actualizar el canal
     const updateData: any = {}
     if (data.logo_url !== undefined) updateData.logo_url = data.logo_url
+    if (data.is_own_channel !== undefined) updateData.is_own_channel = data.is_own_channel
     if (data.sales_commission !== undefined) updateData.sales_commission = data.sales_commission
     if (data.collection_commission !== undefined) updateData.collection_commission = data.collection_commission
     if (data.apply_tax !== undefined) updateData.apply_tax = data.apply_tax

@@ -25,20 +25,13 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyIdOrSlug)
     
     if (!isUUID) {
-      // Buscar propiedad por slug
-      const { data: property, error: propertyError } = await supabasePublic
-        .from('properties')
-        .select('id')
-        .eq('slug', propertyIdOrSlug)
-        .maybeSingle()
+      // Usar la función optimizada de properties-public en lugar de hacer query directa
+      const { getPropertyBySlugPublic } = await import('./properties-public')
+      const property = await getPropertyBySlugPublic(propertyIdOrSlug)
       
-      if (propertyError) {
-        console.error('[v0] Error fetching property by slug:', propertyError)
-      } else if (property) {
+      if (property) {
         propertyId = property.id
-        console.log('[v0] Property found by slug, ID:', propertyId)
       } else {
-        console.log('[v0] No property found with slug:', propertyIdOrSlug)
         return null
       }
     }

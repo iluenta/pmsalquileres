@@ -51,6 +51,7 @@ export function SalesChannelForm({
     tax_type_id: channel?.tax_type_id ?? "",
     notes: channel?.person.notes ?? "",
     is_active: channel?.is_active ?? true,
+    is_own_channel: channel?.is_own_channel ?? false,
   })
 
   const [taxTypes, setTaxTypes] = useState<ConfigurationValue[]>([])
@@ -240,6 +241,7 @@ export function SalesChannelForm({
         tax_type_id: formData.apply_tax && formData.tax_type_id ? formData.tax_type_id : null,
         notes: formData.notes?.trim() || null,
         is_active: formData.is_active ?? true,
+        is_own_channel: formData.is_own_channel ?? false,
       }
 
       console.log("[SalesChannelForm] handleSubmit: Prepared channelData", channelData)
@@ -583,6 +585,24 @@ export function SalesChannelForm({
               checked={formData.is_active}
               onCheckedChange={(checked) =>
                 setFormData({ ...formData, is_active: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between space-x-2 pt-4 border-t">
+            <div className="space-y-0.5">
+              <Label htmlFor="is_own_channel">Canal Propio</Label>
+              <p className="text-sm text-muted-foreground">
+                {formData.is_own_channel 
+                  ? "Este canal se usará automáticamente para reservas creadas desde la landing pública" 
+                  : "Este canal no se usará automáticamente para reservas de la landing"}
+              </p>
+            </div>
+            <Switch
+              id="is_own_channel"
+              checked={formData.is_own_channel}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, is_own_channel: checked })
               }
             />
           </div>

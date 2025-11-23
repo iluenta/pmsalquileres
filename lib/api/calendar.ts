@@ -69,6 +69,21 @@ export async function getCalendarAvailability(
       throw error
     }
 
+    // Obtener estados de reserva para filtrar canceladas
+    const bookingStatusIds = [...new Set((bookings || []).map((b: any) => b.booking_status_id).filter(Boolean))]
+    const bookingStatusesMap = new Map<string, { value: string }>()
+    
+    if (bookingStatusIds.length > 0) {
+      const { data: statuses } = await supabase
+        .from('configuration_values')
+        .select('id, value')
+        .in('id', bookingStatusIds)
+      
+      ;(statuses || []).forEach((status: any) => {
+        bookingStatusesMap.set(status.id, { value: status.value })
+      })
+    }
+
     // Obtener tipos de reserva
     const bookingTypeIds = [...new Set((bookings || []).map((b: any) => b.booking_type_id).filter(Boolean))]
     const bookingTypesMap = new Map<string, { value: string; label: string }>()
@@ -83,6 +98,17 @@ export async function getCalendarAvailability(
         bookingTypesMap.set(type.id, { value: type.value, label: type.label })
       })
     }
+
+    // Filtrar reservas canceladas (no deben aparecer como ocupadas)
+    const activeBookings = (bookings || []).filter((booking: any) => {
+      if (!booking.booking_status_id) {
+        // Si no tiene estado, asumimos que está activa
+        return true
+      }
+      const status = bookingStatusesMap.get(booking.booking_status_id)
+      // Excluir reservas canceladas
+      return status?.value !== 'cancelled'
+    })
 
     // Obtener personas para reservas comerciales
     const personIds = [...new Set((bookings || []).map((b: any) => b.person_id).filter(Boolean))]
@@ -110,7 +136,7 @@ export async function getCalendarAvailability(
     // Crear mapa de reservas por fecha
     const bookingsByDate = new Map<string, any[]>()
     
-    ;(bookings || []).forEach((booking: any) => {
+    ;(activeBookings || []).forEach((booking: any) => {
       // Obtener solo la parte de fecha (YYYY-MM-DD) de las cadenas
       const checkInStr = booking.check_in_date.split('T')[0]
       const checkOutStr = booking.check_out_date.split('T')[0]
@@ -276,12 +302,38 @@ export async function checkAvailability(
       throw error
     }
 
+    // Obtener estados de reserva para filtrar canceladas
+    const bookingStatusIds = [...new Set((bookings || []).map((b: any) => b.booking_status_id).filter(Boolean))]
+    const bookingStatusesMap = new Map<string, { value: string }>()
+    
+    if (bookingStatusIds.length > 0) {
+      const { data: statuses } = await supabase
+        .from('configuration_values')
+        .select('id, value')
+        .in('id', bookingStatusIds)
+      
+      ;(statuses || []).forEach((status: any) => {
+        bookingStatusesMap.set(status.id, { value: status.value })
+      })
+    }
+
+    // Filtrar reservas canceladas (no deben bloquear disponibilidad)
+    const activeBookings = (bookings || []).filter((booking: any) => {
+      if (!booking.booking_status_id) {
+        // Si no tiene estado, asumimos que está activa
+        return true
+      }
+      const status = bookingStatusesMap.get(booking.booking_status_id)
+      // Excluir reservas canceladas
+      return status?.value !== 'cancelled'
+    })
+
     // Filtrar reservas que realmente se solapan
     const conflicts: AvailabilityConflict[] = []
     const checkInDate = new Date(checkIn)
     const checkOutDate = new Date(checkOut)
 
-    for (const booking of bookings || []) {
+    for (const booking of activeBookings) {
       // Excluir la reserva actual si se está editando
       if (excludeBookingId && booking.id === excludeBookingId) {
         continue

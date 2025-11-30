@@ -1,9 +1,12 @@
 import { notFound } from 'next/navigation'
 import { getPropertyBySlugPublic } from '@/lib/api/properties-public'
+import { getPropertyTenantId } from '@/lib/api/properties-public'
+import { getCoverImage, getPropertyImagesPublic } from '@/lib/api/property-images'
 import { LandingHeader } from '@/components/landing/LandingHeader'
 import { LandingHero } from '@/components/landing/LandingHero'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import { LandingCTASection } from '@/components/landing/LandingCTASection'
+import { LandingGallerySection } from '@/components/landing/LandingGallerySection'
 import { Card } from '@/components/ui/card'
 import { Wifi, Tv, Wind, Utensils, Coffee, Shield } from 'lucide-react'
 import Link from 'next/link'
@@ -64,6 +67,24 @@ export default async function LandingPage({ params }: PageProps) {
     notFound()
   }
 
+  // Obtener imagen de portada de la galería si existe
+  let coverImageUrl = property.image_url || null
+  let galleryImages: any[] = []
+  try {
+    const tenantId = await getPropertyTenantId(property.id)
+    if (tenantId) {
+      const coverImage = await getCoverImage(property.id, tenantId)
+      if (coverImage) {
+        coverImageUrl = coverImage.image_url
+      }
+    }
+    // Obtener todas las imágenes de la galería
+    galleryImages = await getPropertyImagesPublic(property.id)
+  } catch (error) {
+    // Si hay error, usar image_url como fallback
+    console.error('Error obteniendo imágenes:', error)
+  }
+
   const address = [property.street, property.city, property.province, property.country]
     .filter(Boolean)
     .join(', ')
@@ -71,7 +92,7 @@ export default async function LandingPage({ params }: PageProps) {
   return (
     <>
       <LandingHeader slug={slug} />
-      <LandingHero property={property} slug={slug} />
+      <LandingHero property={property} slug={slug} coverImageUrl={coverImageUrl} />
       
       {/* Property Highlights */}
       <section id="características" className="w-full py-16 md:py-24 bg-neutral-50">
@@ -99,6 +120,9 @@ export default async function LandingPage({ params }: PageProps) {
           </div>
         </div>
       </section>
+
+      {/* Gallery Section */}
+      <LandingGallerySection images={galleryImages} propertyName={property.name} />
 
       {/* Rooms and Amenities */}
       <section className="w-full py-16 md:py-24">

@@ -9,10 +9,11 @@ import type { Property } from '@/lib/api/properties'
 interface LandingHeroProps {
   property: Property
   slug: string
+  coverImageUrl?: string | null
 }
 
-export function LandingHero({ property, slug }: LandingHeroProps) {
-  const imageUrl = property.image_url || '/placeholder.jpg'
+export function LandingHero({ property, slug, coverImageUrl }: LandingHeroProps) {
+  const imageUrl = coverImageUrl || property.image_url || '/placeholder.jpg'
   const maxGuests = property.max_guests || 4
 
   return (
@@ -21,8 +22,10 @@ export function LandingHero({ property, slug }: LandingHeroProps) {
         src={imageUrl}
         alt={property.name}
         fill
-        className="object-cover"
+        className="object-cover object-center"
         priority
+        sizes="100vw"
+        quality={90}
       />
       <div className="absolute inset-0 bg-black/30" />
       

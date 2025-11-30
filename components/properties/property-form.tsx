@@ -23,6 +23,7 @@ import { PropertyFormLocation } from "./forms/property-form-location"
 import { PropertyFormCharacteristics } from "./forms/property-form-characteristics"
 import { PropertyFormPricing } from "./forms/property-form-pricing"
 import { PropertyFormChannels } from "./forms/property-form-channels"
+import { PropertyImageGallery } from "./PropertyImageGallery"
 
 interface PropertyFormProps {
   propertyTypes: any[]
@@ -300,6 +301,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     { value: "characteristics", label: "Características" },
     { value: "pricing", label: "Precios" },
     { value: "channels", label: "Canales" },
+    { value: "gallery", label: "Galería" },
   ]
 
   const handleFieldChange = (field: string, value: any) => {
@@ -405,7 +407,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
         {/* Desktop Tabs */}
         <div className="hidden md:block">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-muted p-1 rounded-lg h-auto">
+            <TabsList className="grid w-full grid-cols-6 bg-muted p-1 rounded-lg h-auto">
               {TABS.map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -513,6 +515,19 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
                   onChannelToggle={handleChannelToggle}
                 />
               </TabsContent>
+
+              <TabsContent value="gallery" className="space-y-6 mt-0">
+                {property?.id ? (
+                  <PropertyImageGallery 
+                    propertyId={property.id} 
+                    tenantId={tenantId} 
+                  />
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <p>Guarda la propiedad primero para gestionar la galería de imágenes</p>
+                  </div>
+                )}
+              </TabsContent>
             </Tabs>
           </div>
 
@@ -586,6 +601,18 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
                 loadingChannels={loadingChannels}
                 onChannelToggle={handleChannelToggle}
               />
+            )}
+            {mobileTab === "gallery" && (
+              property?.id ? (
+                <PropertyImageGallery 
+                  propertyId={property.id} 
+                  tenantId={tenantId} 
+                />
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p>Guarda la propiedad primero para gestionar la galería de imágenes</p>
+                </div>
+              )
             )}
           </div>
 

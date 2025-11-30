@@ -787,7 +787,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
             <div className="space-y-6">
               {data?.guide?.id && (
                 <ApartmentSectionsManager 
-                  guideId={data.guide.id} 
+                  guideId={data.guide.id}
+                  propertyId={propertyId}
                   apartmentSections={data.apartment_sections || []}
                   onDataChange={refetch} 
                 />

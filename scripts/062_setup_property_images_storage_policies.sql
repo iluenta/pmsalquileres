@@ -1,0 +1,50 @@
+-- Script para configurar políticas RLS del bucket property-images en Supabase Storage
+-- 
+-- ⚠️ IMPORTANTE: Este script NO se puede ejecutar directamente porque requiere permisos de superusuario
+-- en la tabla storage.objects del sistema de Supabase.
+--
+-- ✅ SOLUCIÓN ACTUAL:
+-- El código en app/api/properties/[id]/images/route.ts ya usa el cliente admin de Supabase,
+-- que bypass las políticas RLS. Por lo tanto, este script NO es necesario para que funcione.
+--
+-- 📋 OPCIÓN ALTERNATIVA (si quieres configurar políticas de Storage):
+-- Si prefieres no usar el cliente admin y configurar políticas RLS, puedes hacerlo manualmente
+-- desde Supabase Dashboard:
+--
+-- 1. Ve a Supabase Dashboard > Storage > property-images
+-- 2. Haz clic en "Policies" (o "Políticas")
+-- 3. Crea las siguientes políticas manualmente:
+--
+-- POLÍTICA 1: Upload para usuarios autenticados
+--   - Policy name: "Authenticated users can upload property images"
+--   - Allowed operation: INSERT
+--   - Target roles: authenticated
+--   - USING expression: bucket_id = 'property-images'
+--
+-- POLÍTICA 2: Lectura para usuarios autenticados
+--   - Policy name: "Authenticated users can read property images"
+--   - Allowed operation: SELECT
+--   - Target roles: authenticated
+--   - USING expression: bucket_id = 'property-images'
+--
+-- POLÍTICA 3: Lectura pública (para landing)
+--   - Policy name: "Public can read property images"
+--   - Allowed operation: SELECT
+--   - Target roles: public
+--   - USING expression: bucket_id = 'property-images'
+--
+-- POLÍTICA 4: Actualización para usuarios autenticados
+--   - Policy name: "Authenticated users can update property images"
+--   - Allowed operation: UPDATE
+--   - Target roles: authenticated
+--   - USING expression: bucket_id = 'property-images'
+--
+-- POLÍTICA 5: Eliminación para usuarios autenticados
+--   - Policy name: "Authenticated users can delete property images"
+--   - Allowed operation: DELETE
+--   - Target roles: authenticated
+--   - USING expression: bucket_id = 'property-images'
+--
+-- 📝 NOTA FINAL:
+-- El sistema funciona correctamente sin ejecutar este script ni configurar estas políticas,
+-- ya que el código usa el cliente admin que tiene permisos completos.

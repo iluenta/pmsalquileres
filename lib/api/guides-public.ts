@@ -55,19 +55,52 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
 
     console.log('[v0] Guide found (public):', guide)
 
-    // Crear un objeto property con la información disponible desde la guía
+    // Obtener coordenadas y datos de la propiedad desde la tabla properties
+    // Intentar primero con coordenadas, si falla intentar sin ellas
+    let propertyData: any = null
+    const { data: propertyWithCoords, error: errorWithCoords } = await supabasePublic
+      .from('properties')
+      .select('id, name, description, street, city, province, country, latitude, longitude')
+      .eq('id', propertyId)
+      .maybeSingle()
+
+    if (errorWithCoords) {
+      // Si el error es por columnas que no existen, intentar sin coordenadas
+      if (errorWithCoords.message?.includes('latitude') || errorWithCoords.message?.includes('longitude') || errorWithCoords.code === '42703') {
+        console.log('[v0] Coordinates columns not found, fetching without them')
+        const { data: propertyWithoutCoords, error: errorWithoutCoords } = await supabasePublic
+          .from('properties')
+          .select('id, name, description, street, city, province, country')
+          .eq('id', propertyId)
+          .maybeSingle()
+        
+        if (!errorWithoutCoords) {
+          propertyData = propertyWithoutCoords
+          propertyData.latitude = null
+          propertyData.longitude = null
+        } else {
+          console.error('[v0] Error fetching property data (public):', errorWithoutCoords)
+        }
+      } else {
+        console.error('[v0] Error fetching property data (public):', errorWithCoords)
+      }
+    } else {
+      propertyData = propertyWithCoords
+    }
+
+    // Crear un objeto property con la información disponible
     const property = {
       id: propertyId,
-      name: guide.title || "Propiedad",
-      description: guide.welcome_message,
-      street: null,
-      city: null,
-      province: null,
-      country: null,
+      name: propertyData?.name || guide.title || "Propiedad",
+      description: propertyData?.description || guide.welcome_message,
+      street: propertyData?.street || null,
+      city: propertyData?.city || null,
+      province: propertyData?.province || null,
+      country: propertyData?.country || null,
       locality: guide.locality,
-      // Coordenadas desde la tabla property_guides (accesible públicamente)
-      latitude: guide.latitude,
-      longitude: guide.longitude
+      // Coordenadas desde la tabla properties (único punto de verdad)
+      latitude: propertyData?.latitude || null,
+      longitude: propertyData?.longitude || null
     }
 
     console.log('[v0] Property info created from guide:', property)

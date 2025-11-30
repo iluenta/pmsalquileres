@@ -84,7 +84,8 @@ export async function createApartmentSection(data: CreateApartmentSectionData): 
     details: data.details,
     image_url: data.image_url,
     icon: data.icon,
-    order_index: data.order_index || 0
+    order_index: data.order_index || 0,
+    amenities: data.amenities || []
   }
   
   const { data: result, error } = await supabase
@@ -113,7 +114,8 @@ export async function updateApartmentSection(id: string, data: UpdateApartmentSe
     details: data.details,
     image_url: data.image_url,
     icon: data.icon,
-    order_index: data.order_index
+    order_index: data.order_index,
+    amenities: data.amenities
   }
   
   const { data: result, error } = await supabase

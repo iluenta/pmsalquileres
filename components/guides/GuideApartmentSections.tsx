@@ -1,51 +1,148 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { ApartmentSection, CompleteGuideDataResponse } from "@/types/guides"
 import { GuidePracticalInfo } from "./GuidePracticalInfo"
+import { 
+  // Hogar
+  Home,
+  UtensilsCrossed,
+  Bed,
+  Bath,
+  Armchair,
+  DoorOpen,
+  Square,
+  Lightbulb,
+  Monitor,
+  Wifi,
+  // Viajes y Vacaciones
+  Plane,
+  Car,
+  Train,
+  Ship,
+  MapPin,
+  Compass,
+  Camera,
+  Luggage,
+  Sun,
+  Umbrella,
+  // Transporte
+  Bike,
+  Bus,
+  Navigation,
+  Route,
+  // Comodidades
+  Wind,
+  Droplet,
+  Flame,
+  Snowflake,
+  Shield,
+  Key,
+  Lock,
+  // Actividades
+  Waves,
+  Mountain,
+  TreePine,
+  Gamepad,
+  Music,
+  BookOpen,
+  // Servicios
+  ShoppingBag,
+  Coffee,
+  Utensils,
+  Candy,
+  // Otros
+  Star,
+  Heart,
+  Sparkles,
+  Zap,
+  LucideIcon
+} from "lucide-react"
 
-// Mapeo de tipos de sección a información básica
-const SECTION_TYPE_INFO = {
-  cocina: {
-    label: "Cocina",
-    icon: "fas fa-utensils",
-    color: "text-orange-500"
-  },
-  bano: {
-    label: "Baño", 
-    icon: "fas fa-shower",
-    color: "text-blue-500"
-  },
-  salon: {
-    label: "Salón",
-    icon: "fas fa-couch", 
-    color: "text-green-500"
-  },
-  dormitorio: {
-    label: "Dormitorio",
-    icon: "fas fa-bed",
-    color: "text-purple-500"
-  },
-  terraza: {
-    label: "Terraza",
-    icon: "fas fa-sun",
-    color: "text-yellow-500"
-  },
-  entrada: {
-    label: "Entrada",
-    icon: "fas fa-door-open",
-    color: "text-gray-500"
-  },
-  balcon: {
-    label: "Balcón",
-    icon: "fas fa-wind",
-    color: "text-cyan-500"
-  },
-  garaje: {
-    label: "Garaje",
-    icon: "fas fa-car",
-    color: "text-indigo-500"
+// Mapeo de códigos Font Awesome a componentes Lucide
+const FA_TO_LUCIDE: Record<string, LucideIcon> = {
+  "fas fa-home": Home,
+  "fas fa-utensils": UtensilsCrossed,
+  "fas fa-bed": Bed,
+  "fas fa-bath": Bath,
+  "fas fa-couch": Armchair,
+  "fas fa-door-open": DoorOpen,
+  "fas fa-window-maximize": Square,
+  "fas fa-lightbulb": Lightbulb,
+  "fas fa-tv": Monitor,
+  "fas fa-wifi": Wifi,
+  "fas fa-plane": Plane,
+  "fas fa-car": Car,
+  "fas fa-train": Train,
+  "fas fa-ship": Ship,
+  "fas fa-map-marker-alt": MapPin,
+  "fas fa-compass": Compass,
+  "fas fa-camera": Camera,
+  "fas fa-suitcase": Luggage,
+  "fas fa-sun": Sun,
+  "fas fa-umbrella": Umbrella,
+  "fas fa-bicycle": Bike,
+  "fas fa-bus": Bus,
+  "fas fa-map": Navigation,
+  "fas fa-route": Route,
+  "fas fa-wind": Wind,
+  "fas fa-tint": Droplet,
+  "fas fa-fire": Flame,
+  "fas fa-snowflake": Snowflake,
+  "fas fa-shield-alt": Shield,
+  "fas fa-key": Key,
+  "fas fa-lock": Lock,
+  "fas fa-water": Waves,
+  "fas fa-mountain": Mountain,
+  "fas fa-tree": TreePine,
+  "fas fa-gamepad": Gamepad,
+  "fas fa-music": Music,
+  "fas fa-book": BookOpen,
+  "fas fa-shopping-bag": ShoppingBag,
+  "fas fa-coffee": Coffee,
+  "fas fa-candy-cane": Candy,
+  "fas fa-star": Star,
+  "fas fa-heart": Heart,
+  "fas fa-sparkles": Sparkles,
+  "fas fa-bolt": Zap,
+}
+
+// Función para obtener el icono Lucide desde el código Font Awesome guardado
+function getIconFromCode(iconCode: string | undefined, sectionType: string): LucideIcon {
+  // Si hay un código de icono guardado, usarlo
+  if (iconCode && FA_TO_LUCIDE[iconCode]) {
+    return FA_TO_LUCIDE[iconCode]
   }
-} as const
+  
+  // Fallback por tipo de sección
+  const typeDefaults: Record<string, LucideIcon> = {
+    cocina: UtensilsCrossed,
+    bano: Bath,
+    salon: Armchair,
+    dormitorio: Bed,
+    terraza: Sun,
+    entrada: DoorOpen,
+    balcon: Wind,
+    garaje: Car,
+  }
+  
+  return typeDefaults[sectionType] || Home
+}
+
+// Mapeo de colores por tipo de sección (solo para estilos)
+const SECTION_TYPE_COLORS: Record<string, string> = {
+  cocina: "text-orange-500",
+  bano: "text-blue-500",
+  salon: "text-green-500",
+  dormitorio: "text-purple-500",
+  terraza: "text-yellow-500",
+  entrada: "text-gray-500",
+  balcon: "text-cyan-500",
+  garaje: "text-indigo-500",
+}
+
+// Función para obtener la primera palabra del título para el badge
+function getFirstWord(title: string): string {
+  return title.split(" ")[0] || title
+}
 
 interface GuideApartmentSectionsProps {
   sections: ApartmentSection[]
@@ -81,74 +178,62 @@ export function GuideApartmentSections({ sections, data }: GuideApartmentSection
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12">
           {sections.map((section) => {
-            console.log('[GuideApartmentSections] Rendering section:', section)
-            console.log('[GuideApartmentSections] Section icon:', section.icon)
-            console.log('[GuideApartmentSections] Section amenities:', section.amenities)
-            console.log('[GuideApartmentSections] Section amenities length:', section.amenities?.length)
-            
-            const sectionInfo = SECTION_TYPE_INFO[section.section_type as keyof typeof SECTION_TYPE_INFO] || {
-              label: section.section_type,
-              icon: section.icon || "fas fa-home",
-              color: "text-gray-500"
-            }
+            // Obtener el icono desde el código guardado en la BD, con fallback por tipo
+            const IconComponent = getIconFromCode(section.icon, section.section_type)
+            const iconColor = SECTION_TYPE_COLORS[section.section_type] || "text-gray-500"
+            const badgeText = getFirstWord(section.title)
             
             return (
-              <Card key={section.id} className="group overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                {/* Imagen de fondo */}
-                <div className="relative h-48 md:h-64 overflow-hidden">
+              <div
+                key={section.id}
+                className="group bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-border"
+              >
+                {/* Imagen */}
+                <div className="relative aspect-[3/2] overflow-hidden">
                   {section.image_url ? (
                     <img
                       src={section.image_url}
                       alt={section.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
                     <div className="w-full h-full bg-muted flex items-center justify-center">
-                      <i className={`${sectionInfo.icon} text-6xl ${sectionInfo.color} opacity-50`}></i>
+                      <IconComponent className={`h-16 w-16 ${iconColor} opacity-50`} />
                     </div>
                   )}
                   
-                  {/* Badge en la esquina superior derecha */}
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-secondary text-secondary-foreground font-semibold px-3 py-1 rounded-full text-sm">
-                      {sectionInfo.label}
-                    </Badge>
+                  {/* Badge en la esquina superior derecha con la primera palabra del título */}
+                  <div className="absolute top-4 right-4 bg-secondary text-secondary-foreground px-4 py-2 rounded-full font-semibold text-sm">
+                    {badgeText}
                   </div>
                 </div>
                 
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <i className={`${section.icon || sectionInfo.icon} text-2xl ${sectionInfo.color}`}></i>
-                    <h3 className="text-xl font-bold text-card-foreground">{section.title}</h3>
-                  </div>
+                {/* Contenido */}
+                <div className="p-6">
+                  <h3 className="text-xl font-bold text-card-foreground mb-3 flex items-center gap-2">
+                    <IconComponent className="h-5 w-5 text-primary" />
+                    {section.title}
+                  </h3>
                   
                   <p className="text-muted-foreground mb-4 leading-relaxed">
                     {section.description}
                   </p>
                   
-                  {/* Mostrar detalles si existen */}
-                  {section.details && (
-                    <div className="text-sm text-muted-foreground mb-4">
-                      <p className="font-medium mb-1">Detalles:</p>
-                      <p>{section.details}</p>
-                    </div>
-                  )}
-                  
-                  {/* Mostrar amenities si existen */}
+                  {/* Amenities */}
                   {section.amenities && section.amenities.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {section.amenities.map((amenity, idx) => (
                         <span 
                           key={idx} 
-                          className="text-xs bg-muted px-3 py-1 rounded-full text-muted-foreground"
+                          className="inline-flex items-center text-sm bg-muted/50 px-3 py-1.5 rounded-md text-muted-foreground font-normal"
                         >
                           {amenity}
                         </span>
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )
           })}
         </div>

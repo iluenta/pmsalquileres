@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { uploadImageServer } from "@/lib/api/storage"
+import { compressImage, validateImageFile } from "@/lib/utils/image-compression"
 
 export async function POST(request: Request) {
   try {
@@ -24,28 +25,36 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validar tipo de archivo
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"]
-    if (!allowedTypes.includes(file.type)) {
+    // Validar archivo (tipo y tamaño máximo 10MB antes de compresión)
+    const validation = validateImageFile(file, 10 * 1024 * 1024)
+    if (!validation.valid) {
       return NextResponse.json(
-        { error: "Tipo de archivo no permitido. Solo se permiten imágenes (JPEG, PNG, WebP, GIF)" },
+        { error: validation.error },
         { status: 400 }
       )
     }
 
-    // Validar tamaño (máximo 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: "El archivo es demasiado grande. El tamaño máximo es 5MB" },
-        { status: 400 }
-      )
-    }
-
-    // Subir imagen usando la función del servidor
-    // Usar bucket 'property-images' o 'properties' para las imágenes de propiedades
     try {
-      const imageUrl = await uploadImageServer(file, 'property-images')
+      // Comprimir imagen antes de subir
+      const { buffer, metadata } = await compressImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        quality: 85,
+        format: 'webp',
+      })
+
+      // Crear un Blob desde el buffer comprimido (convertir Buffer a Uint8Array)
+      const uint8Array = new Uint8Array(buffer)
+      const compressedBlob = new Blob([uint8Array], { type: 'image/webp' })
+      
+      // Generar nombre de archivo con extensión .webp
+      const originalName = file.name.replace(/\.[^/.]+$/, '')
+      const compressedFile = new File([compressedBlob], `${originalName}.webp`, {
+        type: 'image/webp',
+      })
+
+      // Subir imagen comprimida
+      const imageUrl = await uploadImageServer(compressedFile, 'property-images')
 
       if (!imageUrl) {
         return NextResponse.json(
@@ -54,7 +63,14 @@ export async function POST(request: Request) {
         )
       }
 
-      return NextResponse.json({ url: imageUrl })
+      return NextResponse.json({ 
+        url: imageUrl,
+        metadata: {
+          width: metadata.width,
+          height: metadata.height,
+          size: buffer.length,
+        }
+      })
     } catch (uploadError: any) {
       console.error("Error in upload:", uploadError)
       return NextResponse.json(

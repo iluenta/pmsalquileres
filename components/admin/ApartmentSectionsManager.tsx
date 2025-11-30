@@ -10,14 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { ApartmentSection } from "@/types/guides"
 import { getApartmentSections, createApartmentSection, updateApartmentSection, deleteApartmentSection } from "@/lib/api/guides-client"
+import { ImageSelector } from "@/components/admin/ImageSelector"
+import { IconSelector } from "@/components/admin/IconSelector"
 
 interface ApartmentSectionsManagerProps {
   guideId: string
+  propertyId?: string
   apartmentSections?: ApartmentSection[]
   onDataChange?: () => void
 }
 
-export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDataChange }: ApartmentSectionsManagerProps) {
+export function ApartmentSectionsManager({ guideId, propertyId, apartmentSections = [], onDataChange }: ApartmentSectionsManagerProps) {
   const [sections, setSections] = useState<ApartmentSection[]>(apartmentSections)
   const [loading, setLoading] = useState(true)
   const [editingSection, setEditingSection] = useState<ApartmentSection | null>(null)
@@ -337,15 +340,12 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="section-icon">Icono (Font Awesome)</Label>
-                  <Input
-                    id="section-icon"
-                    value={editingSection.icon || ''}
-                    onChange={(e) => setEditingSection({ ...editingSection, icon: e.target.value })}
-                    placeholder="fas fa-home"
-                  />
-                </div>
+              <div className="space-y-2">
+                <IconSelector
+                  value={editingSection.icon || 'fas fa-home'}
+                  onChange={(iconCode) => setEditingSection({ ...editingSection, icon: iconCode })}
+                />
+              </div>
               </div>
 
               <div className="space-y-2">
@@ -381,12 +381,10 @@ export function ApartmentSectionsManager({ guideId, apartmentSections = [], onDa
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="section-image">URL de Imagen</Label>
-                <Input
-                  id="section-image"
+                <ImageSelector
                   value={editingSection.image_url || ''}
-                  onChange={(e) => setEditingSection({ ...editingSection, image_url: e.target.value })}
-                  placeholder="https://ejemplo.com/imagen.jpg"
+                  onChange={(url) => setEditingSection({ ...editingSection, image_url: url })}
+                  propertyId={propertyId}
                 />
               </div>
 

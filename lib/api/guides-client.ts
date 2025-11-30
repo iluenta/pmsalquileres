@@ -199,37 +199,43 @@ export async function getCompleteGuideData(propertyId: string) {
     
     console.log('[v0] Supabase client created successfully')
     
-    // Obtener la propiedad (intentar con slug, si falla sin slug)
+    // Obtener la propiedad (intentar con diferentes combinaciones de campos)
     let property: any = null
     let propertyError: any = null
     
-    // Primero intentar con slug incluido
-    const { data: propertyWithSlug, error: errorWithSlug } = await supabase
+    // Intentar primero con todos los campos posibles
+    const { data: propertyWithAll, error: errorWithAll } = await supabase
       .from('properties')
-      .select('id, name, slug, street, city, province, country, description')
+      .select('id, name, slug, street, city, province, country, description, latitude, longitude')
       .eq('id', propertyId)
       .maybeSingle()
 
-    if (errorWithSlug) {
-      // Si el error es porque slug no existe, intentar sin slug
-      if (errorWithSlug.message?.includes('slug') || errorWithSlug.code === '42703') {
-        console.log('[v0] Slug column not found, fetching without slug')
-        const { data: propertyWithoutSlug, error: errorWithoutSlug } = await supabase
+    if (errorWithAll) {
+      // Si el error es por columnas que no existen, intentar sin ellas
+      if (errorWithAll.message?.includes('slug') || errorWithAll.message?.includes('latitude') || errorWithAll.message?.includes('longitude') || errorWithAll.code === '42703') {
+        console.log('[v0] Some columns not found, trying with basic fields')
+        
+        // Intentar sin slug ni coordenadas
+        const { data: propertyBasic, error: errorBasic } = await supabase
           .from('properties')
           .select('id, name, street, city, province, country, description')
           .eq('id', propertyId)
           .maybeSingle()
         
-        if (errorWithoutSlug) {
-          propertyError = errorWithoutSlug
+        if (errorBasic) {
+          propertyError = errorBasic
         } else {
-          property = propertyWithoutSlug
+          property = propertyBasic
+          // Añadir campos opcionales como null si no existen
+          property.slug = property.slug || null
+          property.latitude = property.latitude || null
+          property.longitude = property.longitude || null
         }
       } else {
-        propertyError = errorWithSlug
+        propertyError = errorWithAll
       }
     } else {
-      property = propertyWithSlug
+      property = propertyWithAll
     }
 
     if (propertyError) {
@@ -292,8 +298,9 @@ export async function getCompleteGuideData(propertyId: string) {
         address: property.street || property.city,
         description: property.description,
         locality: guide.locality,
-        latitude: guide.latitude,
-        longitude: guide.longitude
+        // Coordenadas desde la tabla properties (único punto de verdad)
+        latitude: property.latitude || null,
+        longitude: property.longitude || null
       },
       guide,
       sections,

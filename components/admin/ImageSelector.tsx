@@ -251,13 +251,13 @@ export function ImageSelector({ value, onChange, propertyId }: ImageSelectorProp
 
           {manualUrl && isValidUrl(manualUrl) && (
             <div className="relative aspect-video rounded-lg border overflow-hidden bg-muted">
-              <Image
+              <img
                 src={manualUrl}
                 alt="Preview"
-                fill
-                className="object-cover"
+                className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = "/placeholder.svg"
+                  const target = e.target as HTMLImageElement
+                  target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23e5e7eb' width='400' height='300'/%3E%3Ctext fill='%239ca3af' font-family='sans-serif' font-size='16' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3EImagen no disponible%3C/text%3E%3C/svg%3E"
                 }}
               />
             </div>

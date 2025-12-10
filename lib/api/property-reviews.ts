@@ -80,7 +80,7 @@ export async function getPropertyAverageRating(propertyId: string, tenantId: str
     return null
   }
 
-  const sum = data.reduce((acc, review) => acc + review.rating, 0)
+  const sum = data.reduce((acc: number, review: { rating: number }) => acc + review.rating, 0)
   return Math.round((sum / data.length) * 10) / 10 // Redondear a 1 decimal
 }
 

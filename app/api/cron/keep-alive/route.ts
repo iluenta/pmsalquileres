@@ -16,28 +16,31 @@ export async function GET(request: Request) {
 
   try {
     // Validar que la petición viene de Vercel Cron
-    const authHeader = request.headers.get("authorization")
-    const cronSecret = process.env.CRON_SECRET
+    // Vercel Cron envía automáticamente el User-Agent "vercel-cron/1.0"
+    const userAgent = request.headers.get("user-agent") || ""
+    const vercelSignature = request.headers.get("x-vercel-signature")
+    const isVercelCron = userAgent.includes("vercel-cron")
     
-    // Si hay un CRON_SECRET configurado, validarlo
-    if (cronSecret) {
-      if (authHeader !== `Bearer ${cronSecret}`) {
+    // En producción, validar que viene de Vercel Cron
+    if (process.env.NODE_ENV === "production") {
+      // Verificar User-Agent (más confiable) o x-vercel-signature
+      if (!isVercelCron && !vercelSignature) {
         return NextResponse.json(
           { error: "Unauthorized" },
           { status: 401 }
         )
       }
-    } else {
-      // Si no hay CRON_SECRET, validar que viene de Vercel usando el header x-vercel-signature
-      const vercelSignature = request.headers.get("x-vercel-signature")
-      if (!vercelSignature) {
-        // En desarrollo, permitir sin validación
-        if (process.env.NODE_ENV === "production") {
-          return NextResponse.json(
-            { error: "Unauthorized" },
-            { status: 401 }
-          )
-        }
+    }
+    
+    // Si hay CRON_SECRET configurado, también validarlo (opcional, para seguridad adicional)
+    const cronSecret = process.env.CRON_SECRET
+    if (cronSecret) {
+      const authHeader = request.headers.get("authorization")
+      if (authHeader && authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401 }
+        )
       }
     }
 

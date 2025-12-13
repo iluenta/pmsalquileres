@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog"
 import { MovementForm } from "./MovementForm"
 import { PaymentCard } from "./PaymentCard"
+import { getMovementEditRoute } from "@/lib/utils/movements"
 
 interface BookingPaymentsManagerProps {
   bookingId: string
@@ -210,7 +211,7 @@ export function BookingPaymentsManager({
                           size="sm"
                           asChild
                         >
-                          <Link href={`/dashboard/movements/${payment.id}/edit`}>
+                          <Link href={getMovementEditRoute(payment)}>
                             Editar
                           </Link>
                         </Button>

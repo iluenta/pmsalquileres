@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, CreditCard, Building2, FileText } from "lucide-react"
 import type { MovementWithDetails } from "@/types/movements"
+import { getMovementEditRoute } from "@/lib/utils/movements"
 
 interface PaymentCardProps {
   payment: MovementWithDetails
@@ -98,7 +99,7 @@ export function PaymentCard({ payment }: PaymentCardProps) {
 
         <div className="pt-2 border-t">
           <Button asChild variant="outline" size="sm" className="w-full">
-            <Link href={`/dashboard/movements/${payment.id}/edit`}>
+            <Link href={getMovementEditRoute(payment)}>
               Editar
             </Link>
           </Button>

@@ -484,7 +484,15 @@ export function MovementForm({
       if (onSave) {
         onSave()
       } else {
-        router.push("/dashboard/movements")
+        // Determinar el tipo de movimiento para redirigir correctamente
+        const selectedType = movementTypes.find((t) => t.id === formData.movement_type_id)
+        const isIncome = 
+          selectedType?.value === "income" || 
+          selectedType?.label === "Ingreso" || 
+          selectedType?.label?.toLowerCase().includes("ingreso")
+        
+        const redirectRoute = isIncome ? "/dashboard/incomes" : "/dashboard/expenses"
+        router.push(redirectRoute)
       }
     } catch (error: any) {
       toast({

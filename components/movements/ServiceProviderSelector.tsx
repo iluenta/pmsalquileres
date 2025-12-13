@@ -97,38 +97,9 @@ export function ServiceProviderSelector({
 
       const newProvider = await response.json()
 
-      // Crear servicio genérico "Servicio General"
-      const serviceTypesResponse = await fetch("/api/configuration/service-types")
-      if (serviceTypesResponse.ok) {
-        const serviceTypes = await serviceTypesResponse.json()
-        const generalService = serviceTypes.find(
-          (st: any) =>
-            st.label?.toLowerCase().includes("general") ||
-            st.value?.toLowerCase().includes("general")
-        ) || serviceTypes[0]
-
-        if (generalService) {
-          try {
-            await fetch(`/api/service-providers/${newProvider.id}/services`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                service_type_id: generalService.id,
-                price_type: "fixed",
-                price: 0,
-                apply_tax: false,
-                is_active: true,
-              }),
-            })
-          } catch (error) {
-            console.error("Error creating default service:", error)
-          }
-        }
-      }
-
       toast({
         title: "Proveedor creado",
-        description: "El proveedor ha sido creado con un servicio genérico",
+        description: "El proveedor ha sido creado correctamente. Puedes añadir servicios desde la edición del proveedor.",
       })
 
       setCreateDialogOpen(false)
@@ -176,7 +147,7 @@ export function ServiceProviderSelector({
           <DialogHeader>
             <DialogTitle>Crear Nuevo Proveedor</DialogTitle>
             <DialogDescription>
-              Crea un nuevo proveedor de servicios. Se añadirá automáticamente un servicio genérico.
+              Crea un nuevo proveedor de servicios. Podrás añadir servicios después desde la edición del proveedor.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

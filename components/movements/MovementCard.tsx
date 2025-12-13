@@ -35,8 +35,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { useToast } from "@/hooks/use-toast"
-import { MoreHorizontal, Edit, Trash2, Calendar, Package, ChevronDown, Building2, User } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Copy, Calendar, Package, ChevronDown, Building2, User } from "lucide-react"
 import type { MovementWithDetails } from "@/types/movements"
+import { DuplicateMovementDialog } from "./DuplicateMovementDialog"
+import { getMovementEditRoute } from "@/lib/utils/movements"
 
 interface MovementCardProps {
   movement: MovementWithDetails
@@ -48,6 +50,7 @@ export function MovementCard({ movement, onDelete }: MovementCardProps) {
   const { toast } = useToast()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false)
   const [isServicesOpen, setIsServicesOpen] = useState(false)
 
   const isIncome =
@@ -162,20 +165,76 @@ export function MovementCard({ movement, onDelete }: MovementCardProps) {
       concept = <span className="text-muted-foreground">Ingreso</span>
     }
   } else {
-    concept = movement.service_provider
-      ? (
-          <div className="space-y-1">
-            <div className="font-medium">
-              {movement.service_provider.person?.full_name || "Gasto"}
+    // Construir concepto para gastos: Proveedor + Servicios + Reserva (si existe)
+    const providerName = movement.service_provider?.person?.full_name || "Gasto"
+    const expenseItems = movement.expense_items || []
+    const expenseItemsCount = expenseItems.length
+    
+    // Obtener nombres de servicios
+    const serviceNames = expenseItems
+      .map(item => item.service_name)
+      .filter(Boolean)
+    
+    // Si hay un servicio único en service_provider_service, también incluirlo
+    if (movement.service_provider_service?.service_type?.label && expenseItemsCount === 0) {
+      serviceNames.push(movement.service_provider_service.service_type.label)
+    }
+    
+    const servicesText = serviceNames.length > 0 
+      ? (serviceNames.length === 1 
+          ? serviceNames[0] 
+          : serviceNames.slice(0, 2).join(", ") + (serviceNames.length > 2 ? ` +${serviceNames.length - 2} más` : ""))
+      : null
+    
+    // Información de reserva si existe
+    const hasBooking = !!movement.booking
+    const bookingInfo = hasBooking ? (() => {
+      const checkInDate = formatBookingDate(movement.booking?.check_in_date)
+      const checkOutDate = formatBookingDate(movement.booking?.check_out_date)
+      
+      // Obtener nombre del huésped
+      const guestName = movement.booking?.person
+        ? `${movement.booking.person.first_name || ""} ${movement.booking.person.last_name || ""}`.trim()
+        : null
+      
+      return {
+        code: movement.booking?.booking_code,
+        guestName: guestName,
+        dates: checkInDate && checkOutDate ? `${checkInDate} / ${checkOutDate}` : (checkInDate || checkOutDate || null)
+      }
+    })() : null
+    
+    // Construir el concepto completo
+    concept = (
+      <div className="space-y-1">
+        <div className="font-medium">
+          {providerName}
+          {servicesText && (
+            <span className="text-sm text-muted-foreground font-normal ml-2">
+              - {servicesText}
+            </span>
+          )}
+        </div>
+        {hasBooking && bookingInfo && (
+          <div className="text-xs text-muted-foreground space-y-0.5">
+            <div className="flex items-center gap-1">
+              <Building2 className="h-3 w-3" />
+              {bookingInfo.code && (
+                <span>Reserva {bookingInfo.code}</span>
+              )}
+              {bookingInfo.guestName && (
+                <span className="ml-1">- {bookingInfo.guestName}</span>
+              )}
             </div>
-            {movement.expense_items && movement.expense_items.length > 0 && (
-              <div className="text-xs text-muted-foreground">
-                {movement.expense_items.length} servicio{movement.expense_items.length !== 1 ? "s" : ""}
+            {bookingInfo.dates && (
+              <div>
+                {bookingInfo.dates}
               </div>
             )}
           </div>
-        )
-      : <span className="text-muted-foreground">Gasto</span>
+        )}
+      </div>
+    )
   }
 
   const expenseItemsCount = movement.expense_items?.length || 0
@@ -210,10 +269,16 @@ export function MovementCard({ movement, onDelete }: MovementCardProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/movements/${movement.id}/edit`}>
+                    <Link href={getMovementEditRoute(movement)}>
                       <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setDuplicateDialogOpen(true)}
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Duplicar
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => setDeleteId(movement.id)}
@@ -341,7 +406,7 @@ export function MovementCard({ movement, onDelete }: MovementCardProps) {
 
         <CardFooter className="pt-0">
           <Button asChild variant="outline" size="sm" className="flex-1">
-            <Link href={`/dashboard/movements/${movement.id}/edit`}>
+            <Link href={getMovementEditRoute(movement)}>
               <Edit className="mr-2 h-4 w-4" />
               Editar
             </Link>
@@ -374,6 +439,20 @@ export function MovementCard({ movement, onDelete }: MovementCardProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Diálogo de duplicación */}
+      <DuplicateMovementDialog
+        movementId={movement.id}
+        open={duplicateDialogOpen}
+        onOpenChange={setDuplicateDialogOpen}
+        onSuccess={() => {
+          if (onDelete) {
+            onDelete()
+          } else {
+            router.refresh()
+          }
+        }}
+      />
     </>
   )
 }

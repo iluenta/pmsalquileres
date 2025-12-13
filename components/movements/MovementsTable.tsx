@@ -24,10 +24,12 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card"
-import { MoreHorizontal, Edit, Trash2, Package, ChevronLeft, ChevronRight } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Copy, Package, ChevronLeft, ChevronRight } from "lucide-react"
 import type { MovementWithDetails } from "@/types/movements"
 import { useToast } from "@/hooks/use-toast"
 import { MovementCard } from "./MovementCard"
+import { DuplicateMovementDialog } from "./DuplicateMovementDialog"
+import { getMovementEditRoute } from "@/lib/utils/movements"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +53,8 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
   const { toast } = useToast()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false)
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
 
   const handleDelete = async (id: string) => {
@@ -217,9 +221,84 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
                   concept = "Ingreso"
                 }
               } else {
-                concept = movement.service_provider
-                  ? movement.service_provider.person?.full_name || "Gasto"
-                  : "Gasto"
+                // Construir concepto para gastos: Proveedor + Servicios + Reserva (si existe)
+                const providerName = movement.service_provider?.person?.full_name || "Gasto"
+                const expenseItems = movement.expense_items || []
+                const expenseItemsCount = expenseItems.length
+                
+                // Obtener nombres de servicios
+                const serviceNames = expenseItems
+                  .map(item => item.service_name)
+                  .filter(Boolean)
+                
+                // Si hay un servicio único en service_provider_service, también incluirlo
+                if (movement.service_provider_service?.service_type?.label && expenseItemsCount === 0) {
+                  serviceNames.push(movement.service_provider_service.service_type.label)
+                }
+                
+                const servicesText = serviceNames.length > 0 
+                  ? (serviceNames.length === 1 
+                      ? serviceNames[0] 
+                      : `${serviceNames.length} servicios`)
+                  : null
+                
+                // Información de reserva si existe
+                const hasBooking = !!movement.booking
+                const bookingInfo = hasBooking ? (() => {
+                  const formatBookingDate = (dateString?: string) => {
+                    if (!dateString) return ""
+                    return new Date(dateString).toLocaleDateString("es-ES", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })
+                  }
+                  
+                  const checkInDate = formatBookingDate(movement.booking?.check_in_date)
+                  const checkOutDate = formatBookingDate(movement.booking?.check_out_date)
+                  
+                  // Obtener nombre del huésped
+                  const guestName = movement.booking?.person
+                    ? `${movement.booking.person.first_name || ""} ${movement.booking.person.last_name || ""}`.trim()
+                    : null
+                  
+                  return {
+                    code: movement.booking?.booking_code,
+                    guestName: guestName,
+                    dates: checkInDate && checkOutDate ? `${checkInDate} / ${checkOutDate}` : (checkInDate || checkOutDate || null)
+                  }
+                })() : null
+                
+                // Construir el concepto completo
+                concept = (
+                  <div className="space-y-1">
+                    <div className="font-medium">
+                      {providerName}
+                      {servicesText && (
+                        <span className="text-sm text-muted-foreground font-normal ml-2">
+                          - {servicesText}
+                        </span>
+                      )}
+                    </div>
+                    {hasBooking && bookingInfo && (
+                      <div className="text-xs text-muted-foreground space-y-0.5">
+                        {bookingInfo.code && (
+                          <div>
+                            Reserva {bookingInfo.code}
+                            {bookingInfo.guestName && (
+                              <span className="ml-2">- {bookingInfo.guestName}</span>
+                            )}
+                          </div>
+                        )}
+                        {bookingInfo.dates && (
+                          <div>
+                            {bookingInfo.dates}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
               }
               
               const expenseItemsCount = movement.expense_items?.length || 0
@@ -327,10 +406,20 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/movements/${movement.id}/edit`}>
+                          <Link href={getMovementEditRoute(movement)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Editar
                           </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setDuplicatingId(movement.id)
+                            setDuplicateDialogOpen(true)
+                          }}
+                          disabled={duplicatingId === movement.id}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Duplicar
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
@@ -409,6 +498,27 @@ export function MovementsTable({ movements, onMovementDeleted }: MovementsTableP
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Diálogo de duplicación */}
+      {duplicatingId && (
+        <DuplicateMovementDialog
+          movementId={duplicatingId}
+          open={duplicateDialogOpen}
+          onOpenChange={(open) => {
+            setDuplicateDialogOpen(open)
+            if (!open) {
+              setDuplicatingId(null)
+            }
+          }}
+          onSuccess={() => {
+            if (onMovementDeleted) {
+              onMovementDeleted()
+            } else {
+              router.refresh()
+            }
+          }}
+        />
+      )}
     </>
   )
 }

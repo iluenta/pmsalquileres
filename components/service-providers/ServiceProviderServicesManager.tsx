@@ -70,6 +70,7 @@ export function ServiceProviderServicesManager({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingService, setEditingService] = useState<ServiceProviderServiceWithDetails | null>(null)
   const [deletingServiceId, setDeletingServiceId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
 
   const [formData, setFormData] = useState({
@@ -276,7 +277,7 @@ export function ServiceProviderServicesManager({
   }
 
   const handleDelete = async (serviceId: string) => {
-    setDeletingServiceId(serviceId)
+    setIsDeleting(true)
     try {
       const response = await fetch(`/api/service-providers/services/${serviceId}`, {
         method: "DELETE",
@@ -293,6 +294,7 @@ export function ServiceProviderServicesManager({
       })
 
       setDeleteDialogOpen(false)
+      setDeletingServiceId(null)
       loadServices()
     } catch (error: any) {
       toast({
@@ -301,7 +303,7 @@ export function ServiceProviderServicesManager({
         variant: "destructive",
       })
     } finally {
-      setDeletingServiceId(null)
+      setIsDeleting(false)
     }
   }
 
@@ -566,7 +568,15 @@ export function ServiceProviderServicesManager({
       </Dialog>
 
       {/* Dialog de confirmación de eliminación */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog 
+        open={deleteDialogOpen} 
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeleteDialogOpen(false)
+            setDeletingServiceId(null)
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
@@ -575,7 +585,7 @@ export function ServiceProviderServicesManager({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deletingServiceId) {
@@ -583,9 +593,9 @@ export function ServiceProviderServicesManager({
                 }
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deletingServiceId !== null}
+              disabled={isDeleting || !deletingServiceId}
             >
-              {deletingServiceId ? (
+              {isDeleting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Eliminando...

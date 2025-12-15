@@ -94,10 +94,10 @@ export async function createPropertyImage(
 ): Promise<PropertyImage> {
   const supabase = await getSupabaseServerClient()
 
-  // Verificar que no haya más de 15 imágenes
+  // Verificar que no haya más de 20 imágenes
   const existingImages = await getPropertyImages(data.property_id, data.tenant_id)
-  if (existingImages.length >= 15) {
-    throw new Error("Se ha alcanzado el límite máximo de 15 imágenes por propiedad")
+  if (existingImages.length >= 20) {
+    throw new Error("Se ha alcanzado el límite máximo de 20 imágenes por propiedad")
   }
 
   // Si se marca como portada, asegurar que no haya otra portada

@@ -45,6 +45,7 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
   const [uploading, setUploading] = useState(false)
   const [editingImage, setEditingImage] = useState<PropertyImage | null>(null)
   const [editTitle, setEditTitle] = useState("")
+  const [editSortOrder, setEditSortOrder] = useState<number>(0)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   // Cargar imágenes
@@ -78,11 +79,11 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validar límite de 15 imágenes
-    if (images.length >= 15) {
+    // Validar límite de 20 imágenes
+    if (images.length >= 20) {
       toast({
         title: "Límite alcanzado",
-        description: "Solo se permiten 15 imágenes por propiedad",
+        description: "Solo se permiten 20 imágenes por propiedad",
         variant: "destructive",
       })
       return
@@ -220,11 +221,15 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
   const handleEdit = (image: PropertyImage) => {
     setEditingImage(image)
     setEditTitle(image.title)
+    setEditSortOrder(image.sort_order)
     setIsEditDialogOpen(true)
   }
 
   const handleSaveEdit = async () => {
     if (!editingImage || !editTitle.trim()) return
+
+    // Validar sort_order
+    const sortOrder = Math.max(0, Math.floor(editSortOrder))
 
     try {
       const response = await fetch(
@@ -236,31 +241,31 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
           },
           body: JSON.stringify({
             title: editTitle.trim(),
+            sort_order: sortOrder,
           }),
         }
       )
 
       if (!response.ok) {
-        throw new Error("Error al actualizar el título")
+        throw new Error("Error al actualizar la imagen")
       }
 
-      const updatedImage = await response.json()
-      setImages(images.map(img => 
-        img.id === editingImage.id ? updatedImage : img
-      ))
+      // Recargar imágenes para que se reordenen automáticamente
+      await loadImages()
 
       setIsEditDialogOpen(false)
       setEditingImage(null)
       setEditTitle("")
+      setEditSortOrder(0)
 
       toast({
-        title: "Título actualizado",
-        description: "El título de la imagen se ha actualizado",
+        title: "Imagen actualizada",
+        description: "El título y el orden de la imagen se han actualizado",
       })
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo actualizar el título",
+        description: "No se pudo actualizar la imagen",
         variant: "destructive",
       })
     }
@@ -281,7 +286,7 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
           <div>
             <h3 className="text-lg font-semibold">Galería de Imágenes</h3>
             <p className="text-sm text-muted-foreground">
-              Sube hasta 15 imágenes. Una de ellas será la portada.
+              Sube hasta 20 imágenes. Una de ellas será la portada.
             </p>
           </div>
           <div className="relative">
@@ -290,14 +295,14 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
               type="file"
               accept="image/jpeg,image/jpg,image/png,image/webp"
               onChange={handleFileSelect}
-              disabled={uploading || images.length >= 15}
+              disabled={uploading || images.length >= 20}
               className="hidden"
               id="image-upload"
             />
             <Button
               type="button"
               variant="outline"
-              disabled={uploading || images.length >= 15}
+              disabled={uploading || images.length >= 20}
               className="gap-2"
               onClick={() => fileInputRef.current?.click()}
             >
@@ -417,37 +422,42 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
                   </div>
                 </div>
 
-                {/* Título */}
+                {/* Título y orden */}
                 <div className="p-3">
-                  <p className="text-sm font-medium truncate" title={image.title}>
-                    {image.title}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium truncate" title={image.title}>
+                      {image.title}
+                    </p>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      Orden: {image.sort_order}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {images.length > 0 && images.length < 15 && (
+        {images.length > 0 && images.length < 20 && (
           <div className="text-center text-sm text-muted-foreground">
-            {images.length} de 15 imágenes
+            {images.length} de 20 imágenes
           </div>
         )}
 
-        {images.length >= 15 && (
+        {images.length >= 20 && (
           <div className="text-center text-sm text-amber-600 dark:text-amber-500">
-            Has alcanzado el límite de 15 imágenes
+            Has alcanzado el límite de 20 imágenes
           </div>
         )}
       </div>
 
-      {/* Dialog para editar título */}
+      {/* Dialog para editar título y orden */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Título de Imagen</DialogTitle>
+            <DialogTitle>Editar Imagen</DialogTitle>
             <DialogDescription>
-              Modifica el título descriptivo de la imagen
+              Modifica el título y el orden de visualización de la imagen
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -461,6 +471,31 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
                 maxLength={255}
               />
             </div>
+            <div>
+              <Label htmlFor="edit-sort-order">Orden de Visualización</Label>
+              <Input
+                id="edit-sort-order"
+                type="number"
+                min="0"
+                step="1"
+                value={editSortOrder}
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (value === "") {
+                    setEditSortOrder(0)
+                  } else {
+                    const numValue = parseInt(value, 10)
+                    if (!isNaN(numValue)) {
+                      setEditSortOrder(Math.max(0, numValue))
+                    }
+                  }
+                }}
+                placeholder="0"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                El orden determina cómo se muestran las imágenes en la landing (0 = primera, 1 = segunda, etc.)
+              </p>
+            </div>
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
@@ -469,6 +504,7 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
                   setIsEditDialogOpen(false)
                   setEditingImage(null)
                   setEditTitle("")
+                  setEditSortOrder(0)
                 }}
               >
                 Cancelar

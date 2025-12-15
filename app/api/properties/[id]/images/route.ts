@@ -125,8 +125,24 @@ export async function POST(
 
     // Subir imagen comprimida directamente desde el buffer usando cliente admin
     try {
-      const originalName = file.name.replace(/\.[^/.]+$/, '')
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${originalName}.webp`
+      // Sanitizar el nombre del archivo: eliminar caracteres especiales, acentos, espacios, etc.
+      const sanitizeFileName = (name: string): string => {
+        // Remover extensión
+        const nameWithoutExt = name.replace(/\.[^/.]+$/, '')
+        // Normalizar caracteres Unicode (descompone caracteres acentuados)
+        const normalized = nameWithoutExt.normalize('NFD')
+        // Eliminar diacríticos (acentos, tildes, etc.)
+        const withoutAccents = normalized.replace(/[\u0300-\u036f]/g, '')
+        // Reemplazar espacios y caracteres no alfanuméricos (excepto guiones y guiones bajos) con guiones
+        const sanitized = withoutAccents.replace(/[^a-zA-Z0-9_-]/g, '-')
+        // Eliminar múltiples guiones consecutivos
+        const cleaned = sanitized.replace(/-+/g, '-')
+        // Eliminar guiones al inicio y final
+        return cleaned.replace(/^-+|-+$/g, '')
+      }
+      
+      const sanitizedName = sanitizeFileName(file.name)
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${sanitizedName || 'image'}.webp`
       
       // Convertir Buffer a Uint8Array para Supabase
       const uint8Array = new Uint8Array(buffer)

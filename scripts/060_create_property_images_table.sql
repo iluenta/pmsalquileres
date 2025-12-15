@@ -1,5 +1,5 @@
 -- Script para crear la tabla property_images
--- Permite gestionar una galería de hasta 15 imágenes por propiedad
+-- Permite gestionar una galería de hasta 20 imágenes por propiedad
 -- Cada imagen tiene un título y una puede ser marcada como portada
 
 -- Crear la tabla property_images si no existe
@@ -193,7 +193,7 @@ CREATE POLICY "Public can view images of active properties"
   );
 
 -- Comentarios para documentación
-COMMENT ON TABLE public.property_images IS 'Galería de imágenes para propiedades. Máximo 15 imágenes por propiedad.';
+COMMENT ON TABLE public.property_images IS 'Galería de imágenes para propiedades. Máximo 20 imágenes por propiedad.';
 COMMENT ON COLUMN public.property_images.image_url IS 'URL de la imagen almacenada en Supabase Storage';
 COMMENT ON COLUMN public.property_images.title IS 'Título descriptivo de la imagen para contexto en landing y guía';
 COMMENT ON COLUMN public.property_images.is_cover IS 'Indica si esta imagen es la portada principal de la propiedad';

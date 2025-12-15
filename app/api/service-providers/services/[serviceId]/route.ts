@@ -84,18 +84,29 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const tenantId = userInfo[0].tenant_id
     const { serviceId } = await params
 
-    const success = await removeServiceFromProvider(serviceId, tenantId)
+    try {
+      const success = await removeServiceFromProvider(serviceId, tenantId)
 
-    if (!success) {
-      return NextResponse.json({ error: "Error al eliminar el servicio" }, { status: 500 })
+      if (!success) {
+        return NextResponse.json({ error: "Error al eliminar el servicio" }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true })
+    } catch (innerError: any) {
+      // Si removeServiceFromProvider lanza un error, capturarlo aquí
+      const statusCode = innerError.message?.includes('usado en') || innerError.message?.includes('foreign key') ? 400 : 500
+      return NextResponse.json(
+        { error: innerError.message || "Error al eliminar el servicio" },
+        { status: statusCode }
+      )
     }
-
-    return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error("Error in /api/service-providers/services/[serviceId] DELETE:", error)
+    // Si el error contiene información sobre foreign key constraint, usar un código 400
+    const statusCode = error.message?.includes('usado en') || error.message?.includes('foreign key') ? 400 : 500
     return NextResponse.json(
       { error: error.message || "Error al eliminar el servicio" },
-      { status: 500 }
+      { status: statusCode }
     )
   }
 }

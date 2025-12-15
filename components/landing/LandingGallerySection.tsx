@@ -1,7 +1,7 @@
 'use client'
 
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { PropertyImage } from "@/types/property-images"
@@ -13,11 +13,22 @@ interface LandingGallerySectionProps {
 
 export function LandingGallerySection({ images, propertyName }: LandingGallerySectionProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [imageOrientation, setImageOrientation] = useState<'horizontal' | 'vertical' | null>(null)
 
   // Si no hay imágenes, no mostrar la sección
   if (!images || images.length === 0) {
     return null
   }
+
+  // Detectar orientación de la imagen actual
+  useEffect(() => {
+    const img = new window.Image()
+    img.onload = () => {
+      const isVertical = img.height > img.width
+      setImageOrientation(isVertical ? 'vertical' : 'horizontal')
+    }
+    img.src = images[currentIndex].image_url
+  }, [currentIndex, images])
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length)
@@ -43,12 +54,22 @@ export function LandingGallerySection({ images, propertyName }: LandingGallerySe
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* Imagen principal */}
-          <div className="md:col-span-2 relative aspect-[3/2] rounded-lg overflow-hidden group">
+          <div 
+            className={`md:col-span-2 relative rounded-lg overflow-hidden group bg-neutral-200 ${
+              imageOrientation === 'vertical' 
+                ? 'min-h-[400px] md:min-h-[500px]' 
+                : 'aspect-[3/2]'
+            }`}
+          >
             <Image
               src={images[currentIndex].image_url}
               alt={images[currentIndex].title}
               fill
-              className="object-cover object-center"
+              className={`object-center ${
+                imageOrientation === 'vertical' 
+                  ? 'object-contain' 
+                  : 'object-cover'
+              }`}
               sizes="(max-width: 768px) 100vw, 1200px"
               priority={currentIndex === 0}
             />

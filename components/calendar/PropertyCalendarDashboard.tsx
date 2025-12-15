@@ -77,16 +77,29 @@ export function PropertyCalendarDashboard({ properties, tenantId }: PropertyCale
   }
 
   return (
-    <div className="space-y-6">
-      {/* Property Selector */}
-      <PropertySelector 
-        selectedProperty={selectedPropertyId}
-        onPropertyChange={setSelectedPropertyId}
-        properties={properties}
-      />
-
-      {selectedPropertyId ? (
-        <Tabs defaultValue="calendar" className="w-full">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card sticky top-0 z-40">
+        <div className="px-6 py-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-foreground">Calendario de Disponibilidad</h1>
+              <p className="text-sm text-muted-foreground">
+                Visualiza la disponibilidad de las propiedades y verifica disponibilidad rápida
+              </p>
+            </div>
+            <PropertySelector 
+              selectedProperty={selectedPropertyId}
+              onPropertyChange={setSelectedPropertyId}
+              properties={properties}
+              compact={true}
+            />
+          </div>
+        </div>
+      </header>
+      
+      <main className="p-6">
+        {selectedPropertyId ? (
+          <Tabs defaultValue="calendar" className="w-full">
           <TabsList className="grid w-full grid-cols-2 lg:w-auto">
             <TabsTrigger value="calendar">Calendario</TabsTrigger>
             <TabsTrigger value="quick-check">Verificación Rápida</TabsTrigger>
@@ -117,16 +130,17 @@ export function PropertyCalendarDashboard({ properties, tenantId }: PropertyCale
               </div>
             </div>
           </TabsContent>
-        </Tabs>
-      ) : (
-        <Card>
-          <div className="p-6">
-            <p className="text-center text-muted-foreground">
-              Seleccione una propiedad para ver el calendario de disponibilidad
-            </p>
-          </div>
-        </Card>
-      )}
+          </Tabs>
+        ) : (
+          <Card>
+            <div className="p-6">
+              <p className="text-center text-muted-foreground">
+                Seleccione una propiedad para ver el calendario de disponibilidad
+              </p>
+            </div>
+          </Card>
+        )}
+      </main>
     </div>
   )
 }

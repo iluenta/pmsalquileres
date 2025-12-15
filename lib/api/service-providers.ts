@@ -719,7 +719,31 @@ export async function removeServiceFromProvider(serviceId: string, tenantId: str
       .single()
     
     if (!service || (service as any).service_providers.tenant_id !== tenantId) {
-      return false
+      throw new Error('Servicio no encontrado')
+    }
+    
+    // Verificar si el servicio está siendo usado en algún movimiento
+    const { data: movementsUsingService } = await supabase
+      .from('movements')
+      .select('id')
+      .eq('service_provider_service_id', serviceId)
+      .limit(1)
+    
+    if (movementsUsingService && movementsUsingService.length > 0) {
+      throw new Error('No se puede eliminar el servicio porque está siendo usado en uno o más movimientos. Elimina primero los movimientos asociados.')
+    }
+    
+    // Verificar si el servicio está siendo usado en expense items
+    const { data: expenseItemsUsingService } = await supabase
+      .from('movement_expense_items')
+      .select('id')
+      .eq('service_provider_service_id', serviceId)
+      .limit(1)
+    
+    if (expenseItemsUsingService && expenseItemsUsingService.length > 0) {
+      // En este caso, podemos eliminar porque tiene ON DELETE SET NULL
+      // Pero informamos al usuario
+      console.warn('El servicio está siendo usado en expense items, pero se puede eliminar (se establecerá a NULL)')
     }
     
     // Eliminar el servicio
@@ -730,13 +754,17 @@ export async function removeServiceFromProvider(serviceId: string, tenantId: str
     
     if (error) {
       console.error('Error deleting service provider service:', error)
-      return false
+      // Verificar si es un error de foreign key constraint
+      if (error.code === '23503' || error.message?.includes('foreign key')) {
+        throw new Error('No se puede eliminar el servicio porque está siendo usado en uno o más movimientos. Elimina primero los movimientos asociados.')
+      }
+      throw new Error(error.message || 'Error al eliminar el servicio')
     }
     
     return true
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in removeServiceFromProvider:', error)
-    return false
+    throw error // Re-lanzar el error para que el endpoint pueda capturarlo
   }
 }
 

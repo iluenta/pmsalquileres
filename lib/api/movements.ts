@@ -695,8 +695,8 @@ export async function updateMovement(
       }
     }
     
-    // Validaciones si se cambia el importe o la reserva
-    if (data.amount !== undefined || data.booking_id !== undefined) {
+    // Validaciones si se cambia el importe o la reserva - SOLO para INGRESOS
+    if (isIncome && (data.amount !== undefined || data.booking_id !== undefined)) {
       const bookingId = data.booking_id !== undefined ? data.booking_id : currentMovement.booking_id
       if (bookingId) {
         const paymentInfo = await calculateBookingPaymentInfo(bookingId, tenantId)
@@ -838,6 +838,66 @@ export async function deleteMovement(
     return true
   } catch (error) {
     console.error('Error in deleteMovement:', error)
+    throw error
+  }
+}
+
+// Duplicar movimiento
+export async function duplicateMovement(
+  movementId: string,
+  newDate: string,
+  tenantId: string
+): Promise<Movement | null> {
+  try {
+    // Obtener el movimiento original con todos sus datos
+    const originalMovement = await getMovementById(movementId, tenantId)
+    
+    if (!originalMovement) {
+      throw new Error('Movimiento no encontrado')
+    }
+    
+    // Validar que la nueva fecha sea válida
+    const newDateObj = new Date(newDate)
+    if (isNaN(newDateObj.getTime())) {
+      throw new Error('Fecha inválida')
+    }
+    
+    // Preparar datos para el nuevo movimiento
+    // Copiar todos los campos excepto: id, movement_date, invoice_number, created_at, updated_at
+    const duplicateData: CreateMovementData = {
+      movement_type_id: originalMovement.movement_type_id,
+      booking_id: originalMovement.booking_id || null,
+      service_provider_id: originalMovement.service_provider_id || null,
+      service_provider_service_id: originalMovement.service_provider_service_id || null,
+      treasury_account_id: originalMovement.treasury_account_id,
+      payment_method_id: originalMovement.payment_method_id,
+      movement_status_id: originalMovement.movement_status_id,
+      amount: Number(originalMovement.amount),
+      invoice_number: null, // Limpiar invoice_number - cada duplicado es una factura nueva
+      reference: originalMovement.reference || null,
+      movement_date: newDate,
+      notes: originalMovement.notes || null,
+    }
+    
+    // Si tiene expense_items, copiarlos también
+    if (originalMovement.expense_items && originalMovement.expense_items.length > 0) {
+      duplicateData.expense_items = originalMovement.expense_items.map((item) => ({
+        service_provider_service_id: item.service_provider_service_id || null,
+        service_name: item.service_name,
+        amount: item.amount,
+        tax_type_id: item.tax_type_id || null,
+        tax_amount: item.tax_amount,
+        total_amount: item.total_amount,
+        notes: item.notes || null,
+      }))
+    }
+    
+    // Crear el nuevo movimiento usando createMovement (que maneja todas las validaciones)
+    const newMovement = await createMovement(duplicateData, tenantId)
+    
+    return newMovement
+  } catch (error) {
+    console.error('Error in duplicateMovement:', error)
     throw error
   }
 }

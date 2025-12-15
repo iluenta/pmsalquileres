@@ -2,6 +2,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { getProperties } from "@/lib/api/properties"
 import { PropertyCalendarDashboard } from "@/components/calendar/PropertyCalendarDashboard"
+import { PropertySelector } from "@/components/calendar/PropertySelector"
 
 export default async function CalendarPage() {
   const supabase = await getSupabaseServerClient()
@@ -30,18 +31,7 @@ export default async function CalendarPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card sticky top-0 z-40">
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-bold text-foreground">Calendario de Disponibilidad</h1>
-          <p className="text-sm text-muted-foreground">
-            Visualiza la disponibilidad de las propiedades y verifica disponibilidad rápida
-          </p>
-        </div>
-      </header>
-      
-      <main className="p-6">
-        <PropertyCalendarDashboard properties={properties} tenantId={tenantId} />
-      </main>
+      <PropertyCalendarDashboard properties={properties} tenantId={tenantId} />
     </div>
   )
 }

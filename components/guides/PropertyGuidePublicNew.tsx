@@ -10,6 +10,7 @@ import { GuideBeachesSection } from "./GuideBeachesSection"
 import { GuideRestaurantsSection } from "./GuideRestaurantsSection"
 import { GuideActivitiesSection } from "./GuideActivitiesSection"
 import { GuideContactSection } from "./GuideContactSection"
+import { GuideHouseRulesSection } from "./GuideHouseRulesSection"
 import { GuideValueProposition } from "./GuideValueProposition"
 import { GuideFooter } from "./GuideFooter"
 
@@ -64,6 +65,7 @@ export function PropertyGuidePublicNew({ propertyId }: PropertyGuidePublicNewPro
   const hasBeaches = data.beaches && data.beaches.length > 0
   const hasRestaurants = data.restaurants && data.restaurants.length > 0
   const hasActivities = data.activities && data.activities.length > 0
+  const hasHouseRules = data.house_rules && data.house_rules.length > 0
   const hasContactInfo = data.contact_info !== null
   
   // Nombre del tenant/propiedad
@@ -111,6 +113,10 @@ export function PropertyGuidePublicNew({ propertyId }: PropertyGuidePublicNewPro
       
       {hasActivities && (
         <GuideActivitiesSection activities={data.activities} />
+      )}
+      
+      {hasHouseRules && (
+        <GuideHouseRulesSection rules={data.house_rules} />
       )}
       
       {hasContactInfo && data.contact_info && (

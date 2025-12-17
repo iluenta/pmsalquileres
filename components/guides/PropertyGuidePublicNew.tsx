@@ -99,6 +99,9 @@ export function PropertyGuidePublicNew({ propertyId }: PropertyGuidePublicNewPro
             longitude={data.guide?.longitude}
             locality={data.property?.locality}
           />
+          {hasHouseRules && (
+            <GuideHouseRulesSection rules={data.house_rules} />
+          )}
           <GuideApartmentSections sections={data.apartment_sections} data={data} />
         </>
       )}
@@ -115,9 +118,7 @@ export function PropertyGuidePublicNew({ propertyId }: PropertyGuidePublicNewPro
         <GuideActivitiesSection activities={data.activities} />
       )}
       
-      {hasHouseRules && (
-        <GuideHouseRulesSection rules={data.house_rules} />
-      )}
+
       
       {hasContactInfo && data.contact_info && (
         <GuideContactSection contactInfo={data.contact_info} />

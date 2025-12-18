@@ -3,7 +3,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 // Helper function to get current user's tenant_id
 async function getCurrentUserTenantId(): Promise<string | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     console.error("[v0] No authenticated user found")
@@ -88,7 +88,7 @@ import type {
 
 export async function getPropertyGuideClient(propertyId: string): Promise<PropertyGuide | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("property_guides")
     .select("*")
@@ -105,7 +105,7 @@ export async function getPropertyGuideClient(propertyId: string): Promise<Proper
 
 export async function createPropertyGuideClient(data: CreateGuideData): Promise<PropertyGuide | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const tenantId = await getCurrentUserTenantId()
   if (!tenantId) {
     return null
@@ -120,7 +120,7 @@ export async function createPropertyGuideClient(data: CreateGuideData): Promise<
       .maybeSingle()
     inheritedLocality = (prop?.city as string) || null
   }
-  
+
   const { data: result, error } = await supabase
     .from("property_guides")
     .insert({
@@ -190,23 +190,23 @@ export async function getCompleteGuideData(propertyId: string) {
     console.log('[v0] Fetching complete guide data for property:', propertyId)
     console.log('[v0] Property ID type:', typeof propertyId)
     console.log('[v0] Property ID length:', propertyId?.length)
-    
+
     const supabase = getSupabaseBrowserClient()
     if (!supabase) {
       console.error('[v0] No Supabase client available')
       return null
     }
-    
+
     console.log('[v0] Supabase client created successfully')
-    
+
     // Obtener la propiedad (intentar con diferentes combinaciones de campos)
     let property: any = null
     let propertyError: any = null
-    
+
     // Intentar primero con todos los campos posibles
     const { data: propertyWithAll, error: errorWithAll } = await supabase
       .from('properties')
-      .select('id, name, slug, street, city, province, country, description, latitude, longitude')
+      .select('id, name, slug, street, number, city, province, postal_code, country, description, latitude, longitude')
       .eq('id', propertyId)
       .maybeSingle()
 
@@ -214,14 +214,14 @@ export async function getCompleteGuideData(propertyId: string) {
       // Si el error es por columnas que no existen, intentar sin ellas
       if (errorWithAll.message?.includes('slug') || errorWithAll.message?.includes('latitude') || errorWithAll.message?.includes('longitude') || errorWithAll.code === '42703') {
         console.log('[v0] Some columns not found, trying with basic fields')
-        
+
         // Intentar sin slug ni coordenadas
         const { data: propertyBasic, error: errorBasic } = await supabase
           .from('properties')
-          .select('id, name, street, city, province, country, description')
+          .select('id, name, street, number, city, province, postal_code, country, description')
           .eq('id', propertyId)
           .maybeSingle()
-        
+
         if (errorBasic) {
           propertyError = errorBasic
         } else {
@@ -291,11 +291,24 @@ export async function getCompleteGuideData(propertyId: string) {
       getPracticalInfoClient(guide.id)
     ])
 
+    // Construir dirección completa
+    const addressParts = [
+      property.street ? `${property.street}${property.number ? ` ${property.number}` : ''}` : null,
+      property.postal_code,
+      property.city,
+      property.province,
+      property.country
+    ].filter(Boolean)
+
+    const fullAddress = addressParts.length > 0
+      ? addressParts.join(', ')
+      : (property.address || property.street || property.city || '')
+
     const result = {
       property: {
         id: property.id,
         name: property.name,
-        address: property.street || property.city,
+        address: fullAddress,
         description: property.description,
         locality: guide.locality,
         // Coordenadas desde la tabla properties (único punto de verdad)
@@ -328,7 +341,7 @@ export async function updatePropertyGuideClient(
   data: UpdateGuideData
 ): Promise<PropertyGuide | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("property_guides")
     .update(data)
@@ -346,7 +359,7 @@ export async function updatePropertyGuideClient(
 
 export async function deletePropertyGuideClient(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("property_guides")
     .delete()
@@ -366,7 +379,7 @@ export async function deletePropertyGuideClient(id: string): Promise<boolean> {
 
 export async function getGuideSectionsClient(guideId: string): Promise<GuideSection[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("guide_sections")
     .select("*")
@@ -383,12 +396,12 @@ export async function getGuideSectionsClient(guideId: string): Promise<GuideSect
 
 export async function createGuideSectionClient(data: CreateGuideSectionData): Promise<GuideSection | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const tenantId = await getCurrentUserTenantId()
   if (!tenantId) {
     return null
   }
-  
+
   const { data: result, error } = await supabase
     .from("guide_sections")
     .insert({
@@ -416,7 +429,7 @@ export async function updateGuideSectionClient(
   data: UpdateGuideSectionData
 ): Promise<GuideSection | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("guide_sections")
     .update(data)
@@ -434,7 +447,7 @@ export async function updateGuideSectionClient(
 
 export async function deleteGuideSectionClient(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("guide_sections")
     .delete()
@@ -454,7 +467,7 @@ export async function deleteGuideSectionClient(id: string): Promise<boolean> {
 
 export async function getGuidePlacesClient(guideId: string): Promise<GuidePlace[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("guide_places")
     .select("*")
@@ -471,7 +484,7 @@ export async function getGuidePlacesClient(guideId: string): Promise<GuidePlace[
 
 export async function createGuidePlaceClient(data: CreateGuidePlaceData): Promise<GuidePlace | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("guide_places")
     .insert({
@@ -501,7 +514,7 @@ export async function updateGuidePlaceClient(
   data: UpdateGuidePlaceData
 ): Promise<GuidePlace | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("guide_places")
     .update(data)
@@ -519,7 +532,7 @@ export async function updateGuidePlaceClient(
 
 export async function deleteGuidePlaceClient(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("guide_places")
     .delete()
@@ -539,7 +552,7 @@ export async function deleteGuidePlaceClient(id: string): Promise<boolean> {
 
 export async function getHouseRulesClient(guideId: string): Promise<HouseRule[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("house_rules")
     .select("*")
@@ -556,7 +569,7 @@ export async function getHouseRulesClient(guideId: string): Promise<HouseRule[]>
 
 export async function createHouseRuleClient(data: CreateHouseRuleData): Promise<HouseRule | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("house_rules")
     .insert({
@@ -582,7 +595,7 @@ export async function updateHouseRuleClient(
   data: UpdateHouseRuleData
 ): Promise<HouseRule | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("house_rules")
     .update(data)
@@ -600,7 +613,7 @@ export async function updateHouseRuleClient(
 
 export async function deleteHouseRuleClient(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("house_rules")
     .delete()
@@ -620,7 +633,7 @@ export async function deleteHouseRuleClient(id: string): Promise<boolean> {
 
 export async function getHouseGuideItemsClient(guideId: string): Promise<HouseGuideItem[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("house_guide_items")
     .select("*")
@@ -637,7 +650,7 @@ export async function getHouseGuideItemsClient(guideId: string): Promise<HouseGu
 
 export async function createHouseGuideItemClient(data: CreateHouseGuideItemData): Promise<HouseGuideItem | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("house_guide_items")
     .insert({
@@ -664,7 +677,7 @@ export async function updateHouseGuideItemClient(
   data: UpdateHouseGuideItemData
 ): Promise<HouseGuideItem | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("house_guide_items")
     .update(data)
@@ -682,7 +695,7 @@ export async function updateHouseGuideItemClient(
 
 export async function deleteHouseGuideItemClient(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("house_guide_items")
     .delete()
@@ -702,7 +715,7 @@ export async function deleteHouseGuideItemClient(id: string): Promise<boolean> {
 
 export async function getGuideContactInfoClient(guideId: string): Promise<GuideContactInfo | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("guide_contact_info")
     .select("*")
@@ -719,7 +732,7 @@ export async function getGuideContactInfoClient(guideId: string): Promise<GuideC
 
 export async function createGuideContactInfoClient(data: CreateContactInfoData): Promise<GuideContactInfo | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("guide_contact_info")
     .insert({
@@ -747,7 +760,7 @@ export async function updateGuideContactInfoClient(
   data: UpdateContactInfoData
 ): Promise<GuideContactInfo | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("guide_contact_info")
     .update(data)
@@ -769,7 +782,7 @@ export async function updateGuideContactInfoClient(
 
 export async function getPracticalInfoClient(guideId: string): Promise<PracticalInfo[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("practical_info")
     .select("*")
@@ -786,7 +799,7 @@ export async function getPracticalInfoClient(guideId: string): Promise<Practical
 
 export async function createPracticalInfoClient(data: CreatePracticalInfoData): Promise<PracticalInfo | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("practical_info")
     .insert({
@@ -814,7 +827,7 @@ export async function updatePracticalInfoClient(
   data: UpdatePracticalInfoData
 ): Promise<PracticalInfo | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("practical_info")
     .update(data)
@@ -832,7 +845,7 @@ export async function updatePracticalInfoClient(
 
 export async function deletePracticalInfoClient(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("practical_info")
     .delete()

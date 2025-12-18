@@ -13,8 +13,10 @@ export interface Property {
     color: string | null
   }
   street: string | null
+  number: string | null
   city: string | null
   province: string | null
+  postal_code: string | null
   country: string | null
   bedrooms: number | null
   bathrooms: number | null
@@ -33,8 +35,10 @@ export interface CreatePropertyData {
   image_url?: string | null // URL de la imagen principal de la propiedad
   property_type_id?: string | null
   street?: string | null
+  number?: string | null
   city?: string | null
   province?: string | null
+  postal_code?: string | null
   country?: string | null
   bedrooms?: number | null
   bathrooms?: number | null
@@ -52,8 +56,10 @@ export interface UpdatePropertyData {
   image_url?: string | null // URL de la imagen principal de la propiedad
   property_type_id?: string | null
   street?: string | null
+  number?: string | null
   city?: string | null
   province?: string | null
+  postal_code?: string | null
   country?: string | null
   bedrooms?: number | null
   bathrooms?: number | null
@@ -79,8 +85,10 @@ export async function getProperties(): Promise<Property[]> {
       image_url,
       property_type_id,
       street,
+      number,
       city,
       province,
+      postal_code,
       country,
       bedrooms,
       bathrooms,
@@ -109,8 +117,10 @@ export async function getProperties(): Promise<Property[]> {
           description,
           property_type_id,
           street,
+          number,
           city,
           province,
+          postal_code,
           country,
           bedrooms,
           bathrooms,
@@ -123,12 +133,12 @@ export async function getProperties(): Promise<Property[]> {
         `,
         )
         .order("created_at", { ascending: false })
-      
+
       if (errorWithoutOptional) {
         console.error("[v0] Error fetching properties without optional columns:", errorWithoutOptional)
         return []
       }
-      
+
       return (dataWithoutOptional || []) as Property[]
     }
     return []
@@ -153,8 +163,10 @@ export async function getProperty(propertyId: string): Promise<Property | null> 
       image_url,
       property_type_id,
       street,
+      number,
       city,
       province,
+      postal_code,
       country,
       bedrooms,
       bathrooms,
@@ -183,8 +195,10 @@ export async function getProperty(propertyId: string): Promise<Property | null> 
           description,
           property_type_id,
           street,
+          number,
           city,
           province,
+          postal_code,
           country,
           bedrooms,
           bathrooms,
@@ -198,12 +212,12 @@ export async function getProperty(propertyId: string): Promise<Property | null> 
         )
         .eq("id", propertyId)
         .single()
-      
+
       if (errorWithoutOptional) {
         console.error("[v0] Error fetching property without optional columns:", errorWithoutOptional)
         return null
       }
-      
+
       return dataWithoutOptional as Property | null
     }
     return null
@@ -228,10 +242,13 @@ export async function getPropertyById(propertyId: string, tenantId: string) {
       image_url,
       property_type_id,
       street,
+      number,
       city,
       province,
+      postal_code,
       country,
       bedrooms,
+
       bathrooms,
       max_guests,
       min_nights,
@@ -259,8 +276,10 @@ export async function getPropertyById(propertyId: string, tenantId: string) {
           description,
           property_type_id,
           street,
+          number,
           city,
           province,
+          postal_code,
           country,
           bedrooms,
           bathrooms,
@@ -275,12 +294,12 @@ export async function getPropertyById(propertyId: string, tenantId: string) {
         .eq("id", propertyId)
         .eq("tenant_id", tenantId)
         .single()
-      
+
       if (errorWithoutOptional) {
         console.error("[v0] Error fetching property without optional columns:", errorWithoutOptional)
         return null
       }
-      
+
       return dataWithoutOptional
     }
     return null
@@ -376,8 +395,10 @@ export async function getPropertyBySlug(slug: string): Promise<Property | null> 
       image_url,
       property_type_id,
       street,
+      number,
       city,
       province,
+      postal_code,
       country,
       bedrooms,
       bathrooms,

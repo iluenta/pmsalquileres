@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 export async function getApartmentSectionsClient(guideId: string): Promise<any[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("apartment_sections")
     .select("*")
@@ -28,7 +28,7 @@ export async function getApartmentSectionsClient(guideId: string): Promise<any[]
 
 export async function getBeachesClient(guideId: string): Promise<any[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("guide_places")
     .select("*")
@@ -50,7 +50,7 @@ export async function getBeachesClient(guideId: string): Promise<any[]> {
 
 export async function getRestaurantsClient(guideId: string): Promise<any[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("guide_places")
     .select("*")
@@ -72,7 +72,7 @@ export async function getRestaurantsClient(guideId: string): Promise<any[]> {
 
 export async function getActivitiesClient(guideId: string): Promise<any[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("guide_places")
     .select("*")
@@ -94,12 +94,11 @@ export async function getActivitiesClient(guideId: string): Promise<any[]> {
 
 export async function getTipsClient(guideId: string): Promise<any[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
-    .from("guide_sections")
+    .from("tips")
     .select("*")
     .eq("guide_id", guideId)
-    .eq("section_type", "tips")
     .order("order_index", { ascending: true })
 
   if (error) {
@@ -116,7 +115,7 @@ export async function getTipsClient(guideId: string): Promise<any[]> {
 
 export async function getContactInfoClient(guideId: string): Promise<any | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("guide_contact_info")
     .select("*")

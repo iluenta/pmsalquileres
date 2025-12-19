@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tip } from "@/types/guides"
 import { getTips, createTip, updateTip, deleteTip } from "@/lib/api/guides-client"
+import { getIconByName } from "@/lib/utils/icon-registry"
+import { IconSelector } from "@/components/admin/IconSelector"
 
 interface TipsManagerProps {
   guideId: string
@@ -49,7 +51,7 @@ export function TipsManager({ guideId }: TipsManagerProps) {
       title: "",
       description: "",
       details: "",
-      icon: "fas fa-lightbulb",
+      icon: "Lightbulb",
       order_index: tips.length + 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -59,6 +61,8 @@ export function TipsManager({ guideId }: TipsManagerProps) {
 
   const handleSave = async () => {
     if (!editingTip) return
+
+    console.log("[TipsManager] Starting save...", { isAddingNew, editingTip })
 
     try {
       if (isAddingNew) {
@@ -71,12 +75,16 @@ export function TipsManager({ guideId }: TipsManagerProps) {
           icon: editingTip.icon,
           order_index: editingTip.order_index
         })
-        
+
         if (newTip) {
+          console.log("[TipsManager] New tip created successfully:", newTip)
           setTips([...tips, newTip])
+        } else {
+          console.error("[TipsManager] Failed to create tip (API returned null)")
         }
       } else {
         // Actualizar consejo existente
+        console.log("[TipsManager] Updating tip ID:", editingTip.id)
         const updatedTip = await updateTip(editingTip.id, {
           title: editingTip.title,
           description: editingTip.description,
@@ -84,16 +92,19 @@ export function TipsManager({ guideId }: TipsManagerProps) {
           icon: editingTip.icon,
           order_index: editingTip.order_index
         })
-        
+
         if (updatedTip) {
+          console.log("[TipsManager] Tip updated successfully:", updatedTip)
           setTips(tips.map(tip => tip.id === editingTip.id ? updatedTip : tip))
+        } else {
+          console.error("[TipsManager] Failed to update tip (API returned null)")
         }
       }
-      
+
       setEditingTip(null)
       setIsAddingNew(false)
     } catch (error) {
-      console.error('Error saving tip:', error)
+      console.error('[TipsManager] Exception in handleSave:', error)
     }
   }
 
@@ -150,32 +161,36 @@ export function TipsManager({ guideId }: TipsManagerProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              {tips.map((tip) => (
-                <div key={tip.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <i className={`${tip.icon} text-yellow-600`}></i>
+              {tips.map((tip) => {
+                const IconComponent = getIconByName(tip.icon)
+
+                return (
+                  <div key={tip.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <IconComponent className="h-5 w-5 text-yellow-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-1">{tip.title}</h4>
+                          <p className="text-sm text-gray-600">{tip.description}</p>
+                          {tip.details && (
+                            <p className="text-sm text-gray-700 mt-2">{tip.details}</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-medium mb-1">{tip.title}</h4>
-                        <p className="text-sm text-gray-600">{tip.description}</p>
-                        {tip.details && (
-                          <p className="text-sm text-gray-700 mt-2">{tip.details}</p>
-                        )}
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(tip)}>
+                          <i className="fas fa-edit"></i>
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDelete(tip.id)}>
+                          <i className="fas fa-trash"></i>
+                        </Button>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(tip)}>
-                        <i className="fas fa-edit"></i>
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(tip.id)}>
-                        <i className="fas fa-trash"></i>
-                      </Button>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </CardContent>
@@ -199,18 +214,20 @@ export function TipsManager({ guideId }: TipsManagerProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tip-icon">Icono (Font Awesome)</Label>
-                  <Input
-                    id="tip-icon"
-                    value={editingTip.icon || ''}
-                    onChange={(e) => setEditingTip({ ...editingTip, icon: e.target.value })}
-                    placeholder="fas fa-lightbulb"
+                  <IconSelector
+                    value={editingTip.icon || 'Lightbulb'}
+                    onChange={(iconName) => setEditingTip({ ...editingTip, icon: iconName })}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="tip-description">Descripción</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="tip-description">Descripción</Label>
+                  <span className="text-[10px] text-muted-foreground">
+                    **negrita** | [color:azul]texto[/color] (rojo, verde, naranja)
+                  </span>
+                </div>
                 <Textarea
                   id="tip-description"
                   value={editingTip.description || ''}
@@ -221,7 +238,12 @@ export function TipsManager({ guideId }: TipsManagerProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="tip-details">Detalles</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="tip-details">Detalles</Label>
+                  <span className="text-[10px] text-muted-foreground">
+                    **negrita** | [color:azul]texto[/color]
+                  </span>
+                </div>
                 <Textarea
                   id="tip-details"
                   value={editingTip.details || ''}

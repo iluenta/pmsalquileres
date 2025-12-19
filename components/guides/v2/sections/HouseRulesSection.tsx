@@ -1,7 +1,8 @@
 import type { HouseRule } from "@/types/guides"
 import { Card, CardContent } from "@/components/ui/card"
 import { ClipboardList, CheckCircle2 } from "lucide-react"
-import { getIconFromCode } from "@/lib/utils/icons"
+import { getIconByName } from "@/lib/utils/icon-registry"
+import { FormattedText } from "@/components/ui/formatted-text"
 
 interface HouseRulesSectionProps {
     rules: HouseRule[]
@@ -18,23 +19,26 @@ export function HouseRulesSection({ rules }: HouseRulesSectionProps) {
                 <p className="text-gray-600 mt-2">Para garantizar una estancia agradable para todos</p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-8">
                 {rules.map((rule) => {
                     // Usar la utilidad centralizada para obtener el icono correcto
-                    // Si el icono no se encuentra, usamos CheckCircle2 como fallback
-                    const IconComponent = getIconFromCode(rule.icon, CheckCircle2)
+                    const IconComponent = getIconByName(rule.icon, CheckCircle2)
 
                     return (
-                        <Card key={rule.id} className="border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300">
-                            <CardContent className="p-8 flex flex-col items-center text-center h-full">
-                                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-6 text-blue-600">
-                                    <IconComponent className="h-8 w-8" />
+                        <Card key={rule.id} className="border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 bg-white group">
+                            <CardContent className="p-8">
+                                <div className="flex items-start gap-6">
+                                    <div className="w-16 h-16 bg-blue-50 group-hover:bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 text-blue-600 transition-colors">
+                                        <IconComponent className="h-8 w-8" />
+                                    </div>
+                                    <div className="flex-1 space-y-3">
+                                        <h3 className="text-xl font-bold text-gray-900 leading-tight">{rule.title}</h3>
+                                        <FormattedText
+                                            text={rule.description}
+                                            className="text-gray-600 leading-relaxed"
+                                        />
+                                    </div>
                                 </div>
-
-                                <h3 className="text-xl font-bold text-gray-900 mb-3">{rule.title}</h3>
-                                <p className="text-gray-600 leading-relaxed text-balance">
-                                    {rule.description}
-                                </p>
                             </CardContent>
                         </Card>
                     )

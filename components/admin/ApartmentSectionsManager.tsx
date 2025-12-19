@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { ApartmentSection } from "@/types/guides"
 import { getApartmentSections, createApartmentSection, updateApartmentSection, deleteApartmentSection } from "@/lib/api/guides-client"
-import { ImageSelector } from "@/components/admin/ImageSelector"
+import { getIconByName } from "@/lib/utils/icon-registry"
 import { IconSelector } from "@/components/admin/IconSelector"
+import { ImageSelector } from "@/components/admin/ImageSelector"
 
 interface ApartmentSectionsManagerProps {
   guideId: string
@@ -30,8 +31,8 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
   // Amenities predefinidos por tipo de sección
   const predefinedAmenities = {
     cocina: [
-      "Vitrocerámica", "Horno", "Microondas", "Nevera", "Lavavajillas", 
-      "Cafetera", "Tostadora", "Utensilios de cocina", "Vajilla completa", 
+      "Vitrocerámica", "Horno", "Microondas", "Nevera", "Lavavajillas",
+      "Cafetera", "Tostadora", "Utensilios de cocina", "Vajilla completa",
       "Cristalería", "Mesa de comedor", "Sillas", "Fregadero", "Encimera"
     ],
     bano: [
@@ -96,7 +97,7 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
       description: "",
       details: "",
       image_url: "",
-      icon: "fas fa-home",
+      icon: "Home",
       order_index: sections.length + 1,
       amenities: [],
       created_at: new Date().toISOString(),
@@ -123,7 +124,7 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
           order_index: editingSection.order_index,
           amenities: editingSection.amenities
         })
-        
+
         if (newSection) {
           setSections([...sections, newSection])
           onDataChange?.()
@@ -141,13 +142,13 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
           order_index: editingSection.order_index,
           amenities: editingSection.amenities
         })
-        
+
         if (updatedSection) {
           setSections(sections.map(section => section.id === editingSection.id ? updatedSection : section))
           onDataChange?.()
         }
       }
-      
+
       setEditingSection(null)
       setIsAddingNew(false)
     } catch (error) {
@@ -177,7 +178,7 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
   // Funciones para manejar amenities
   const addAmenity = (amenity: string) => {
     if (!editingSection || !amenity.trim()) return
-    
+
     const currentAmenities = editingSection.amenities || []
     if (!currentAmenities.includes(amenity.trim())) {
       setEditingSection({
@@ -189,7 +190,7 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
 
   const removeAmenity = (amenity: string) => {
     if (!editingSection) return
-    
+
     setEditingSection({
       ...editingSection,
       amenities: (editingSection.amenities || []).filter(a => a !== amenity)
@@ -249,63 +250,67 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
             </div>
           ) : (
             <div className="grid gap-4">
-              {sections.map((section) => (
-                <Card key={section.id} className="border border-gray-200">
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {section.icon && (
-                          <i className={`${section.icon} text-blue-600 text-lg flex-shrink-0`}></i>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-lg truncate">{section.title}</CardTitle>
-                          <p className="text-sm text-gray-600">
-                            {sectionTypeLabels[section.section_type as keyof typeof sectionTypeLabels] || section.section_type}
-                          </p>
-                          {section.description && (
-                            <p className="text-sm text-gray-600 mt-1 break-words">{section.description}</p>
+              {sections.map((section) => {
+                const IconComponent = getIconByName(section.icon)
+
+                return (
+                  <Card key={section.id} className="border border-gray-200">
+                    <CardHeader className="pb-3">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {section.icon && (
+                            <IconComponent className="h-6 w-6 text-blue-600" />
                           )}
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-lg truncate">{section.title}</CardTitle>
+                            <p className="text-sm text-gray-600">
+                              {sectionTypeLabels[section.section_type as keyof typeof sectionTypeLabels] || section.section_type}
+                            </p>
+                            {section.description && (
+                              <p className="text-sm text-gray-600 mt-1 break-words">{section.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(section)}
+                            className="text-blue-600 hover:text-blue-700 flex-1 md:flex-initial"
+                          >
+                            <i className="fas fa-edit"></i>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(section.id)}
+                            className="text-red-600 hover:text-red-700 flex-shrink-0"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(section)}
-                          className="text-blue-600 hover:text-blue-700 flex-1 md:flex-initial"
-                        >
-                          <i className="fas fa-edit"></i>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(section.id)}
-                          className="text-red-600 hover:text-red-700 flex-shrink-0"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    {section.details && (
-                      <p className="text-sm text-gray-700 mb-3">{section.details}</p>
-                    )}
-                    {section.amenities && section.amenities.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-700">Amenities:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {section.amenities.map((amenity, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {amenity}
-                            </Badge>
-                          ))}
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {section.details && (
+                        <p className="text-sm text-gray-700 mb-3">{section.details}</p>
+                      )}
+                      {section.amenities && section.amenities.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700">Amenities:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {section.amenities.map((amenity, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {amenity}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
         </CardContent>
@@ -340,12 +345,12 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
                     </SelectContent>
                   </Select>
                 </div>
-              <div className="space-y-2">
-                <IconSelector
-                  value={editingSection.icon || 'fas fa-home'}
-                  onChange={(iconCode) => setEditingSection({ ...editingSection, icon: iconCode })}
-                />
-              </div>
+                <div className="space-y-2">
+                  <IconSelector
+                    value={editingSection.icon || 'Home'}
+                    onChange={(iconName) => setEditingSection({ ...editingSection, icon: iconName })}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -401,7 +406,7 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
               {/* Sección de Amenities */}
               <div className="space-y-4">
                 <Label>Amenities</Label>
-                
+
                 {/* Amenities actuales */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Amenities seleccionados:</Label>

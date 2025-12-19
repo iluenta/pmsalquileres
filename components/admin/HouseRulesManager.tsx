@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { HouseRule } from "@/types/guides"
 import { getHouseRules, createHouseRule, updateHouseRule, deleteHouseRule } from "@/lib/api/guides-client"
+import { getIconByName } from "@/lib/utils/icon-registry"
+import { IconSelector } from "@/components/admin/IconSelector"
 
 interface HouseRulesManagerProps {
   guideId: string
@@ -48,7 +50,7 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
       tenant_id: "",
       title: "",
       description: "",
-      icon: "fas fa-info-circle",
+      icon: "Info",
       order_index: rules.length + 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -69,7 +71,7 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
           icon: editingRule.icon,
           order_index: editingRule.order_index
         })
-        
+
         if (newRule) {
           setRules([...rules, newRule])
         }
@@ -81,12 +83,12 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
           icon: editingRule.icon,
           order_index: editingRule.order_index
         })
-        
+
         if (updatedRule) {
           setRules(rules.map(rule => rule.id === editingRule.id ? updatedRule : rule))
         }
       }
-      
+
       setEditingRule(null)
       setIsAddingNew(false)
     } catch (error) {
@@ -147,29 +149,33 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              {rules.map((rule) => (
-                <div key={rule.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <i className={`${rule.icon} text-blue-600`}></i>
+              {rules.map((rule) => {
+                const IconComponent = getIconByName(rule.icon)
+
+                return (
+                  <div key={rule.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <IconComponent className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-1">{rule.title}</h4>
+                          <p className="text-sm text-gray-600">{rule.description}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-medium mb-1">{rule.title}</h4>
-                        <p className="text-sm text-gray-600">{rule.description}</p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(rule)}>
+                          <i className="fas fa-edit"></i>
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDelete(rule.id)}>
+                          <i className="fas fa-trash"></i>
+                        </Button>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(rule)}>
-                        <i className="fas fa-edit"></i>
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(rule.id)}>
-                        <i className="fas fa-trash"></i>
-                      </Button>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </CardContent>
@@ -193,18 +199,20 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="rule-icon">Icono (Font Awesome)</Label>
-                  <Input
-                    id="rule-icon"
-                    value={editingRule.icon || ''}
-                    onChange={(e) => setEditingRule({ ...editingRule, icon: e.target.value })}
-                    placeholder="fas fa-info-circle"
+                  <IconSelector
+                    value={editingRule.icon || 'Info'}
+                    onChange={(iconName) => setEditingRule({ ...editingRule, icon: iconName })}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="rule-description">Descripción</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="rule-description">Descripción</Label>
+                  <span className="text-[10px] text-muted-foreground">
+                    **negrita** | [color:azul]texto[/color] (rojo, verde, naranja)
+                  </span>
+                </div>
                 <Textarea
                   id="rule-description"
                   value={editingRule.description || ''}

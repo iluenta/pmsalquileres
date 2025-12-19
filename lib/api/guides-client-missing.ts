@@ -3,9 +3,9 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 // Helper function to get current user's tenant_id
 async function getCurrentUserTenantId(): Promise<string | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   console.log("[v0] Getting current user tenant_id...")
-  
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     console.error("[v0] No authenticated user found")
@@ -51,7 +51,7 @@ import type {
 
 export async function getApartmentSections(guideId: string): Promise<ApartmentSection[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("apartment_sections")
     .select("*")
@@ -68,12 +68,12 @@ export async function getApartmentSections(guideId: string): Promise<ApartmentSe
 
 export async function createApartmentSection(data: CreateApartmentSectionData): Promise<ApartmentSection | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const tenantId = await getCurrentUserTenantId()
   if (!tenantId) {
     return null
   }
-  
+
   // Insertar directamente en apartment_sections
   const insertData = {
     tenant_id: tenantId,
@@ -87,7 +87,7 @@ export async function createApartmentSection(data: CreateApartmentSectionData): 
     order_index: data.order_index || 0,
     amenities: data.amenities || []
   }
-  
+
   const { data: result, error } = await supabase
     .from("apartment_sections")
     .insert(insertData)
@@ -105,7 +105,7 @@ export async function createApartmentSection(data: CreateApartmentSectionData): 
 
 export async function updateApartmentSection(id: string, data: UpdateApartmentSectionData): Promise<ApartmentSection | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   // Actualizar directamente en apartment_sections
   const updateData = {
     section_type: data.section_type,
@@ -117,7 +117,7 @@ export async function updateApartmentSection(id: string, data: UpdateApartmentSe
     order_index: data.order_index,
     amenities: data.amenities
   }
-  
+
   const { data: result, error } = await supabase
     .from("apartment_sections")
     .update(updateData)
@@ -136,7 +136,7 @@ export async function updateApartmentSection(id: string, data: UpdateApartmentSe
 
 export async function deleteApartmentSection(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("apartment_sections")
     .delete()
@@ -156,12 +156,12 @@ export async function deleteApartmentSection(id: string): Promise<boolean> {
 
 export async function createBeach(data: CreateBeachData): Promise<Beach | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const tenantId = await getCurrentUserTenantId()
   if (!tenantId) {
     return null
   }
-  
+
   // Mapear los campos correctamente para guide_places
   const insertData = {
     tenant_id: tenantId,
@@ -175,9 +175,9 @@ export async function createBeach(data: CreateBeachData): Promise<Beach | null> 
     order_index: data.order_index || 0,
     place_type: "beach"
   }
-  
+
   console.log("[v0] Creating beach with data:", insertData)
-  
+
   const { data: result, error } = await supabase
     .from("guide_places")
     .insert(insertData)
@@ -196,7 +196,7 @@ export async function createBeach(data: CreateBeachData): Promise<Beach | null> 
 
 export async function updateBeach(id: string, data: UpdateBeachData): Promise<Beach | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("guide_places")
     .update(data)
@@ -214,7 +214,7 @@ export async function updateBeach(id: string, data: UpdateBeachData): Promise<Be
 
 export async function deleteBeach(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("guide_places")
     .delete()
@@ -234,12 +234,12 @@ export async function deleteBeach(id: string): Promise<boolean> {
 
 export async function createRestaurant(data: CreateRestaurantData): Promise<Restaurant | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const tenantId = await getCurrentUserTenantId()
   if (!tenantId) {
     return null
   }
-  
+
   // Mapear los campos correctamente para guide_places
   const insertData = {
     tenant_id: tenantId,
@@ -252,9 +252,9 @@ export async function createRestaurant(data: CreateRestaurantData): Promise<Rest
     order_index: data.order_index || 0,
     place_type: "restaurant"
   }
-  
+
   console.log("[v0] Creating restaurant with data:", insertData)
-  
+
   const { data: result, error } = await supabase
     .from("guide_places")
     .insert(insertData)
@@ -273,7 +273,7 @@ export async function createRestaurant(data: CreateRestaurantData): Promise<Rest
 
 export async function updateRestaurant(id: string, data: UpdateRestaurantData): Promise<Restaurant | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("guide_places")
     .update(data)
@@ -291,7 +291,7 @@ export async function updateRestaurant(id: string, data: UpdateRestaurantData): 
 
 export async function deleteRestaurant(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("guide_places")
     .delete()
@@ -312,18 +312,18 @@ export async function deleteRestaurant(id: string): Promise<boolean> {
 export async function createActivity(data: CreateActivityData): Promise<Activity | null> {
   console.log("[v0] Starting createActivity function...")
   console.log("[v0] Input data:", data)
-  
+
   const supabase = getSupabaseBrowserClient()
   console.log("[v0] Supabase client created")
-  
+
   const tenantId = await getCurrentUserTenantId()
   console.log("[v0] Tenant ID result:", tenantId)
-  
+
   if (!tenantId) {
     console.error("[v0] No tenant ID found, returning null")
     return null
   }
-  
+
   // Mapear los campos correctamente para guide_places
   const insertData = {
     tenant_id: tenantId,
@@ -336,13 +336,13 @@ export async function createActivity(data: CreateActivityData): Promise<Activity
     order_index: data.order_index || 0,
     place_type: "activity"
   }
-  
+
   console.log("[v0] Creating activity with data:", insertData)
   console.log("[v0] Data validation:")
   console.log("- guide_id:", insertData.guide_id)
   console.log("- name:", insertData.name)
   console.log("- tenant_id:", insertData.tenant_id)
-  
+
   const { data: result, error } = await supabase
     .from("guide_places")
     .insert(insertData)
@@ -366,7 +366,7 @@ export async function createActivity(data: CreateActivityData): Promise<Activity
 
 export async function updateActivity(id: string, data: UpdateActivityData): Promise<Activity | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("guide_places")
     .update(data)
@@ -384,7 +384,7 @@ export async function updateActivity(id: string, data: UpdateActivityData): Prom
 
 export async function deleteActivity(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("guide_places")
     .delete()
@@ -404,7 +404,7 @@ export async function deleteActivity(id: string): Promise<boolean> {
 
 export async function getHouseGuideItems(guideId: string): Promise<any[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("house_guide_items")
     .select("*")
@@ -421,12 +421,12 @@ export async function getHouseGuideItems(guideId: string): Promise<any[]> {
 
 export async function createHouseGuideItem(data: any): Promise<any | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const tenantId = await getCurrentUserTenantId()
   if (!tenantId) {
     return null
   }
-  
+
   const { data: result, error } = await supabase
     .from("house_guide_items")
     .insert({
@@ -446,7 +446,7 @@ export async function createHouseGuideItem(data: any): Promise<any | null> {
 
 export async function updateHouseGuideItem(id: string, data: any): Promise<any | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("house_guide_items")
     .update(data)
@@ -464,7 +464,7 @@ export async function updateHouseGuideItem(id: string, data: any): Promise<any |
 
 export async function deleteHouseGuideItem(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("house_guide_items")
     .delete()
@@ -484,7 +484,7 @@ export async function deleteHouseGuideItem(id: string): Promise<boolean> {
 
 export async function getHouseRules(guideId: string): Promise<any[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
     .from("house_rules")
     .select("*")
@@ -501,12 +501,12 @@ export async function getHouseRules(guideId: string): Promise<any[]> {
 
 export async function createHouseRule(data: any): Promise<any | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const tenantId = await getCurrentUserTenantId()
   if (!tenantId) {
     return null
   }
-  
+
   const { data: result, error } = await supabase
     .from("house_rules")
     .insert({
@@ -526,7 +526,7 @@ export async function createHouseRule(data: any): Promise<any | null> {
 
 export async function updateHouseRule(id: string, data: any): Promise<any | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data: result, error } = await supabase
     .from("house_rules")
     .update(data)
@@ -544,7 +544,7 @@ export async function updateHouseRule(id: string, data: any): Promise<any | null
 
 export async function deleteHouseRule(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
     .from("house_rules")
     .delete()
@@ -564,12 +564,11 @@ export async function deleteHouseRule(id: string): Promise<boolean> {
 
 export async function getTips(guideId: string): Promise<any[]> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { data, error } = await supabase
-    .from("guide_sections")
+    .from("tips")
     .select("*")
     .eq("guide_id", guideId)
-    .eq("section_type", "tips")
     .order("order_index", { ascending: true })
 
   if (error) {
@@ -582,25 +581,24 @@ export async function getTips(guideId: string): Promise<any[]> {
 
 export async function createTip(data: any): Promise<any | null> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const tenantId = await getCurrentUserTenantId()
   if (!tenantId) {
     return null
   }
-  
-  // Mapear los campos correctamente para guide_sections
+
   const insertData = {
     tenant_id: tenantId,
     guide_id: data.guide_id,
-    section_type: "tips",
     title: data.title,
-    content: data.description || data.content, // Usar description como content
+    description: data.description,
+    details: data.details,
     icon: data.icon,
     order_index: data.order_index || 0
   }
-  
+
   const { data: result, error } = await supabase
-    .from("guide_sections")
+    .from("tips")
     .insert(insertData)
     .select()
     .single()
@@ -616,17 +614,19 @@ export async function createTip(data: any): Promise<any | null> {
 
 export async function updateTip(id: string, data: any): Promise<any | null> {
   const supabase = getSupabaseBrowserClient()
-  
-  // Mapear los campos correctamente para guide_sections
+
   const updateData = {
     title: data.title,
-    content: data.description || data.content, // Usar description como content
+    description: data.description,
+    details: data.details,
     icon: data.icon,
     order_index: data.order_index
   }
-  
+
+  console.log("[v0] Attempting to update tip:", id, updateData)
+
   const { data: result, error } = await supabase
-    .from("guide_sections")
+    .from("tips")
     .update(updateData)
     .eq("id", id)
     .select()
@@ -634,18 +634,25 @@ export async function updateTip(id: string, data: any): Promise<any | null> {
 
   if (error) {
     console.error("[v0] Error updating tip:", error)
-    console.error("[v0] Update data:", updateData)
+    console.error("[v0] Error details:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint
+    })
+    console.error("[v0] Update data was:", updateData)
     return null
   }
 
+  console.log("[v0] Tip updated successfully:", result)
   return result
 }
 
 export async function deleteTip(id: string): Promise<boolean> {
   const supabase = getSupabaseBrowserClient()
-  
+
   const { error } = await supabase
-    .from("guide_sections")
+    .from("tips")
     .delete()
     .eq("id", id)
 

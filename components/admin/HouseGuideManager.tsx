@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { HouseGuideItem } from "@/types/guides"
+import { ApartmentSection, HouseGuideItem } from "@/types/guides"
 import { getHouseGuideItems, createHouseGuideItem, updateHouseGuideItem, deleteHouseGuideItem } from "@/lib/api/guides-client"
+import { getIconByName } from "@/lib/utils/icon-registry"
+import { IconSelector } from "@/components/admin/IconSelector"
 
 interface HouseGuideManagerProps {
   guideId: string
@@ -49,7 +51,7 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
       title: "",
       description: "",
       details: "",
-      icon: "",
+      icon: "Lightbulb",
       order_index: items.length,
       created_at: "",
       updated_at: ""
@@ -70,7 +72,7 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
           icon: editingItem.icon,
           order_index: editingItem.order_index
         })
-        
+
         if (newItem) {
           setItems([...items, newItem])
         }
@@ -82,14 +84,14 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
           icon: editingItem.icon,
           order_index: editingItem.order_index
         })
-        
+
         if (updatedItem) {
-          setItems(items.map(item => 
+          setItems(items.map(item =>
             item.id === editingItem.id ? updatedItem : item
           ))
         }
       }
-      
+
       setEditingItem(null)
       setIsAddingNew(false)
     } catch (error) {
@@ -138,48 +140,52 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
 
       {/* Lista de elementos existentes */}
       <div className="grid gap-4">
-        {items.map((item) => (
-          <Card key={item.id} className="border border-gray-200">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {item.icon && (
-                    <i className={`${item.icon} text-blue-600 text-lg`}></i>
-                  )}
-                  <div>
-                    <CardTitle className="text-lg">{item.title}</CardTitle>
-                    {item.description && (
-                      <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+        {items.map((item) => {
+          const IconComponent = getIconByName(item.icon)
+
+          return (
+            <Card key={item.id} className="border border-gray-200">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {item.icon && (
+                      <IconComponent className="h-6 w-6 text-blue-600" />
                     )}
+                    <div>
+                      <CardTitle className="text-lg">{item.title}</CardTitle>
+                      {item.description && (
+                        <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(item)}
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <i className="fas fa-edit"></i>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(item.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(item)}
-                    className="text-blue-600 hover:text-blue-700"
-                  >
-                    <i className="fas fa-edit"></i>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(item.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <i className="fas fa-trash"></i>
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            {item.details && (
-              <CardContent className="pt-0">
-                <p className="text-sm text-gray-700">{item.details}</p>
-              </CardContent>
-            )}
-          </Card>
-        ))}
+              </CardHeader>
+              {item.details && (
+                <CardContent className="pt-0">
+                  <p className="text-sm text-gray-700">{item.details}</p>
+                </CardContent>
+              )}
+            </Card>
+          )
+        })}
       </div>
 
       {/* Formulario de edición */}
@@ -203,18 +209,20 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="item-icon">Icono (Font Awesome)</Label>
-                  <Input
-                    id="item-icon"
-                    value={editingItem.icon || ''}
-                    onChange={(e) => setEditingItem({ ...editingItem, icon: e.target.value })}
-                    placeholder="fas fa-home"
+                  <IconSelector
+                    value={editingItem.icon || 'Lightbulb'}
+                    onChange={(iconName) => setEditingItem({ ...editingItem, icon: iconName })}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="item-description">Descripción</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="item-description">Descripción</Label>
+                  <span className="text-[10px] text-muted-foreground">
+                    **negrita** | [color:azul]texto[/color] (rojo, verde, naranja)
+                  </span>
+                </div>
                 <Textarea
                   id="item-description"
                   value={editingItem.description || ''}
@@ -225,7 +233,12 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="item-details">Detalles</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="item-details">Detalles</Label>
+                  <span className="text-[10px] text-muted-foreground">
+                    **negrita** | [color:azul]texto[/color]
+                  </span>
+                </div>
                 <Textarea
                   id="item-details"
                   value={editingItem.details || ''}

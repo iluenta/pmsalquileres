@@ -31,7 +31,7 @@ export function LandingHeader({ slug }: LandingHeaderProps) {
 
         <div className="hidden md:flex items-center gap-4">
           <Button variant="outline" asChild>
-            <Link href={`/guides/${slug}/public`}>Guía del Huésped</Link>
+            <Link href={`/guides/${slug}`}>Guía del Huésped</Link>
           </Button>
           <Button asChild>
             <Link href={`/landing/${slug}/reservas`}>Reservar Ahora</Link>
@@ -54,7 +54,7 @@ export function LandingHeader({ slug }: LandingHeaderProps) {
           <a href="#ubicacion" className="block text-sm text-foreground hover:text-primary">Ubicación</a>
           <div className="flex gap-2 pt-4">
             <Button variant="outline" asChild className="flex-1">
-              <Link href={`/guides/${slug}/public`}>Guía</Link>
+              <Link href={`/guides/${slug}`}>Guía</Link>
             </Button>
             <Button asChild className="flex-1">
               <Link href={`/landing/${slug}/reservas`}>Reservar</Link>

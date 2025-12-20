@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     if (!result || result.isUUID || !result.property) {
         return {
-            title: "Guía de la Propiedad V2",
+            title: "Guía de la Propiedad",
             description: "Guía interactiva del huésped",
         }
     }
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
 }
 
-export default async function GuidePublicPageV2({ params }: PageProps) {
+export default async function GuidePublicPage({ params }: PageProps) {
     try {
         const awaitedParams = await params
         const { slug } = awaitedParams
@@ -60,7 +60,7 @@ export default async function GuidePublicPageV2({ params }: PageProps) {
 
         return <PropertyGuideV2 propertyId={result.id} />
     } catch (error) {
-        console.error("[GuidePublicPageV2] Error:", error)
+        console.error("[GuidePublicPage] Error:", error)
         notFound()
     }
 }

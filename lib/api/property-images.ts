@@ -187,35 +187,42 @@ export async function deletePropertyImage(
     try {
       const url = existing.image_url
       console.log("[deletePropertyImage] URL completa:", url)
-      
+
       // Función helper para extraer el path de diferentes formatos de URL
       const extractFilePath = (imageUrl: string): string | null => {
-        // Formato 1: https://[project].supabase.co/storage/v1/object/public/property-images/[path]
-        if (imageUrl.includes('/storage/v1/object/public/property-images/')) {
-          const path = imageUrl.split('/storage/v1/object/public/property-images/')[1]
-          return path?.split('?')[0] || null // Eliminar query params
-        }
-        
-        // Formato 2: https://[project].supabase.co/storage/v1/object/public/property-images/[path]?...
-        if (imageUrl.includes('/property-images/')) {
-          const parts = imageUrl.split('/property-images/')
-          if (parts.length > 1) {
-            const path = parts[1]
-            return path?.split('?')[0] || null // Eliminar query params
+        try {
+          // Si es una URL completa
+          if (imageUrl.startsWith('http')) {
+            const urlObj = new URL(imageUrl)
+            const pathSegments = urlObj.pathname.split('/')
+
+            // Buscar 'property-images' en los segmentos de la URL
+            const bucketIndex = pathSegments.indexOf('property-images')
+            if (bucketIndex !== -1 && bucketIndex < pathSegments.length - 1) {
+              // El path es todo lo que sigue al nombre del bucket
+              return decodeURIComponent(pathSegments.slice(bucketIndex + 1).join('/')).split('?')[0]
+            }
           }
+
+          // Formatos relativos o directos
+          if (imageUrl.includes('/property-images/')) {
+            const parts = imageUrl.split('/property-images/')
+            const segment = parts[1]?.split('?')[0]
+            return segment ? decodeURIComponent(segment) : null
+          }
+
+          if (imageUrl.startsWith('property-images/')) {
+            return decodeURIComponent(imageUrl.replace('property-images/', '').split('?')[0])
+          }
+
+          // Si no tiene barras ni http, asumimos que es solo el nombre
+          if (!imageUrl.includes('/') && !imageUrl.startsWith('http')) {
+            return decodeURIComponent(imageUrl)
+          }
+        } catch (e) {
+          console.error("[deletePropertyImage] Error parseando URL:", imageUrl, e)
         }
-        
-        // Formato 3: Path relativo directo
-        if (imageUrl.startsWith('property-images/')) {
-          return imageUrl.replace('property-images/', '')
-        }
-        
-        // Formato 4: Solo el nombre del archivo (sin bucket)
-        // Si no tiene barras ni http, asumimos que es solo el nombre
-        if (!imageUrl.includes('/') && !imageUrl.startsWith('http')) {
-          return imageUrl
-        }
-        
+
         return null
       }
 
@@ -226,30 +233,35 @@ export async function deletePropertyImage(
         // Usar cliente admin para eliminar el archivo
         const { getSupabaseAdmin } = await import('@/lib/supabase/admin')
         const adminClient = getSupabaseAdmin()
-        
+
         console.log("[deletePropertyImage] Intentando eliminar archivo del bucket 'property-images':", filePath)
-        
-        const { data, error: deleteError } = await adminClient.storage
+
+        const { data: removedData, error: deleteError } = await adminClient.storage
           .from('property-images')
           .remove([filePath])
 
         if (deleteError) {
           console.error("[deletePropertyImage] Error eliminando archivo del storage:", deleteError)
-          console.error("[deletePropertyImage] Detalles del error:", JSON.stringify(deleteError, null, 2))
-          // Lanzar error para que el usuario sepa que falló
           throw new Error(`Error al eliminar archivo del storage: ${deleteError.message}`)
+        }
+
+        // Verificar si realmente se eliminó (remove devuelve una lista de archivos eliminados)
+        if (!removedData || removedData.length === 0) {
+          console.warn("[deletePropertyImage] El archivo no se encontró en storage o no fue eliminado:", filePath)
+          // No lanzamos error aquí para permitir eliminar el registro de la DB si el archivo ya no existe
         } else {
           console.log("[deletePropertyImage] Archivo eliminado exitosamente del storage:", filePath)
         }
       } else {
         console.warn("[deletePropertyImage] No se pudo extraer el path del archivo de la URL:", url)
-        throw new Error(`No se pudo extraer el path del archivo de la URL: ${url}`)
+        // No lanzamos error para permitir borrar el registro de la DB aunque el path sea inválido
       }
     } catch (storageError: any) {
       console.error("[deletePropertyImage] Error al eliminar del storage:", storageError)
-      console.error("[deletePropertyImage] Stack:", storageError?.stack)
-      // Lanzar el error para que se propague y el usuario sepa que falló
-      throw new Error(`Error al eliminar archivo del storage: ${storageError.message}`)
+      // Solo relanzamos si es un error crítico de ejecución, no si no se encontró el archivo
+      if (storageError.message && !storageError.message.includes('No se pudo extraer el path')) {
+        throw storageError
+      }
     }
   }
 

@@ -57,9 +57,9 @@ export default function GuidesPage() {
           property:properties(id, name, slug, street, city, description)
         `)
         .order('created_at', { ascending: false })
-      
+
       const { data, error } = await query
-      
+
       // Si el error es porque slug no existe, intentar sin slug
       if (error && (error.message?.includes('slug') || error.code === '42703')) {
         console.log('Slug column not found, fetching without slug')
@@ -70,11 +70,11 @@ export default function GuidesPage() {
             property:properties(id, name, street, city, description)
           `)
           .order('created_at', { ascending: false })
-        
+
         if (errorWithoutSlug) {
           throw errorWithoutSlug
         }
-        
+
         setGuides(dataWithoutSlug || [])
         return
       }
@@ -99,14 +99,14 @@ export default function GuidesPage() {
       }
 
       console.log('Fetching properties...')
-      
+
       const { data, error } = await supabase
         .from('properties')
         .select('id, name, street, city, description, tenant_id, created_at, updated_at')
         .order('name')
 
       if (error) throw error
-      
+
       console.log('Properties found:', data?.length || 0)
       setProperties(data || [])
     } catch (err) {
@@ -125,7 +125,7 @@ export default function GuidesPage() {
     try {
       console.log('Creating guide for property:', selectedPropertyId)
       console.log('Form data:', formData)
-      
+
       const guideData = {
         property_id: selectedPropertyId,
         title: formData.title || "Guía del Huésped",
@@ -133,14 +133,14 @@ export default function GuidesPage() {
         host_names: formData.host_names || "",
         host_signature: formData.host_signature || "",
       }
-      
+
       console.log('Guide data to create:', guideData)
-      
+
       const createdGuide = await createGuide(guideData)
-      
+
       if (createdGuide) {
         console.log('Guide created successfully:', createdGuide)
-        
+
         // Reset form and close dialog
         setFormData({
           title: "Guía del Huésped",
@@ -151,7 +151,7 @@ export default function GuidesPage() {
         setSelectedPropertyId("")
         setShowCreateDialog(false)
         setError(null)
-        
+
         // Refresh guides list
         await fetchGuides()
       } else {
@@ -196,206 +196,206 @@ export default function GuidesPage() {
 
   return (
     <div className="space-y-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 mb-8">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Guías del Huésped</h1>
-            <p className="text-sm md:text-base text-gray-600 mt-2">Gestiona las guías de tus propiedades</p>
-          </div>
-          
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button className="w-full md:w-auto">
-                <i className="fas fa-plus mr-2"></i>
-                Crear Nueva Guía
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Crear Nueva Guía</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreateGuide} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="property">Propiedad</Label>
-                  {properties.length === 0 ? (
-                    <div className="p-3 border border-yellow-300 rounded-md bg-yellow-50">
-                      <p className="text-sm text-yellow-800">
-                        No hay propiedades disponibles para tu tenant. 
-                        <br />
-                        <Link href="/dashboard/properties" className="text-blue-600 hover:underline">
-                          Ve a Propiedades para crear una nueva.
-                        </Link>
-                      </p>
-                    </div>
-                  ) : (
-                    <select
-                      id="property"
-                      value={selectedPropertyId}
-                      onChange={(e) => setSelectedPropertyId(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md"
-                      required
-                    >
-                      <option value="">Selecciona una propiedad</option>
-                      {properties.map((property) => (
-                        <option key={property.id} value={property.id}>
-                          {property.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="title">Título de la Guía</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Ej: Guía del Huésped"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="host_names">Nombres de los Anfitriones</Label>
-                  <Input
-                    id="host_names"
-                    value={formData.host_names}
-                    onChange={(e) => setFormData({ ...formData, host_names: e.target.value })}
-                    placeholder="Ej: Sonia y Pedro"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="welcome_message">Mensaje de Bienvenida</Label>
-                  <Textarea
-                    id="welcome_message"
-                    value={formData.welcome_message}
-                    onChange={(e) => setFormData({ ...formData, welcome_message: e.target.value })}
-                    placeholder="Mensaje de bienvenida para los huéspedes"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="host_signature">Firma de los Anfitriones</Label>
-                  <Input
-                    id="host_signature"
-                    value={formData.host_signature}
-                    onChange={(e) => setFormData({ ...formData, host_signature: e.target.value })}
-                    placeholder="Ej: Con cariño, Sonia y Pedro"
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button 
-                    type="submit" 
-                    className="flex-1"
-                    disabled={properties.length === 0}
-                  >
-                    Crear Guía
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowCreateDialog(false)}
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 mb-8">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Guías del Huésped</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-2">Gestiona las guías de tus propiedades</p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-600">{error}</p>
-          </div>
-        )}
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button className="w-full md:w-auto">
+              <i className="fas fa-plus mr-2"></i>
+              Crear Nueva Guía
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Crear Nueva Guía</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateGuide} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="property">Propiedad</Label>
+                {properties.length === 0 ? (
+                  <div className="p-3 border border-yellow-300 rounded-md bg-yellow-50">
+                    <p className="text-sm text-yellow-800">
+                      No hay propiedades disponibles para tu tenant.
+                      <br />
+                      <Link href="/dashboard/properties" className="text-blue-600 hover:underline">
+                        Ve a Propiedades para crear una nueva.
+                      </Link>
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    id="property"
+                    value={selectedPropertyId}
+                    onChange={(e) => setSelectedPropertyId(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded-md"
+                    required
+                  >
+                    <option value="">Selecciona una propiedad</option>
+                    {properties.map((property) => (
+                      <option key={property.id} value={property.id}>
+                        {property.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
 
-        {guides.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <i className="fas fa-book text-4xl text-gray-400 mb-4"></i>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay guías creadas</h3>
-              <p className="text-gray-600 mb-4">Crea tu primera guía del huésped para comenzar</p>
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <i className="fas fa-plus mr-2"></i>
-                Crear Primera Guía
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {/* Mobile View: Cards (all visible) */}
-            <div className="block md:hidden space-y-4">
-              {guides.map((guide) => (
-                <Card key={guide.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{guide.property.name}</CardTitle>
-                      <Badge variant="secondary">Activa</Badge>
+              <div className="space-y-2">
+                <Label htmlFor="title">Título de la Guía</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Ej: Guía del Huésped"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="host_names">Nombres de los Anfitriones</Label>
+                <Input
+                  id="host_names"
+                  value={formData.host_names}
+                  onChange={(e) => setFormData({ ...formData, host_names: e.target.value })}
+                  placeholder="Ej: Sonia y Pedro"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="welcome_message">Mensaje de Bienvenida</Label>
+                <Textarea
+                  id="welcome_message"
+                  value={formData.welcome_message}
+                  onChange={(e) => setFormData({ ...formData, welcome_message: e.target.value })}
+                  placeholder="Mensaje de bienvenida para los huéspedes"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="host_signature">Firma de los Anfitriones</Label>
+                <Input
+                  id="host_signature"
+                  value={formData.host_signature}
+                  onChange={(e) => setFormData({ ...formData, host_signature: e.target.value })}
+                  placeholder="Ej: Con cariño, Sonia y Pedro"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={properties.length === 0}
+                >
+                  Crear Guía
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreateDialog(false)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <p className="text-red-600">{error}</p>
+        </div>
+      )}
+
+      {guides.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <i className="fas fa-book text-4xl text-gray-400 mb-4"></i>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No hay guías creadas</h3>
+            <p className="text-gray-600 mb-4">Crea tu primera guía del huésped para comenzar</p>
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <i className="fas fa-plus mr-2"></i>
+              Crear Primera Guía
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Mobile View: Cards (all visible) */}
+          <div className="block md:hidden space-y-4">
+            {guides.map((guide) => (
+              <Card key={guide.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{guide.property.name}</CardTitle>
+                    <Badge variant="secondary">Activa</Badge>
+                  </div>
+                  <p className="text-sm text-gray-600">{guide.property.street || guide.property.city}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Título</p>
+                      <p className="text-sm text-gray-600">{guide.title}</p>
                     </div>
-                    <p className="text-sm text-gray-600">{guide.property.street || guide.property.city}</p>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
+
+                    {guide.host_names && (
                       <div>
-                        <p className="text-sm font-medium text-gray-900">Título</p>
-                        <p className="text-sm text-gray-600">{guide.title}</p>
+                        <p className="text-sm font-medium text-gray-900">Anfitriones</p>
+                        <p className="text-sm text-gray-600">{guide.host_names}</p>
                       </div>
-                      
-                      {guide.host_names && (
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">Anfitriones</p>
-                          <p className="text-sm text-gray-600">{guide.host_names}</p>
-                        </div>
-                      )}
+                    )}
 
-                      {guide.welcome_message && (
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">Mensaje</p>
-                          <p className="text-sm text-gray-600 line-clamp-2">{guide.welcome_message}</p>
-                        </div>
-                      )}
+                    {guide.welcome_message && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Mensaje</p>
+                        <p className="text-sm text-gray-600 line-clamp-2">{guide.welcome_message}</p>
+                      </div>
+                    )}
 
-                      <div className="flex gap-2 pt-4">
-                        <Button asChild size="sm" className="flex-1">
-                          <Link href={`/dashboard/guides/${guide.property_id}`}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar
-                          </Link>
-                        </Button>
-                        <Button asChild size="sm" variant="outline" className="flex-1">
-                          <Link 
-                            href={`/guides/${guide.property?.slug || guide.property_id}/public`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Ver
-                          </Link>
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={() => handleDeleteGuide(guide.id)}
-                          title="Eliminar guía"
+                    <div className="flex gap-2 pt-4">
+                      <Button asChild size="sm" className="flex-1">
+                        <Link href={`/dashboard/guides/${guide.property_id}`}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </Link>
+                      </Button>
+                      <Button asChild size="sm" variant="outline" className="flex-1">
+                        <Link
+                          href={`/guides/${guide.property?.slug || guide.property_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver
+                        </Link>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteGuide(guide.id)}
+                        title="Eliminar guía"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-            {/* Desktop View: Grid with pagination */}
-            <div className="hidden md:block">
-              <GuidesGrid guides={guides} currentPage={currentPage} onPageChange={setCurrentPage} onDelete={handleDeleteGuide} />
-            </div>
-          </>
-        )}
+          {/* Desktop View: Grid with pagination */}
+          <div className="hidden md:block">
+            <GuidesGrid guides={guides} currentPage={currentPage} onPageChange={setCurrentPage} onDelete={handleDeleteGuide} />
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -453,7 +453,7 @@ function GuidesGrid({ guides, currentPage, onPageChange, onDelete }: GuidesGridP
                   <p className="text-sm font-medium text-gray-900">Título</p>
                   <p className="text-sm text-gray-600">{guide.title}</p>
                 </div>
-                
+
                 {guide.host_names && (
                   <div>
                     <p className="text-sm font-medium text-gray-900">Anfitriones</p>
@@ -476,8 +476,8 @@ function GuidesGrid({ guides, currentPage, onPageChange, onDelete }: GuidesGridP
                     </Link>
                   </Button>
                   <Button asChild size="sm" variant="outline" className="flex-1">
-                    <Link 
-                      href={`/guides/${guide.property?.slug || guide.property_id}/public`}
+                    <Link
+                      href={`/guides/${guide.property?.slug || guide.property_id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -485,8 +485,8 @@ function GuidesGrid({ guides, currentPage, onPageChange, onDelete }: GuidesGridP
                       Ver
                     </Link>
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="destructive"
                     onClick={() => onDelete(guide.id)}
                     title="Eliminar guía"

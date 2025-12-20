@@ -156,7 +156,7 @@ export function PropertyCard({ property, onEdit, onDelete, onViewGuide }: Proper
               if (onViewGuide) {
                 onViewGuide(property)
               } else {
-                window.open(`/guides/${property.slug || property.id}/public`, "_blank")
+                window.open(`/guides/${property.slug || property.id}`, "_blank")
               }
             }}
             title="Ver Guía del Huésped"

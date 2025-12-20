@@ -56,7 +56,7 @@ export function PublicCheckoutForm({
 
   const validateForm = () => {
     const newErrors: Partial<Record<keyof FormData, boolean>> = {}
-    
+
     if (!formData.firstName.trim()) newErrors.firstName = true
     if (!formData.lastName.trim()) newErrors.lastName = true
     if (!formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) newErrors.email = true
@@ -70,7 +70,7 @@ export function PublicCheckoutForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
-    
+
     if (!validateForm()) {
       return
     }
@@ -137,7 +137,7 @@ export function PublicCheckoutForm({
         </p>
         <div className="pt-4 flex gap-4 justify-center">
           <Button asChild>
-            <a href={`/guides/${slug}/public`}>Ver Guía del Huésped</a>
+            <a href={`/guides/${slug}`}>Ver Guía del Huésped</a>
           </Button>
           <Button variant="outline" asChild>
             <a href={`/landing/${slug}`}>Volver a la Propiedad</a>
@@ -160,7 +160,7 @@ export function PublicCheckoutForm({
 
       <div>
         <h3 className="font-semibold text-lg mb-4">Datos Personales</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium mb-2">Nombre *</label>
@@ -168,9 +168,8 @@ export function PublicCheckoutForm({
               type="text"
               value={formData.firstName}
               onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-                errors.firstName ? 'border-red-500' : 'border-neutral-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${errors.firstName ? 'border-red-500' : 'border-neutral-300'
+                }`}
               placeholder="Tu nombre"
               disabled={isProcessing}
             />
@@ -182,9 +181,8 @@ export function PublicCheckoutForm({
               type="text"
               value={formData.lastName}
               onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-                errors.lastName ? 'border-red-500' : 'border-neutral-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${errors.lastName ? 'border-red-500' : 'border-neutral-300'
+                }`}
               placeholder="Tu apellido"
               disabled={isProcessing}
             />
@@ -199,9 +197,8 @@ export function PublicCheckoutForm({
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-                errors.email ? 'border-red-500' : 'border-neutral-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${errors.email ? 'border-red-500' : 'border-neutral-300'
+                }`}
               placeholder="tu@email.com"
               disabled={isProcessing}
             />
@@ -213,9 +210,8 @@ export function PublicCheckoutForm({
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-                errors.phone ? 'border-red-500' : 'border-neutral-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${errors.phone ? 'border-red-500' : 'border-neutral-300'
+                }`}
               placeholder="+34 123 456 789"
               disabled={isProcessing}
             />

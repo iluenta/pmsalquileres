@@ -18,7 +18,7 @@ export function LandingCTASection({ slug }: LandingCTASectionProps) {
             <Link href={`/landing/${slug}/reservas`}>Reservar Ahora</Link>
           </Button>
           <Button size="lg" variant="outline" className="border-white hover:bg-white/20" asChild>
-            <Link href={`/guides/${slug}/public`}>Ver Guía del Huésped</Link>
+            <Link href={`/guides/${slug}`}>Ver Guía del Huésped</Link>
           </Button>
         </div>
       </div>

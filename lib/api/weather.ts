@@ -53,6 +53,9 @@ function getWindDirection(degrees: number): string {
 
 // Función para convertir código de clima de Google a descripción legible
 function getWeatherDescription(weatherCode: string): { condition: string; description: string; icon: string } {
+  // Normalizar el código a mayúsculas y limpiar espacios
+  const normalizedCode = (weatherCode || '').toUpperCase().trim();
+  
   const weatherMap: { [key: string]: { condition: string; description: string; icon: string } } = {
     'CLEAR': { condition: 'Despejado', description: 'Cielo despejado', icon: '01d' },
     'MOSTLY_CLEAR': { condition: 'Mayormente despejado', description: 'Mayormente despejado', icon: '02d' },
@@ -79,7 +82,65 @@ function getWeatherDescription(weatherCode: string): { condition: string; descri
     'HEAVY_THUNDERSTORM': { condition: 'Tormenta intensa', description: 'Tormenta eléctrica intensa', icon: '11d' }
   };
 
-  return weatherMap[weatherCode] || { condition: 'Desconocido', description: 'Condición desconocida', icon: '01d' };
+  // Buscar coincidencia exacta primero
+  if (weatherMap[normalizedCode]) {
+    return weatherMap[normalizedCode];
+  }
+
+  // Si no hay coincidencia exacta, intentar match parcial por palabras clave
+  const codeUpper = normalizedCode;
+  if (codeUpper.includes('RAIN') || codeUpper.includes('LLUVIA')) {
+    if (codeUpper.includes('HEAVY') || codeUpper.includes('INTENSA')) {
+      return weatherMap['HEAVY_RAIN'];
+    }
+    if (codeUpper.includes('LIGHT') || codeUpper.includes('LIGERA')) {
+      return weatherMap['LIGHT_RAIN'];
+    }
+    return weatherMap['RAIN'];
+  }
+  if (codeUpper.includes('SNOW') || codeUpper.includes('NIEVE')) {
+    if (codeUpper.includes('HEAVY') || codeUpper.includes('INTENSA')) {
+      return weatherMap['HEAVY_SNOW'];
+    }
+    if (codeUpper.includes('LIGHT') || codeUpper.includes('LIGERA')) {
+      return weatherMap['LIGHT_SNOW'];
+    }
+    return weatherMap['SNOW'];
+  }
+  if (codeUpper.includes('THUNDER') || codeUpper.includes('TORMENTA')) {
+    if (codeUpper.includes('HEAVY') || codeUpper.includes('INTENSA')) {
+      return weatherMap['HEAVY_THUNDERSTORM'];
+    }
+    if (codeUpper.includes('LIGHT') || codeUpper.includes('LIGERA')) {
+      return weatherMap['LIGHT_THUNDERSTORM'];
+    }
+    return weatherMap['THUNDERSTORM'];
+  }
+  if (codeUpper.includes('CLOUD') || codeUpper.includes('NUBLADO')) {
+    if (codeUpper.includes('PARTLY') || codeUpper.includes('PARCIAL')) {
+      return weatherMap['PARTLY_CLOUDY'];
+    }
+    if (codeUpper.includes('MOSTLY') || codeUpper.includes('MAYORMENTE')) {
+      return weatherMap['MOSTLY_CLOUDY'];
+    }
+    if (codeUpper.includes('OVERCAST') || codeUpper.includes('MUY')) {
+      return weatherMap['OVERCAST'];
+    }
+    return weatherMap['CLOUDY'];
+  }
+  if (codeUpper.includes('CLEAR') || codeUpper.includes('DESPEJADO') || codeUpper.includes('SUNNY') || codeUpper.includes('SOLEADO')) {
+    if (codeUpper.includes('MOSTLY') || codeUpper.includes('MAYORMENTE')) {
+      return weatherMap['MOSTLY_CLEAR'];
+    }
+    return weatherMap['CLEAR'];
+  }
+  if (codeUpper.includes('FOG') || codeUpper.includes('NIEBLA')) {
+    return weatherMap['FOG'];
+  }
+
+  // Si no se encuentra ninguna coincidencia, usar un fallback más descriptivo
+  console.warn(`[Weather API] Código de clima no reconocido: "${weatherCode}" (normalizado: "${normalizedCode}")`);
+  return { condition: 'Despejado', description: 'Condición del tiempo', icon: '01d' };
 }
 
 // Transformar respuesta de clima actual de Google
@@ -87,8 +148,17 @@ function transformGoogleCurrentWeather(data: any): CurrentWeather {
   console.log('Google Weather API Response:', JSON.stringify(data, null, 2));
 
   // Extraer datos según la estructura real de Google Weather API
-  const weatherCode = data.weatherCondition?.type || 'CLEAR';
+  // Intentar múltiples rutas posibles para el código del clima
+  const weatherCode = 
+    data.weatherCondition?.type || 
+    data.condition?.type ||
+    data.weatherCode ||
+    data.condition ||
+    'CLEAR';
+  
+  console.log('[Weather API] Código de clima extraído:', weatherCode);
   const weatherInfo = getWeatherDescription(weatherCode);
+  console.log('[Weather API] Información del clima:', weatherInfo);
 
   const temperature = data.temperature?.degrees || 20;
   const feelsLike = data.feelsLikeTemperature?.degrees || temperature;

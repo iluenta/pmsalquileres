@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { useGuideData } from "@/hooks/useGuideData"
 import { GuideHeader } from "./GuideHeader"
+import { GuideSidebar } from "./GuideSidebar"
 import { WelcomeSection } from "./WelcomeSection"
-import { GuideTabs } from "./GuideTabs"
 import { ApartmentSection } from "./sections/ApartmentSection"
 import { HouseRulesSection } from "./sections/HouseRulesSection"
 import { HouseGuideSection } from "./sections/HouseGuideSection"
@@ -14,7 +14,8 @@ import { RestaurantsSection } from "./sections/RestaurantsSection"
 import { ActivitiesSection } from "./sections/ActivitiesSection"
 import { ContactSection } from "./sections/ContactSection"
 import { PracticalInfoSection } from "./sections/PracticalInfoSection"
-import { Loader2, AlertTriangle, Home, ClipboardList, Book, Lightbulb, Umbrella, Utensils, Mountain, Phone, Info, Sparkles } from "lucide-react"
+import { WeatherSection } from "./sections/WeatherSection"
+import { Loader2, AlertTriangle, Home, ClipboardList, Book, Lightbulb, Umbrella, Utensils, Mountain, Phone, Info, Sparkles, CloudSun } from "lucide-react"
 
 interface PropertyGuideV2Props {
     propertyId: string
@@ -22,6 +23,7 @@ interface PropertyGuideV2Props {
 
 export function PropertyGuideV2({ propertyId }: PropertyGuideV2Props) {
     const [activeTab, setActiveTab] = useState("bienvenida")
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const { data, loading, error } = useGuideData(propertyId)
 
     if (loading) {
@@ -51,6 +53,7 @@ export function PropertyGuideV2({ propertyId }: PropertyGuideV2Props) {
     const tabs = [
         { id: "bienvenida", label: "Bienvenida", icon: Sparkles, show: !!data.guide.welcome_message },
         { id: "apartamento", label: "Apartamento", icon: Home, show: true },
+        { id: "tiempo", label: "Tiempo actual", icon: CloudSun, show: !!(data.guide.latitude && data.guide.longitude) },
         { id: "normas", label: "Normas", icon: ClipboardList, show: data.house_rules?.length > 0 },
         { id: "guia-casa", label: "Guía Casa", icon: Book, show: data.house_guide_items?.length > 0 },
         { id: "consejos", label: "Consejos", icon: Lightbulb, show: data.tips?.length > 0 },
@@ -70,7 +73,11 @@ export function PropertyGuideV2({ propertyId }: PropertyGuideV2Props) {
                     .map(s => s.image_url!)
                     .slice(0, 2)
 
-                return <WelcomeSection guide={data.guide} images={collageImages} property={data.property} />
+                return <WelcomeSection
+                    guide={data.guide}
+                    images={collageImages}
+                    property={data.property}
+                />
             case "apartamento":
                 // Buscamos si hay una sección genérica de tipo 'apartment' para la intro
                 const apartmentIntro = data.sections.find(s => s.section_type === "apartment")
@@ -78,6 +85,13 @@ export function PropertyGuideV2({ propertyId }: PropertyGuideV2Props) {
                     apartmentSections={data.apartment_sections}
                     property={data.property}
                     introSection={apartmentIntro}
+                />
+            case "tiempo":
+                return <WeatherSection
+                    latitude={data.guide.latitude}
+                    longitude={data.guide.longitude}
+                    propertyName={data.property.name}
+                    locality={data.property.locality}
                 />
             case "normas":
                 return <HouseRulesSection rules={data.house_rules} />
@@ -101,16 +115,38 @@ export function PropertyGuideV2({ propertyId }: PropertyGuideV2Props) {
         }
     }
 
+    // Obtener imagen de portada (usar image_url de la propiedad como fallback)
+    const coverImageUrl = data.property?.image_url || null
+
     return (
         <div className="min-h-screen bg-gray-50">
-            <div className="sticky top-0 z-40 bg-white shadow-md">
-                <GuideHeader guide={data.guide} />
-                <GuideTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+            {/* Header sticky con imagen de fondo */}
+            <div className="sticky top-0 z-40">
+                <GuideHeader 
+                    guide={data.guide} 
+                    coverImageUrl={coverImageUrl}
+                    onMenuClick={() => setIsMobileMenuOpen(true)}
+                />
             </div>
 
-            <main className="container mx-auto px-4 py-8">
-                {renderActiveSection()}
-            </main>
+            {/* Layout con sidebar y contenido */}
+            <div className="flex relative">
+                {/* Sidebar (desktop) y Sheet (móvil) */}
+                <GuideSidebar
+                    tabs={tabs}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    isMobileOpen={isMobileMenuOpen}
+                    onMobileOpenChange={setIsMobileMenuOpen}
+                />
+
+                {/* Contenido principal */}
+                <main className="flex-1 min-w-0">
+                    <div className="container mx-auto px-4 py-6">
+                        {renderActiveSection()}
+                    </div>
+                </main>
+            </div>
         </div>
     )
 }

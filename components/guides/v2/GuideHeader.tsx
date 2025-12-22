@@ -1,39 +1,16 @@
 "use client"
 
-import Image from "next/image"
 import { Menu } from "lucide-react"
 import type { PropertyGuide } from "@/types/guides"
 
 interface GuideHeaderProps {
     guide: PropertyGuide
-    coverImageUrl?: string | null
     onMenuClick?: () => void
 }
 
-export function GuideHeader({ guide, coverImageUrl, onMenuClick }: GuideHeaderProps) {
-    const imageUrl = coverImageUrl || null
-    const hasImage = !!imageUrl
-
+export function GuideHeader({ guide, onMenuClick }: GuideHeaderProps) {
     return (
-        <header className="relative h-[200px] md:h-[250px] overflow-hidden">
-            {/* Imagen de fondo o gradiente fallback */}
-            {hasImage ? (
-                <>
-                    <Image
-                        src={imageUrl}
-                        alt={guide.title}
-                        fill
-                        className="object-cover object-center"
-                        priority
-                        sizes="100vw"
-                        quality={90}
-                    />
-                    <div className="absolute inset-0 bg-black/30" />
-                </>
-            ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600" />
-            )}
-
+        <header className="relative h-[120px] md:h-[150px] bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600">
             {/* Botón hamburguesa (solo móvil) */}
             {onMenuClick && (
                 <button

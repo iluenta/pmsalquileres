@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -48,32 +48,44 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
   const [editSortOrder, setEditSortOrder] = useState<number>(0)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
-  // Cargar imágenes
+  const loadImages = useCallback(async () => {
+    if (!propertyId) {
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/properties/${propertyId}/images`)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Error loading images:", response.status, errorText)
+        throw new Error(`Error ${response.status}: ${errorText || response.statusText}`)
+      }
+
+      const data = await response.json()
+      setImages(data || [])
+    } catch (error) {
+      console.error("Error loading images:", error)
+      const errorMessage = error instanceof Error ? error.message : "No se pudieron cargar las imágenes"
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+      setImages([]) // Establecer array vacío en caso de error
+    } finally {
+      setLoading(false)
+    }
+  }, [propertyId, toast])
+
+  // Cargar imágenes al montar el componente
   useEffect(() => {
     if (propertyId) {
       loadImages()
     }
-  }, [propertyId])
-
-  const loadImages = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/properties/${propertyId}/images`)
-      if (response.ok) {
-        const data = await response.json()
-        setImages(data)
-      }
-    } catch (error) {
-      console.error("Error loading images:", error)
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las imágenes",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [propertyId, loadImages])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

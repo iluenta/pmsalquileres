@@ -61,7 +61,7 @@ export function GuideSidebar({ tabs, activeTab, onTabChange, isMobileOpen, onMob
         <>
             {/* Desktop Sidebar */}
             <aside className="hidden md:block w-64 flex-shrink-0 bg-white border-r border-gray-200">
-                <div className="sticky top-[250px] h-[calc(100vh-250px)] overflow-y-auto">
+                <div className="sticky top-0 h-screen overflow-y-auto">
                     <SidebarContent />
                 </div>
             </aside>

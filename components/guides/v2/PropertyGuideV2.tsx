@@ -115,19 +115,13 @@ export function PropertyGuideV2({ propertyId }: PropertyGuideV2Props) {
         }
     }
 
-    // Obtener imagen de portada (usar image_url de la propiedad como fallback)
-    const coverImageUrl = data.property?.image_url || null
-
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header sticky con imagen de fondo */}
-            <div className="sticky top-0 z-40">
-                <GuideHeader 
-                    guide={data.guide} 
-                    coverImageUrl={coverImageUrl}
-                    onMenuClick={() => setIsMobileMenuOpen(true)}
-                />
-            </div>
+            {/* Header (no sticky, se desplaza con el scroll) */}
+            <GuideHeader 
+                guide={data.guide} 
+                onMenuClick={() => setIsMobileMenuOpen(true)}
+            />
 
             {/* Layout con sidebar y contenido */}
             <div className="flex relative">

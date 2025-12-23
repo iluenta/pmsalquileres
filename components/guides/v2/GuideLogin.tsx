@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,26 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
     const [lastName, setLastName] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // Validar que propertyId existe
+    useEffect(() => {
+        if (!propertyId) {
+            console.error("[GuideLogin] No propertyId provided")
+        } else {
+            console.log("[GuideLogin] Component mounted with propertyId:", propertyId)
+        }
+    }, [propertyId])
+
+    // Si no hay propertyId, mostrar error
+    if (!propertyId) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+                <div className="text-center">
+                    <p className="text-red-600">Error: No se proporcionó un ID de propiedad válido</p>
+                </div>
+            </div>
+        )
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()

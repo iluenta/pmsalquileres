@@ -20,14 +20,18 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Validar que propertyId existe
+    // Validar que propertyId existe - LOGS MUY VISIBLES
     useEffect(() => {
+        console.log("=".repeat(80))
+        console.log("🔵🔵🔵 [GuideLogin] COMPONENT MOUNTED 🔵🔵🔵")
+        console.log("🔵 [GuideLogin] propertyId:", propertyId)
+        console.log("🔵 [GuideLogin] propertyName:", propertyName)
+        console.log("🔵 [GuideLogin] This component should be visible on screen")
+        console.log("=".repeat(80))
         if (!propertyId) {
-            console.error("[GuideLogin] No propertyId provided")
-        } else {
-            console.log("[GuideLogin] Component mounted with propertyId:", propertyId)
+            console.error("🔴 [GuideLogin] No propertyId provided")
         }
-    }, [propertyId])
+    }, [propertyId, propertyName])
 
     // Si no hay propertyId, mostrar error
     if (!propertyId) {

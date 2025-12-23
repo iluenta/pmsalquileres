@@ -1,4 +1,4 @@
-import { PropertyGuideV2 } from "@/components/guides/v2/PropertyGuideV2"
+import { GuideClientWrapper } from "@/components/guides/v2/GuideClientWrapper"
 import { getPropertyBySlugPublic } from "@/lib/api/properties-public"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
@@ -47,6 +47,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
 }
 
+
+
 export default async function GuidePublicPage({ params }: PageProps) {
     try {
         const awaitedParams = await params
@@ -58,7 +60,7 @@ export default async function GuidePublicPage({ params }: PageProps) {
             notFound()
         }
 
-        return <PropertyGuideV2 propertyId={result.id} />
+        return <GuideClientWrapper propertyId={result.id} propertyName={result.property?.name} />
     } catch (error) {
         console.error("[GuidePublicPage] Error:", error)
         notFound()

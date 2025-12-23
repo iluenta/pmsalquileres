@@ -1,5 +1,4 @@
 import type { PropertyGuide } from "@/types/guides"
-import { Card, CardContent } from "@/components/ui/card"
 import { Sparkles, MapPin } from "lucide-react"
 
 interface WelcomeSectionProps {
@@ -11,7 +10,11 @@ interface WelcomeSectionProps {
     }
 }
 
-export function WelcomeSection({ guide, images = [], property }: WelcomeSectionProps) {
+export function WelcomeSection({
+    guide,
+    images = [],
+    property
+}: WelcomeSectionProps) {
     if (!guide.welcome_message) return null
 
     // Usar la primera imagen como principal, o un placeholder si no hay
@@ -44,23 +47,17 @@ export function WelcomeSection({ guide, images = [], property }: WelcomeSectionP
                                 {guide.welcome_message}
                             </p>
                         </div>
-
                     </div>
 
-                    {/* Columna Derecha: Imágenes y Dirección */}
-                    <div className="relative mt-4 md:mt-0 hidden md:block space-y-8">
-                        {/* Contenedor de imagen principal con Aspect Ratio controlado y fallback de color */}
+                    {/* Columna Derecha: Imágenes y Dirección (Desktop) */}
+                    <div className="relative mt-4 md:mt-0 hidden md:flex flex-col gap-8">
+                        {/* Contenedor de imagen principal */}
                         <div className="relative z-10 w-full aspect-[4/3] rounded-2xl overflow-hidden shadow-xl bg-gray-100 ring-8 ring-white">
                             {mainImage ? (
                                 <img
                                     src={mainImage}
                                     alt="Vista de la propiedad"
                                     className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                        // Fallback visual si falla la imagen
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        (e.target as HTMLImageElement).parentElement!.classList.add('flex', 'items-center', 'justify-center');
-                                    }}
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-300">
@@ -69,7 +66,7 @@ export function WelcomeSection({ guide, images = [], property }: WelcomeSectionP
                             )}
                         </div>
 
-                        {/* Dirección de la Propiedad (Movida desde Apartamento) */}
+                        {/* Dirección de la Propiedad */}
                         {property?.address && (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 relative z-10">
                                 <div className="flex items-start gap-3">
@@ -87,11 +84,11 @@ export function WelcomeSection({ guide, images = [], property }: WelcomeSectionP
                         )}
 
                         {/* Elemento decorativo detrás */}
-                        <div className="absolute -top-4 -right-4 w-full h-full border-2 border-[#67E8F9] rounded-2xl -z-10 md:block hidden" />
+                        <div className="absolute -top-4 -right-4 w-full h-full border-2 border-[#67E8F9] rounded-2xl -z-10" />
                     </div>
 
-                    {/* Versión móvil de imagen (debajo del texto) */}
-                    <div className="md:hidden w-full aspect-video rounded-xl overflow-hidden shadow-lg bg-gray-100">
+                    {/* Fallback móvil para imagen */}
+                    <div className="md:hidden w-full aspect-video rounded-xl overflow-hidden shadow-lg bg-gray-100 mt-8">
                         {mainImage ? (
                             <img src={mainImage} className="w-full h-full object-cover" />
                         ) : (

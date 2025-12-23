@@ -22,6 +22,13 @@ interface PropertyGuideV2Props {
 }
 
 export function PropertyGuideV2({ propertyId }: PropertyGuideV2Props) {
+    // LOG CRÍTICO: Si este componente se renderiza, significa que se saltó el login
+    console.log("=".repeat(80))
+    console.log("🔴🔴🔴 [PropertyGuideV2] RENDERING DIRECTLY - THIS SHOULD NOT HAPPEN WITHOUT LOGIN 🔴🔴🔴")
+    console.log("🔴 [PropertyGuideV2] propertyId:", propertyId)
+    console.log("🔴 [PropertyGuideV2] This component should ONLY render after authentication")
+    console.log("=".repeat(80))
+    
     const [activeTab, setActiveTab] = useState("bienvenida")
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const { data, loading, error } = useGuideData(propertyId)

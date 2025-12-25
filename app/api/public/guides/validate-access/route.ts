@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 
 const validateAccessSchema = z.object({
@@ -29,9 +29,13 @@ export async function POST(request: Request) {
 
     console.log('[api/public/guides/validate-access] Validando acceso:', { propertyId, firstName, lastName })
 
-    // Validar acceso directamente en la ruta API
-    const supabase = await getSupabaseServerClient()
-    if (!supabase) {
+    // Usar cliente de servicio (admin) para bypassar RLS en esta API pública
+    // Esto es necesario porque necesitamos acceder a bookings y persons sin autenticación
+    let supabase
+    try {
+      supabase = getSupabaseAdmin()
+    } catch (error: any) {
+      console.error('[api/public/guides/validate-access] Error obteniendo cliente admin:', error)
       return NextResponse.json(
         { success: false, message: 'No se pudo conectar con la base de datos' },
         { status: 500 }

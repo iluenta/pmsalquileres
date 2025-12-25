@@ -19,9 +19,10 @@ import { Loader2, AlertTriangle, Home, ClipboardList, Book, Lightbulb, Umbrella,
 
 interface PropertyGuideV2Props {
     propertyId: string
+    booking?: any | null
 }
 
-export function PropertyGuideV2({ propertyId }: PropertyGuideV2Props) {
+export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
     // LOG CRÍTICO: Si este componente se renderiza, significa que se saltó el login
     console.log("=".repeat(80))
     console.log("🔴🔴🔴 [PropertyGuideV2] RENDERING DIRECTLY - THIS SHOULD NOT HAPPEN WITHOUT LOGIN 🔴🔴🔴")
@@ -128,6 +129,9 @@ export function PropertyGuideV2({ propertyId }: PropertyGuideV2Props) {
             <GuideHeader 
                 guide={data.guide} 
                 onMenuClick={() => setIsMobileMenuOpen(true)}
+                guestName={booking?.persons ? `${booking.persons.first_name} ${booking.persons.last_name}`.trim() : null}
+                checkInDate={booking?.check_in_date || null}
+                checkOutDate={booking?.check_out_date || null}
             />
 
             {/* Layout con sidebar y contenido */}

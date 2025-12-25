@@ -29,6 +29,29 @@ export async function POST(request: Request) {
 
     console.log('[api/public/guides/validate-access] Validando acceso:', { propertyId, firstName, lastName })
 
+    // Permitir acceso genérico con usuario "GUEST" o "INVITADO"
+    const isGenericUser = firstName.toUpperCase() === 'GUEST' || firstName.toUpperCase() === 'INVITADO' || 
+                         lastName.toUpperCase() === 'GUEST' || lastName.toUpperCase() === 'INVITADO'
+    
+    if (isGenericUser) {
+      console.log('[api/public/guides/validate-access] Acceso genérico detectado')
+      // Retornar un booking genérico para permitir acceso
+      return NextResponse.json({
+        success: true,
+        status: 'generic',
+        booking: {
+          id: 'generic-access',
+          property_id: propertyId,
+          check_in_date: null,
+          check_out_date: null,
+          persons: {
+            first_name: 'Invitado',
+            last_name: 'Genérico'
+          }
+        }
+      }, { status: 200 })
+    }
+
     // Usar cliente de servicio (admin) para bypassar RLS en esta API pública
     // Esto es necesario porque necesitamos acceder a bookings y persons sin autenticación
     let supabase

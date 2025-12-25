@@ -61,5 +61,5 @@ export function GuideClientWrapper({ propertyId, propertyName }: GuideClientWrap
 
     // Si está autenticado, mostrar la guía
     console.log("[GuideClientWrapper] 📖 Rendering PropertyGuideV2 - isAuthenticated is TRUE")
-    return <PropertyGuideV2 propertyId={propertyId} />
+    return <PropertyGuideV2 propertyId={propertyId} booking={booking} />
 }

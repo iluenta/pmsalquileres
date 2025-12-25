@@ -145,9 +145,12 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
                         </Button>
                     </form>
 
-                    <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+                    <div className="mt-8 pt-6 border-t border-gray-100 text-center space-y-2">
                         <p className="text-xs text-gray-400 italic">
                             El acceso se activa 10 días antes de tu llegada y finaliza el día siguiente a tu salida.
+                        </p>
+                        <p className="text-xs text-gray-500">
+                            <span className="font-medium">Acceso genérico:</span> Usa "GUEST" o "INVITADO" como nombre o apellido para acceder sin reserva.
                         </p>
                     </div>
                 </CardContent>

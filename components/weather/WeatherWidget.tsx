@@ -127,9 +127,22 @@ export function WeatherWidget({ latitude, longitude, locality, propertyName }: W
   }
 
   if (weather) {
+    // Formatear cityName: si locality tiene coma (municipio, provincia), poner provincia entre paréntesis
+    let formattedLocality = ''
+    if (locality) {
+      const parts = locality.split(',').map(p => p.trim())
+      if (parts.length > 1) {
+        // Hay municipio y provincia: "Vera, Almería" -> "Vera (Almería)"
+        formattedLocality = `${parts[0]} (${parts.slice(1).join(', ')})`
+      } else {
+        // Solo un valor: usar tal cual
+        formattedLocality = parts[0]
+      }
+    }
+
     const cityName = propertyName
-      ? `${propertyName}${locality ? `, ${locality}` : ''}`
-      : (locality || weather.location?.name || "Ubicación de la propiedad")
+      ? `${propertyName}${formattedLocality ? `, ${formattedLocality}` : ''}`
+      : (formattedLocality || weather.location?.name || "Ubicación de la propiedad")
 
     const formattedDate = new Intl.DateTimeFormat('es-ES', {
       weekday: 'long',

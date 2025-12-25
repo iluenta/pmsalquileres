@@ -7,8 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Restaurant } from "@/types/guides"
 import { createRestaurant, updateRestaurant, deleteRestaurant } from "@/lib/api/guides-client"
+import { getRestaurantFromGoogleUrl } from "@/lib/api/google-places"
+import { GoogleRestaurantInfo } from "./GoogleRestaurantInfo"
+import { Loader2, AlertCircle, Search } from "lucide-react"
 
 interface RestaurantsEditFormProps {
   restaurants: Restaurant[]
@@ -20,10 +24,17 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
   const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleUrl, setGoogleUrl] = useState("")
+  const [googleRestaurantData, setGoogleRestaurantData] = useState<Partial<Restaurant> | null>(null)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [googleError, setGoogleError] = useState<string | null>(null)
 
   const handleEdit = (restaurant: Restaurant) => {
     setEditingRestaurant(restaurant)
     setIsAddingNew(false)
+    setGoogleUrl(restaurant.url || "") // Cargar URL existente si está disponible
+    setGoogleRestaurantData(null) // Limpiar datos de Google al editar
+    setGoogleError(null)
   }
 
   const handleAddNew = () => {
@@ -33,6 +44,7 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
       tenant_id: "",
       name: "",
       description: "",
+      address: "",
       cuisine_type: "",
       distance: null,
       rating: 0,
@@ -40,6 +52,7 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
       price_range: "",
       badge: "",
       image_url: "",
+      url: "",
       order_index: restaurants.length + 1,
       created_at: "",
       updated_at: ""
@@ -59,11 +72,13 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
           guide_id: guideId,
           name: editingRestaurant.name,
           description: editingRestaurant.description,
+          address: editingRestaurant.address,
           rating: editingRestaurant.rating,
           review_count: editingRestaurant.review_count,
           price_range: editingRestaurant.price_range,
           badge: editingRestaurant.badge,
           image_url: editingRestaurant.image_url,
+          url: editingRestaurant.url,
           order_index: editingRestaurant.order_index
         })
         
@@ -75,11 +90,13 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
         const updatedRestaurant = await updateRestaurant(editingRestaurant.id, {
           name: editingRestaurant.name,
           description: editingRestaurant.description,
+          address: editingRestaurant.address,
           rating: editingRestaurant.rating,
           review_count: editingRestaurant.review_count,
           price_range: editingRestaurant.price_range,
           badge: editingRestaurant.badge,
           image_url: editingRestaurant.image_url,
+          url: editingRestaurant.url,
           order_index: editingRestaurant.order_index
         })
         
@@ -116,6 +133,71 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
   const handleCancel = () => {
     setEditingRestaurant(null)
     setIsAddingNew(false)
+    setGoogleUrl("")
+    setGoogleRestaurantData(null)
+    setGoogleError(null)
+  }
+
+  const handleFetchFromGoogle = async () => {
+    if (!googleUrl.trim()) {
+      setGoogleError("Por favor, ingresa una URL de Google")
+      return
+    }
+
+    // Validar que sea una URL de Google
+    if (!googleUrl.includes("google.com/search") && !googleUrl.includes("google.es/search")) {
+      setGoogleError("Por favor, ingresa una URL válida de búsqueda de Google")
+      return
+    }
+
+    try {
+      setGoogleLoading(true)
+      setGoogleError(null)
+      setGoogleRestaurantData(null)
+
+      const restaurantData = await getRestaurantFromGoogleUrl(googleUrl)
+
+      if (restaurantData) {
+        setGoogleRestaurantData(restaurantData)
+      } else {
+        setGoogleError("No se pudo encontrar información del restaurante en Google. Intenta con otra URL o completa el formulario manualmente.")
+      }
+    } catch (error) {
+      console.error("Error fetching from Google:", error)
+      setGoogleError("Error al buscar en Google. Por favor, intenta de nuevo o completa el formulario manualmente.")
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
+
+  const handleUseGoogleData = () => {
+    if (!googleRestaurantData) return
+
+    // Copiar datos de Google al formulario editable, preservando el ID y otros campos si se está editando
+    setEditingRestaurant((prev) => ({
+      ...prev!,
+      name: googleRestaurantData.name || prev?.name || "",
+      description: googleRestaurantData.description || prev?.description || "",
+      address: googleRestaurantData.address || prev?.address || "",
+      cuisine_type: googleRestaurantData.cuisine_type || prev?.cuisine_type || "",
+      rating: googleRestaurantData.rating || prev?.rating || 0,
+      review_count: googleRestaurantData.review_count || prev?.review_count || 0,
+      price_range: googleRestaurantData.price_range || prev?.price_range || "",
+      badge: googleRestaurantData.badge || prev?.badge || "",
+      image_url: googleRestaurantData.image_url || prev?.image_url || "",
+      url: googleRestaurantData.url || googleUrl || prev?.url || "",
+    }))
+
+    // Limpiar datos de Google para mostrar el formulario
+    setGoogleRestaurantData(null)
+    setGoogleUrl("")
+  }
+
+  const handleEditManually = () => {
+    // Limpiar datos de Google y mostrar formulario vacío
+    setGoogleRestaurantData(null)
+    setGoogleUrl("")
+    setGoogleError(null)
   }
 
   const renderStars = (rating: number) => {
@@ -237,6 +319,69 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Campo para URL de Google (disponible al agregar y editar) */}
+              <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <Label htmlFor="google-url" className="flex items-center gap-2">
+                  <i className="fab fa-google text-blue-600"></i>
+                  URL de Búsqueda de Google (Opcional)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="google-url"
+                    value={googleUrl}
+                    onChange={(e) => {
+                      setGoogleUrl(e.target.value)
+                      setGoogleError(null)
+                    }}
+                    placeholder="Pega aquí la URL de búsqueda de Google del restaurante"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleFetchFromGoogle}
+                    disabled={googleLoading || !googleUrl.trim()}
+                    variant="outline"
+                    className="flex-shrink-0"
+                  >
+                    {googleLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Buscando...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Buscar en Google
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {isAddingNew 
+                    ? "Pega la URL completa de una búsqueda de Google del restaurante para obtener automáticamente su información"
+                    : "Actualiza la información del restaurante pegando una nueva URL de búsqueda de Google"}
+                </p>
+                {googleError && (
+                  <Alert variant="destructive" className="mt-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{googleError}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              {/* Mostrar información de Google si está disponible */}
+              {googleRestaurantData && (
+                <GoogleRestaurantInfo
+                  restaurantData={googleRestaurantData}
+                  onUseData={handleUseGoogleData}
+                  onEditManually={handleEditManually}
+                  loading={googleLoading}
+                />
+              )}
+
+              {/* Formulario manual (solo si no hay datos de Google disponibles) */}
+              {!googleRestaurantData && (
+                <>
               <div className="space-y-2">
                 <Label htmlFor="restaurant-name">Nombre</Label>
                 <Input
@@ -258,6 +403,16 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="restaurant-address">Dirección</Label>
+                <Input
+                  id="restaurant-address"
+                  value={editingRestaurant.address || ''}
+                  onChange={(e) => setEditingRestaurant({ ...editingRestaurant, address: e.target.value })}
+                  placeholder="Dirección del restaurante"
+                />
+              </div>
+
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="restaurant-rating">Calificación (1-5)</Label>
@@ -266,9 +421,10 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
                     type="number"
                     min="1"
                     max="5"
+                    step="0.1"
                     value={editingRestaurant.rating || ''}
-                    onChange={(e) => setEditingRestaurant({ ...editingRestaurant, rating: e.target.value ? Number.parseInt(e.target.value) : 0 })}
-                    placeholder="5"
+                    onChange={(e) => setEditingRestaurant({ ...editingRestaurant, rating: e.target.value ? Number.parseFloat(e.target.value) : 0 })}
+                    placeholder="4.5"
                   />
                 </div>
                 <div className="space-y-2">
@@ -288,8 +444,11 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
                     id="restaurant-price"
                     value={editingRestaurant.price_range || ''}
                     onChange={(e) => setEditingRestaurant({ ...editingRestaurant, price_range: e.target.value })}
-                    placeholder="€€€"
+                    placeholder="€20-€40"
                   />
+                  <p className="text-xs text-gray-500">
+                    Se establece automáticamente desde Google (€10-€20, €20-€40, €40-€80, €80+). Puedes editarlo manualmente.
+                  </p>
                 </div>
               </div>
 
@@ -324,6 +483,17 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="restaurant-url">URL del Restaurante</Label>
+                <Input
+                  id="restaurant-url"
+                  value={editingRestaurant.url || ''}
+                  onChange={(e) => setEditingRestaurant({ ...editingRestaurant, url: e.target.value })}
+                  placeholder="https://maps.google.com/... o https://restaurante.com"
+                />
+                <p className="text-xs text-gray-500">URL de Google Maps o sitio web del restaurante</p>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
                   <i className="fas fa-save mr-2"></i>
@@ -333,6 +503,8 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
                   Cancelar
                 </Button>
               </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

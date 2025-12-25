@@ -241,16 +241,47 @@ export async function createRestaurant(data: CreateRestaurantData): Promise<Rest
   }
 
   // Mapear los campos correctamente para guide_places
-  const insertData = {
+  // Filtrar campos undefined/null para evitar errores
+  const insertData: any = {
     tenant_id: tenantId,
     guide_id: data.guide_id,
     name: data.name,
-    description: data.description,
-    rating: data.rating,
-    badge: data.badge,
-    image_url: data.image_url,
+    place_type: "restaurant",
     order_index: data.order_index || 0,
-    place_type: "restaurant"
+  }
+
+  // Agregar campos opcionales solo si tienen valor
+  if (data.description !== undefined && data.description !== null) {
+    insertData.description = data.description
+  }
+  if (data.address !== undefined && data.address !== null && data.address !== '') {
+    insertData.address = data.address
+  }
+  if (data.rating !== undefined && data.rating !== null) {
+    insertData.rating = data.rating
+  }
+  if (data.review_count !== undefined && data.review_count !== null) {
+    insertData.review_count = data.review_count
+  }
+  if (data.price_range !== undefined && data.price_range !== null && data.price_range !== '') {
+    insertData.price_range = data.price_range
+  }
+  if (data.cuisine_type !== undefined && data.cuisine_type !== null && data.cuisine_type !== '') {
+    insertData.cuisine_type = data.cuisine_type
+  }
+  if (data.distance !== undefined && data.distance !== null) {
+    insertData.distance = data.distance
+  }
+  if (data.badge !== undefined && data.badge !== null && data.badge !== '') {
+    insertData.badge = data.badge
+  }
+  if (data.image_url !== undefined && data.image_url !== null && data.image_url !== '') {
+    insertData.image_url = data.image_url
+  }
+  // Solo agregar url si el campo existe en la tabla (puede no existir si no se ejecutó el script SQL)
+  // Intentar agregarlo, si falla el error será más claro
+  if (data.url !== undefined && data.url !== null && data.url !== '') {
+    insertData.url = data.url
   }
 
   console.log("[v0] Creating restaurant with data:", insertData)
@@ -262,8 +293,13 @@ export async function createRestaurant(data: CreateRestaurantData): Promise<Rest
     .single()
 
   if (error) {
-    console.error("[v0] Error creating restaurant:", error)
-    console.error("[v0] Insert data:", insertData)
+    console.error("[v0] Error creating restaurant:")
+    console.error("- Error object:", error)
+    console.error("- Error message:", error.message)
+    console.error("- Error details:", error.details)
+    console.error("- Error hint:", error.hint)
+    console.error("- Error code:", error.code)
+    console.error("- Insert data:", insertData)
     return null
   }
 
@@ -274,18 +310,39 @@ export async function createRestaurant(data: CreateRestaurantData): Promise<Rest
 export async function updateRestaurant(id: string, data: UpdateRestaurantData): Promise<Restaurant | null> {
   const supabase = getSupabaseBrowserClient()
 
+  console.log("[v0] Updating restaurant with id:", id)
+  console.log("[v0] Update data:", data)
+
+  // Filtrar campos undefined para evitar errores
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([_, value]) => value !== undefined)
+  ) as UpdateRestaurantData
+
+  console.log("[v0] Cleaned data:", cleanData)
+
   const { data: result, error } = await supabase
     .from("guide_places")
-    .update(data)
+    .update(cleanData)
     .eq("id", id)
     .select()
     .single()
 
   if (error) {
-    console.error("[v0] Error updating restaurant:", error)
+    console.error("[v0] Error updating restaurant:")
+    console.error("- Error object:", error)
+    console.error("- Error message:", error.message)
+    console.error("- Error details:", error.details)
+    console.error("- Error hint:", error.hint)
+    console.error("- Error code:", error.code)
     return null
   }
 
+  if (!result) {
+    console.error("[v0] No result returned from update")
+    return null
+  }
+
+  console.log("[v0] Restaurant updated successfully:", result)
   return result
 }
 

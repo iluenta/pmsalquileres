@@ -107,6 +107,7 @@ export interface Restaurant {
   tenant_id: string
   name: string
   description: string | null
+  address: string | null // Dirección del restaurante
   cuisine_type: string | null
   price_range: string | null
   distance: number | null
@@ -114,6 +115,7 @@ export interface Restaurant {
   rating: number | null
   review_count: number | null
   badge: string | null
+  url: string | null // URL del restaurante (Google Maps o website)
   order_index: number
   created_at: string
   updated_at: string
@@ -307,6 +309,7 @@ export interface CreateRestaurantData {
   guide_id: string
   name: string
   description?: string | null
+  address?: string | null
   cuisine_type?: string | null
   price_range?: string | null
   distance?: number | null
@@ -314,12 +317,14 @@ export interface CreateRestaurantData {
   rating?: number | null
   review_count?: number | null
   badge?: string | null
+  url?: string | null
   order_index?: number
 }
 
 export interface UpdateRestaurantData {
   name?: string
   description?: string | null
+  address?: string | null
   cuisine_type?: string | null
   price_range?: string | null
   distance?: number | null
@@ -327,6 +332,7 @@ export interface UpdateRestaurantData {
   rating?: number | null
   review_count?: number | null
   badge?: string | null
+  url?: string | null
   order_index?: number
 }
 

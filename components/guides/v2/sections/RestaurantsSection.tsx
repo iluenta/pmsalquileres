@@ -1,7 +1,8 @@
 import type { Restaurant } from "@/types/guides"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Utensils, MapPin, Star, Euro } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Utensils, MapPin, Star, Euro, ExternalLink } from "lucide-react"
 
 interface RestaurantsSectionProps {
     restaurants: Restaurant[]
@@ -49,11 +50,7 @@ export function RestaurantsSection({ restaurants }: RestaurantsSectionProps) {
                                 )}
                             </div>
 
-                            <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
-                                <div className="flex items-center">
-                                    <MapPin className="h-4 w-4 mr-1" />
-                                    {place.distance ? `${place.distance} km` : 'Cerca'}
-                                </div>
+                            <div className="flex items-center justify-end text-sm text-gray-500 mb-3">
                                 {place.price_range && (
                                     <div className="flex items-center text-green-600 font-medium">
                                         <span className="text-xs bg-green-50 px-2 py-0.5 rounded border border-green-100">
@@ -62,6 +59,18 @@ export function RestaurantsSection({ restaurants }: RestaurantsSectionProps) {
                                     </div>
                                 )}
                             </div>
+
+                            {place.address && (
+                                <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.address)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gray-500 text-xs mb-2 flex items-start hover:text-blue-600 transition-colors"
+                                >
+                                    <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                                    <span className="line-clamp-2">{place.address}</span>
+                                </a>
+                            )}
 
                             <p className="text-gray-600 text-sm line-clamp-3">
                                 {place.description}
@@ -72,6 +81,27 @@ export function RestaurantsSection({ restaurants }: RestaurantsSectionProps) {
                                     <span className="text-xs font-medium text-red-600 flex items-center gap-1">
                                         <Star className="h-3 w-3" /> {place.badge}
                                     </span>
+                                </div>
+                            )}
+
+                            {place.url && (
+                                <div className="mt-4 pt-3 border-t border-gray-100">
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full"
+                                    >
+                                        <a
+                                            href={place.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-2"
+                                        >
+                                            <ExternalLink className="h-4 w-4" />
+                                            Visitar Web
+                                        </a>
+                                    </Button>
                                 </div>
                             )}
                         </CardContent>

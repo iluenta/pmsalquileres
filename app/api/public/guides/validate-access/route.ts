@@ -121,7 +121,7 @@ export async function POST(request: Request) {
 
     // 3. Enriquecer bookings con datos de personas
     const bookingsWithPersons = bookings.map((booking: any) => {
-      const person = persons.find((p: { id: string; first_name: string; last_name: string }) => p.id === booking.person_id)
+      const person = persons.find((p: { id: string; first_name: string; last_name: string }) => p.id === booking.person_id) as { id: string; first_name: string; last_name: string } | undefined
       return {
         ...booking,
         persons: person ? {

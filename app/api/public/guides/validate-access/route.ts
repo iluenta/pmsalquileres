@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Buscar reservas para esta propiedad y estas personas
-    const personIds = persons.map(p => p.id)
+    const personIds = persons.map((p: { id: string; first_name: string; last_name: string }) => p.id)
     console.log('[api/public/guides/validate-access] Buscando reservas para:', { propertyId, personIds })
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
@@ -116,8 +116,8 @@ export async function POST(request: Request) {
     }
 
     // 3. Enriquecer bookings con datos de personas
-    const bookingsWithPersons = bookings.map(booking => {
-      const person = persons.find(p => p.id === booking.person_id)
+    const bookingsWithPersons = bookings.map((booking: any) => {
+      const person = persons.find((p: { id: string; first_name: string; last_name: string }) => p.id === booking.person_id)
       return {
         ...booking,
         persons: person ? {

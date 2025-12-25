@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const tenantId = property.tenant_id
+    const tenantId = (property as { id: string; tenant_id: string }).tenant_id
     console.log('[api/public/guides/validate-access] Tenant ID:', tenantId)
 
     // 1. Primero buscar personas que coincidan con el nombre y apellido

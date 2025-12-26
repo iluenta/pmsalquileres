@@ -140,13 +140,16 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
 
   const handleFetchFromGoogle = async () => {
     if (!googleUrl.trim()) {
-      setGoogleError("Por favor, ingresa una URL de Google")
+      setGoogleError("Por favor, ingresa una URL de Google Maps.")
       return
     }
 
-    // Validar que sea una URL de Google
-    if (!googleUrl.includes("google.com/search") && !googleUrl.includes("google.es/search")) {
-      setGoogleError("Por favor, ingresa una URL válida de búsqueda de Google")
+    // Validar que sea una URL de Google Maps o Google Search
+    const isGoogleMapsUrl = googleUrl.includes("google.com/maps") || googleUrl.includes("maps.google.com")
+    const isGoogleSearchUrl = googleUrl.includes("google.com/search") || googleUrl.includes("google.es/search")
+    
+    if (!isGoogleMapsUrl && !isGoogleSearchUrl) {
+      setGoogleError("Por favor, ingresa una URL válida de Google Maps (ej: https://www.google.com/maps/place/...)")
       return
     }
 

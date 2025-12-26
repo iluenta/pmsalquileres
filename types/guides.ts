@@ -91,11 +91,15 @@ export interface Beach {
   tenant_id: string
   name: string
   description: string | null
+  address: string | null // Dirección de la playa
   distance: number | null
   amenities: string[] | null
   image_url: string | null
   rating: number | null
+  review_count: number | null
+  price_range: string | null
   badge: string | null
+  url: string | null // URL de la playa (Google Maps o website)
   order_index: number
   created_at: string
   updated_at: string
@@ -127,12 +131,17 @@ export interface Activity {
   tenant_id: string
   name: string
   description: string | null
+  address: string | null // Dirección de la actividad
   activity_type: string | null
   duration: string | null
   distance: number | null
   price_info: string | null
+  price_range: string | null
+  rating: number | null
+  review_count: number | null
   badge: string | null
   image_url: string | null
+  url: string | null // URL de la actividad (Google Maps o website)
   order_index: number
   created_at: string
   updated_at: string
@@ -286,22 +295,30 @@ export interface CreateBeachData {
   guide_id: string
   name: string
   description?: string | null
+  address?: string | null
   distance?: number | null
   amenities?: string[] | null
   image_url?: string | null
   rating?: number | null
+  review_count?: number | null
+  price_range?: string | null
   badge?: string | null
+  url?: string | null
   order_index?: number
 }
 
 export interface UpdateBeachData {
   name?: string
   description?: string | null
+  address?: string | null
   distance?: number | null
   amenities?: string[] | null
   image_url?: string | null
   rating?: number | null
+  review_count?: number | null
+  price_range?: string | null
   badge?: string | null
+  url?: string | null
   order_index?: number
 }
 
@@ -340,24 +357,34 @@ export interface CreateActivityData {
   guide_id: string
   name: string
   description?: string | null
+  address?: string | null
   activity_type?: string | null
   duration?: string | null
   distance?: number | null
   price_info?: string | null
+  price_range?: string | null
+  rating?: number | null
+  review_count?: number | null
   badge?: string | null
   image_url?: string | null
+  url?: string | null
   order_index?: number
 }
 
 export interface UpdateActivityData {
   name?: string
   description?: string | null
+  address?: string | null
   activity_type?: string | null
   duration?: string | null
   distance?: number | null
   price_info?: string | null
+  price_range?: string | null
+  rating?: number | null
+  review_count?: number | null
   badge?: string | null
   image_url?: string | null
+  url?: string | null
   order_index?: number
 }
 

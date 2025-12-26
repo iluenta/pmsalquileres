@@ -22,8 +22,14 @@ export async function GET(request: Request) {
       )
     }
 
+    const type = searchParams.get('type')
     const encodedQuery = encodeURIComponent(query)
-    const url = `${GOOGLE_PLACES_BASE_URL}/textsearch/json?query=${encodedQuery}&type=restaurant&language=es&key=${API_KEY}`
+    
+    // Si no se especifica tipo, hacer búsqueda general sin restricción
+    let url = `${GOOGLE_PLACES_BASE_URL}/textsearch/json?query=${encodedQuery}&language=es&key=${API_KEY}`
+    if (type) {
+      url += `&type=${type}`
+    }
 
     const response = await fetch(url)
     

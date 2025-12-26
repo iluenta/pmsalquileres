@@ -163,17 +163,44 @@ export async function createBeach(data: CreateBeachData): Promise<Beach | null> 
   }
 
   // Mapear los campos correctamente para guide_places
-  const insertData = {
+  const insertData: any = {
     tenant_id: tenantId,
     guide_id: data.guide_id,
     name: data.name,
-    description: data.description,
-    distance: data.distance,
-    rating: data.rating,
-    badge: data.badge,
-    image_url: data.image_url,
+    place_type: "beach",
     order_index: data.order_index || 0,
-    place_type: "beach"
+  }
+
+  // Agregar campos opcionales solo si tienen valor
+  if (data.description !== undefined && data.description !== null) {
+    insertData.description = data.description
+  }
+  if (data.address !== undefined && data.address !== null && data.address !== '') {
+    insertData.address = data.address
+  }
+  if (data.rating !== undefined && data.rating !== null) {
+    insertData.rating = data.rating
+  }
+  if (data.review_count !== undefined && data.review_count !== null) {
+    insertData.review_count = data.review_count
+  }
+  if (data.price_range !== undefined && data.price_range !== null && data.price_range !== '') {
+    insertData.price_range = data.price_range
+  }
+  if (data.distance !== undefined && data.distance !== null) {
+    insertData.distance = data.distance
+  }
+  if (data.badge !== undefined && data.badge !== null && data.badge !== '') {
+    insertData.badge = data.badge
+  }
+  if (data.image_url !== undefined && data.image_url !== null && data.image_url !== '') {
+    insertData.image_url = data.image_url
+  }
+  if (data.url !== undefined && data.url !== null && data.url !== '') {
+    insertData.url = data.url
+  }
+  if (data.amenities !== undefined && data.amenities !== null && data.amenities.length > 0) {
+    insertData.amenities = data.amenities
   }
 
   console.log("[v0] Creating beach with data:", insertData)
@@ -382,16 +409,50 @@ export async function createActivity(data: CreateActivityData): Promise<Activity
   }
 
   // Mapear los campos correctamente para guide_places
-  const insertData = {
+  const insertData: any = {
     tenant_id: tenantId,
     guide_id: data.guide_id,
     name: data.name,
-    description: data.description,
-    distance: data.distance,
-    badge: data.badge,
-    image_url: data.image_url,
+    place_type: "activity",
     order_index: data.order_index || 0,
-    place_type: "activity"
+  }
+
+  // Agregar campos opcionales solo si tienen valor
+  if (data.description !== undefined && data.description !== null) {
+    insertData.description = data.description
+  }
+  if (data.address !== undefined && data.address !== null && data.address !== '') {
+    insertData.address = data.address
+  }
+  if (data.activity_type !== undefined && data.activity_type !== null && data.activity_type !== '') {
+    insertData.activity_type = data.activity_type
+  }
+  if (data.duration !== undefined && data.duration !== null && data.duration !== '') {
+    insertData.duration = data.duration
+  }
+  if (data.rating !== undefined && data.rating !== null) {
+    insertData.rating = data.rating
+  }
+  if (data.review_count !== undefined && data.review_count !== null) {
+    insertData.review_count = data.review_count
+  }
+  if (data.price_range !== undefined && data.price_range !== null && data.price_range !== '') {
+    insertData.price_range = data.price_range
+  }
+  if (data.price_info !== undefined && data.price_info !== null && data.price_info !== '') {
+    insertData.price_info = data.price_info
+  }
+  if (data.distance !== undefined && data.distance !== null) {
+    insertData.distance = data.distance
+  }
+  if (data.badge !== undefined && data.badge !== null && data.badge !== '') {
+    insertData.badge = data.badge
+  }
+  if (data.image_url !== undefined && data.image_url !== null && data.image_url !== '') {
+    insertData.image_url = data.image_url
+  }
+  if (data.url !== undefined && data.url !== null && data.url !== '') {
+    insertData.url = data.url
   }
 
   console.log("[v0] Creating activity with data:", insertData)

@@ -7,8 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Activity } from "@/types/guides"
 import { createActivity, updateActivity, deleteActivity } from "@/lib/api/guides-client"
+import { getActivityFromGoogleUrl } from "@/lib/api/google-places"
+import { GoogleRestaurantInfo } from "./GoogleRestaurantInfo"
+import { Loader2, Search, AlertCircle } from "lucide-react"
 
 interface ActivitiesEditFormProps {
   activities: Activity[]
@@ -20,10 +24,17 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleUrl, setGoogleUrl] = useState("")
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [googleActivityData, setGoogleActivityData] = useState<Partial<Activity> | null>(null)
+  const [googleError, setGoogleError] = useState<string | null>(null)
 
   const handleEdit = (activity: Activity) => {
     setEditingActivity(activity)
     setIsAddingNew(false)
+    setGoogleUrl(activity.url || "")
+    setGoogleActivityData(null)
+    setGoogleError(null)
   }
 
   const handleAddNew = () => {
@@ -33,17 +44,77 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
       tenant_id: "",
       name: "",
       description: "",
+      address: "",
       activity_type: "",
       duration: "",
       distance: null,
       price_info: "",
+      price_range: "",
+      rating: null,
+      review_count: null,
       badge: "",
       image_url: "",
+      url: "",
       order_index: activities.length + 1,
       created_at: "",
       updated_at: ""
     })
     setIsAddingNew(true)
+    setGoogleUrl("")
+    setGoogleActivityData(null)
+    setGoogleError(null)
+  }
+
+  const handleFetchFromGoogle = async () => {
+    if (!googleUrl.trim()) {
+      setGoogleError("Por favor, ingresa una URL de Google Maps.")
+      return
+    }
+
+    setGoogleLoading(true)
+    setGoogleError(null)
+    setGoogleActivityData(null)
+
+    try {
+      console.log("[ActivitiesEditForm] Iniciando búsqueda con URL:", googleUrl)
+      const data = await getActivityFromGoogleUrl(googleUrl)
+      if (data) {
+        console.log("[ActivitiesEditForm] Datos obtenidos:", data)
+        setGoogleActivityData(data)
+      } else {
+        setGoogleError("No se pudo obtener información de Google para esa URL. Por favor, verifica que la URL sea válida.")
+      }
+    } catch (error: any) {
+      console.error("[ActivitiesEditForm] Error fetching from Google:", error)
+      setGoogleError(error.message || "Error al buscar en Google. Por favor, verifica que la URL sea válida.")
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
+
+  const handleUseGoogleData = () => {
+    if (!googleActivityData) return
+
+    setEditingActivity((prev) => ({
+      ...prev!,
+      name: googleActivityData.name || prev?.name || "",
+      description: googleActivityData.description || prev?.description || "",
+      address: googleActivityData.address || prev?.address || "",
+      activity_type: googleActivityData.activity_type || prev?.activity_type || "",
+      rating: googleActivityData.rating || prev?.rating || null,
+      review_count: googleActivityData.review_count || prev?.review_count || null,
+      price_range: googleActivityData.price_range || prev?.price_range || "",
+      badge: googleActivityData.badge || prev?.badge || "",
+      image_url: googleActivityData.image_url || prev?.image_url || "",
+      url: googleActivityData.url || googleUrl || prev?.url || "",
+    }))
+
+    setGoogleActivityData(null)
+    setGoogleUrl("")
+  }
+
+  const handleEditManually = () => {
+    setGoogleActivityData(null)
   }
 
   const handleSave = async () => {
@@ -58,10 +129,17 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
           guide_id: guideId,
           name: editingActivity.name,
           description: editingActivity.description,
+          address: editingActivity.address,
+          activity_type: editingActivity.activity_type,
+          duration: editingActivity.duration,
           distance: editingActivity.distance,
           price_info: editingActivity.price_info,
+          price_range: editingActivity.price_range,
+          rating: editingActivity.rating,
+          review_count: editingActivity.review_count,
           badge: editingActivity.badge,
           image_url: editingActivity.image_url,
+          url: editingActivity.url,
           order_index: editingActivity.order_index
         })
         
@@ -73,10 +151,17 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
         const updatedActivity = await updateActivity(editingActivity.id, {
           name: editingActivity.name,
           description: editingActivity.description,
+          address: editingActivity.address,
+          activity_type: editingActivity.activity_type,
+          duration: editingActivity.duration,
           distance: editingActivity.distance,
           price_info: editingActivity.price_info,
+          price_range: editingActivity.price_range,
+          rating: editingActivity.rating,
+          review_count: editingActivity.review_count,
           badge: editingActivity.badge,
           image_url: editingActivity.image_url,
+          url: editingActivity.url,
           order_index: editingActivity.order_index
         })
         
@@ -87,11 +172,22 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
       
       setEditingActivity(null)
       setIsAddingNew(false)
+      setGoogleUrl("")
+      setGoogleActivityData(null)
+      setGoogleError(null)
     } catch (error) {
       console.error('Error saving activity:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCancel = () => {
+    setEditingActivity(null)
+    setIsAddingNew(false)
+    setGoogleUrl("")
+    setGoogleActivityData(null)
+    setGoogleError(null)
   }
 
   const handleDelete = async (activityId: string) => {
@@ -110,10 +206,6 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
     }
   }
 
-  const handleCancel = () => {
-    setEditingActivity(null)
-    setIsAddingNew(false)
-  }
 
   return (
     <div className="space-y-6">
@@ -221,6 +313,69 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Campo para URL de Google (disponible al agregar y editar) */}
+              <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <Label htmlFor="google-url" className="flex items-center gap-2">
+                  <i className="fab fa-google text-blue-600"></i>
+                  URL de Búsqueda de Google (Opcional)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="google-url"
+                    value={googleUrl}
+                    onChange={(e) => {
+                      setGoogleUrl(e.target.value)
+                      setGoogleError(null)
+                    }}
+                    placeholder="Pega aquí la URL de búsqueda de Google de la actividad"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleFetchFromGoogle}
+                    disabled={googleLoading || !googleUrl.trim()}
+                    variant="outline"
+                    className="flex-shrink-0"
+                  >
+                    {googleLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Buscando...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Buscar en Google
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {isAddingNew 
+                    ? "Pega la URL completa de una búsqueda de Google de la actividad para obtener automáticamente su información"
+                    : "Actualiza la información de la actividad pegando una nueva URL de búsqueda de Google"}
+                </p>
+                {googleError && (
+                  <Alert variant="destructive" className="mt-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{googleError}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              {/* Mostrar información de Google si está disponible */}
+              {googleActivityData && (
+                <GoogleRestaurantInfo
+                  restaurantData={googleActivityData as any}
+                  onUseData={handleUseGoogleData}
+                  onEditManually={handleEditManually}
+                  loading={googleLoading}
+                />
+              )}
+
+              {/* Formulario manual (solo si no hay datos de Google disponibles) */}
+              {!googleActivityData && (
+                <>
               <div className="space-y-2">
                 <Label htmlFor="activity-name">Nombre</Label>
                 <Input
@@ -285,12 +440,68 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="activity-address">Dirección</Label>
+                <Input
+                  id="activity-address"
+                  value={editingActivity.address || ''}
+                  onChange={(e) => setEditingActivity({ ...editingActivity, address: e.target.value })}
+                  placeholder="Dirección de la actividad"
+                />
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="activity-rating">Calificación (1-5)</Label>
+                  <Input
+                    id="activity-rating"
+                    type="number"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    value={editingActivity.rating !== null ? editingActivity.rating : ''}
+                    onChange={(e) => setEditingActivity({ ...editingActivity, rating: e.target.value ? Number.parseFloat(e.target.value) : null })}
+                    placeholder="4.5"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="activity-reviews">Número de Reseñas</Label>
+                  <Input
+                    id="activity-reviews"
+                    type="number"
+                    min="0"
+                    value={editingActivity.review_count !== null ? editingActivity.review_count : ''}
+                    onChange={(e) => setEditingActivity({ ...editingActivity, review_count: e.target.value ? Number.parseInt(e.target.value) : null })}
+                    placeholder="150"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="activity-price-range">Rango de Precio</Label>
+                  <Input
+                    id="activity-price-range"
+                    value={editingActivity.price_range || ''}
+                    onChange={(e) => setEditingActivity({ ...editingActivity, price_range: e.target.value })}
+                    placeholder="€20-€40"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="activity-image">URL de Imagen</Label>
                 <Input
                   id="activity-image"
                   value={editingActivity.image_url || ''}
                   onChange={(e) => setEditingActivity({ ...editingActivity, image_url: e.target.value })}
                   placeholder="https://ejemplo.com/imagen.jpg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="activity-url">URL del Lugar (Google Maps, Web, etc.)</Label>
+                <Input
+                  id="activity-url"
+                  value={editingActivity.url || ''}
+                  onChange={(e) => setEditingActivity({ ...editingActivity, url: e.target.value })}
+                  placeholder="https://maps.app.goo.gl/..."
                 />
               </div>
 
@@ -303,6 +514,8 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
                   Cancelar
                 </Button>
               </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

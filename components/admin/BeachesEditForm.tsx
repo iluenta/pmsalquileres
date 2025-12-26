@@ -7,8 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Beach } from "@/types/guides"
 import { createBeach, updateBeach, deleteBeach } from "@/lib/api/guides-client"
+import { getBeachFromGoogleUrl } from "@/lib/api/google-places"
+import { GoogleRestaurantInfo } from "./GoogleRestaurantInfo"
+import { Loader2, Search, AlertCircle } from "lucide-react"
 
 interface BeachesEditFormProps {
   beaches: Beach[]
@@ -20,10 +24,17 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
   const [editingBeach, setEditingBeach] = useState<Beach | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleUrl, setGoogleUrl] = useState("")
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [googleBeachData, setGoogleBeachData] = useState<Partial<Beach> | null>(null)
+  const [googleError, setGoogleError] = useState<string | null>(null)
 
   const handleEdit = (beach: Beach) => {
     setEditingBeach(beach)
     setIsAddingNew(false)
+    setGoogleUrl(beach.url || "")
+    setGoogleBeachData(null)
+    setGoogleError(null)
   }
 
   const handleAddNew = () => {
@@ -33,16 +44,74 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
       tenant_id: "",
       name: "",
       description: "",
+      address: "",
       distance: null,
       amenities: [],
-      rating: 0,
+      rating: null,
+      review_count: null,
+      price_range: "",
       badge: "",
       image_url: "",
+      url: "",
       order_index: beaches.length + 1,
       created_at: "",
       updated_at: ""
     })
     setIsAddingNew(true)
+    setGoogleUrl("")
+    setGoogleBeachData(null)
+    setGoogleError(null)
+  }
+
+  const handleFetchFromGoogle = async () => {
+    if (!googleUrl.trim()) {
+      setGoogleError("Por favor, ingresa una URL de Google Maps.")
+      return
+    }
+
+    setGoogleLoading(true)
+    setGoogleError(null)
+    setGoogleBeachData(null)
+
+    try {
+      console.log("[BeachesEditForm] Iniciando búsqueda con URL:", googleUrl)
+      const data = await getBeachFromGoogleUrl(googleUrl)
+      if (data) {
+        console.log("[BeachesEditForm] Datos obtenidos:", data)
+        setGoogleBeachData(data)
+      } else {
+        setGoogleError("No se pudo obtener información de Google para esa URL. Por favor, verifica que la URL sea válida.")
+      }
+    } catch (error: any) {
+      console.error("[BeachesEditForm] Error fetching from Google:", error)
+      setGoogleError(error.message || "Error al buscar en Google. Por favor, verifica que la URL sea válida.")
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
+
+  const handleUseGoogleData = () => {
+    if (!googleBeachData) return
+
+    setEditingBeach((prev) => ({
+      ...prev!,
+      name: googleBeachData.name || prev?.name || "",
+      description: googleBeachData.description || prev?.description || "",
+      address: googleBeachData.address || prev?.address || "",
+      rating: googleBeachData.rating || prev?.rating || null,
+      review_count: googleBeachData.review_count || prev?.review_count || null,
+      price_range: googleBeachData.price_range || prev?.price_range || "",
+      badge: googleBeachData.badge || prev?.badge || "",
+      image_url: googleBeachData.image_url || prev?.image_url || "",
+      url: googleBeachData.url || googleUrl || prev?.url || "",
+    }))
+
+    setGoogleBeachData(null)
+    setGoogleUrl("")
+  }
+
+  const handleEditManually = () => {
+    setGoogleBeachData(null)
   }
 
   const handleSave = async () => {
@@ -57,10 +126,14 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
           guide_id: guideId,
           name: editingBeach.name,
           description: editingBeach.description,
+          address: editingBeach.address,
           distance: editingBeach.distance,
           rating: editingBeach.rating,
+          review_count: editingBeach.review_count,
+          price_range: editingBeach.price_range,
           badge: editingBeach.badge,
           image_url: editingBeach.image_url,
+          url: editingBeach.url,
           order_index: editingBeach.order_index
         })
         
@@ -72,10 +145,14 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
         const updatedBeach = await updateBeach(editingBeach.id, {
           name: editingBeach.name,
           description: editingBeach.description,
+          address: editingBeach.address,
           distance: editingBeach.distance,
           rating: editingBeach.rating,
+          review_count: editingBeach.review_count,
+          price_range: editingBeach.price_range,
           badge: editingBeach.badge,
           image_url: editingBeach.image_url,
+          url: editingBeach.url,
           order_index: editingBeach.order_index
         })
         
@@ -112,6 +189,9 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
   const handleCancel = () => {
     setEditingBeach(null)
     setIsAddingNew(false)
+    setGoogleUrl("")
+    setGoogleBeachData(null)
+    setGoogleError(null)
   }
 
   const renderStars = (rating: number) => {
@@ -233,6 +313,69 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Campo para URL de Google (disponible al agregar y editar) */}
+              <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <Label htmlFor="google-url" className="flex items-center gap-2">
+                  <i className="fab fa-google text-blue-600"></i>
+                  URL de Búsqueda de Google (Opcional)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="google-url"
+                    value={googleUrl}
+                    onChange={(e) => {
+                      setGoogleUrl(e.target.value)
+                      setGoogleError(null)
+                    }}
+                    placeholder="Pega aquí la URL de búsqueda de Google de la playa"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleFetchFromGoogle}
+                    disabled={googleLoading || !googleUrl.trim()}
+                    variant="outline"
+                    className="flex-shrink-0"
+                  >
+                    {googleLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Buscando...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Buscar en Google
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {isAddingNew 
+                    ? "Pega la URL completa de una búsqueda de Google de la playa para obtener automáticamente su información"
+                    : "Actualiza la información de la playa pegando una nueva URL de búsqueda de Google"}
+                </p>
+                {googleError && (
+                  <Alert variant="destructive" className="mt-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{googleError}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
+              {/* Mostrar información de Google si está disponible */}
+              {googleBeachData && (
+                <GoogleRestaurantInfo
+                  restaurantData={googleBeachData as any}
+                  onUseData={handleUseGoogleData}
+                  onEditManually={handleEditManually}
+                  loading={googleLoading}
+                />
+              )}
+
+              {/* Formulario manual (solo si no hay datos de Google disponibles) */}
+              {!googleBeachData && (
+                <>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="beach-name">Nombre</Label>
@@ -256,18 +399,6 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="beach-rating">Calificación (1-5)</Label>
-                  <Input
-                    id="beach-rating"
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={editingBeach.rating || ''}
-                    onChange={(e) => setEditingBeach({ ...editingBeach, rating: e.target.value ? Number.parseInt(e.target.value) : 0 })}
-                    placeholder="5"
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="beach-badge">Badge</Label>
                   <Input
                     id="beach-badge"
@@ -290,12 +421,68 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="beach-address">Dirección</Label>
+                <Input
+                  id="beach-address"
+                  value={editingBeach.address || ''}
+                  onChange={(e) => setEditingBeach({ ...editingBeach, address: e.target.value })}
+                  placeholder="Dirección de la playa"
+                />
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="beach-rating">Calificación (1-5)</Label>
+                  <Input
+                    id="beach-rating"
+                    type="number"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    value={editingBeach.rating !== null ? editingBeach.rating : ''}
+                    onChange={(e) => setEditingBeach({ ...editingBeach, rating: e.target.value ? Number.parseFloat(e.target.value) : null })}
+                    placeholder="4.5"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="beach-reviews">Número de Reseñas</Label>
+                  <Input
+                    id="beach-reviews"
+                    type="number"
+                    min="0"
+                    value={editingBeach.review_count !== null ? editingBeach.review_count : ''}
+                    onChange={(e) => setEditingBeach({ ...editingBeach, review_count: e.target.value ? Number.parseInt(e.target.value) : null })}
+                    placeholder="150"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="beach-price">Rango de Precio</Label>
+                  <Input
+                    id="beach-price"
+                    value={editingBeach.price_range || ''}
+                    onChange={(e) => setEditingBeach({ ...editingBeach, price_range: e.target.value })}
+                    placeholder="€20-€40"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="beach-image">URL de Imagen</Label>
                 <Input
                   id="beach-image"
                   value={editingBeach.image_url || ''}
                   onChange={(e) => setEditingBeach({ ...editingBeach, image_url: e.target.value })}
                   placeholder="https://ejemplo.com/imagen.jpg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="beach-url">URL del Lugar (Google Maps, Web, etc.)</Label>
+                <Input
+                  id="beach-url"
+                  value={editingBeach.url || ''}
+                  onChange={(e) => setEditingBeach({ ...editingBeach, url: e.target.value })}
+                  placeholder="https://maps.app.goo.gl/..."
                 />
               </div>
 
@@ -318,6 +505,8 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
                   Cancelar
                 </Button>
               </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

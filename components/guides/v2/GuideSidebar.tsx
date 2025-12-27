@@ -26,42 +26,44 @@ export function GuideSidebar({ tabs, activeTab, onTabChange, isMobileOpen, onMob
         }
     }
 
-    const SidebarContent = () => (
-        <div className="flex flex-col h-full">
-            <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-bold text-gray-900">Navegación</h2>
-            </div>
-            <nav className="flex-1 overflow-y-auto p-2">
-                <div className="space-y-1">
-                    {tabs.map((tab) => {
-                        const Icon = tab.icon
-                        const isActive = activeTab === tab.id
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => handleTabClick(tab.id)}
-                                className={cn(
-                                    "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-                                    isActive
-                                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
-                                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                                )}
-                            >
-                                <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-blue-600" : "text-gray-400")} />
-                                <span className="text-left">{tab.label}</span>
-                            </button>
-                        )
-                    })}
+    const SidebarContent = () => {
+        return (
+            <div className="flex flex-col h-full">
+                <div className="p-4 border-b border-gray-200 flex-shrink-0">
+                    <h2 className="text-lg font-bold text-gray-900">Navegación</h2>
                 </div>
-            </nav>
-        </div>
-    )
+                <nav className="flex-1 overflow-y-auto p-2 min-h-0">
+                    <div className="space-y-1">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon
+                            const isActive = activeTab === tab.id
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => handleTabClick(tab.id)}
+                                    className={cn(
+                                        "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                                        isActive
+                                            ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
+                                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                                    )}
+                                >
+                                    <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-blue-600" : "text-gray-400")} />
+                                    <span className="text-left">{tab.label}</span>
+                                </button>
+                            )
+                        })}
+                    </div>
+                </nav>
+            </div>
+        )
+    }
 
     return (
         <>
             {/* Desktop Sidebar */}
             <aside className="hidden md:block w-64 flex-shrink-0 bg-white border-r border-gray-200">
-                <div className="sticky top-0 h-screen overflow-y-auto">
+                <div className="sticky top-[150px] h-[calc(100vh-150px)] overflow-y-auto">
                     <SidebarContent />
                 </div>
             </aside>

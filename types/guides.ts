@@ -125,6 +125,26 @@ export interface Restaurant {
   updated_at: string
 }
 
+export interface Shopping {
+  id: string
+  guide_id: string
+  tenant_id: string
+  name: string
+  description: string | null
+  address: string | null // Dirección del lugar de compras
+  shopping_type: string | null // 'supermercado', 'centro_comercial', 'tienda', etc.
+  price_range: string | null
+  distance: number | null
+  image_url: string | null
+  rating: number | null
+  review_count: number | null
+  badge: string | null
+  url: string | null // URL del lugar (Google Maps o website)
+  order_index: number
+  created_at: string
+  updated_at: string
+}
+
 export interface Activity {
   id: string
   guide_id: string

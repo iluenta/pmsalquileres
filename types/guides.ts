@@ -194,6 +194,18 @@ export interface ContactInfo {
   created_at: string
 }
 
+export interface InterestPhoneContact {
+  name: string
+  phone: string
+  address?: string | null
+  description?: string | null
+}
+
+export interface InterestPhoneCategory {
+  category: 'emergencias' | 'policia' | 'bomberos' | 'farmacia' | 'veterinario' | 'medico' | 'otros'
+  contacts: InterestPhoneContact[]
+}
+
 export interface GuideContactInfo {
   id: string
   guide_id: string
@@ -202,12 +214,17 @@ export interface GuideContactInfo {
   phone: string | null
   email: string | null
   whatsapp: string | null
+  host_message?: string | null
+  support_person_name?: string | null
+  support_person_phone?: string | null
+  support_person_whatsapp?: string | null
   emergency_numbers: {
     emergencias: string
     policia_local: string
     guardia_civil: string
     bomberos: string
   } | null
+  interest_phones?: InterestPhoneCategory[] | null
   emergency_phone: string | null
   medical_contact: string | null
   police_contact: string | null
@@ -449,7 +466,17 @@ export interface CreateContactInfoData {
   phone?: string | null
   email?: string | null
   whatsapp?: string | null
-  emergency_numbers?: string | null
+  host_message?: string | null
+  support_person_name?: string | null
+  support_person_phone?: string | null
+  support_person_whatsapp?: string | null
+  emergency_numbers?: {
+    emergencias: string
+    policia_local: string
+    guardia_civil: string
+    bomberos: string
+  } | null
+  interest_phones?: InterestPhoneCategory[] | null
   emergency_phone?: string | null
   medical_contact?: string | null
   police_contact?: string | null
@@ -462,7 +489,17 @@ export interface UpdateContactInfoData {
   phone?: string | null
   email?: string | null
   whatsapp?: string | null
-  emergency_numbers?: string | null
+  host_message?: string | null
+  support_person_name?: string | null
+  support_person_phone?: string | null
+  support_person_whatsapp?: string | null
+  emergency_numbers?: {
+    emergencias: string
+    policia_local: string
+    guardia_civil: string
+    bomberos: string
+  } | null
+  interest_phones?: InterestPhoneCategory[] | null
   emergency_phone?: string | null
   medical_contact?: string | null
   police_contact?: string | null

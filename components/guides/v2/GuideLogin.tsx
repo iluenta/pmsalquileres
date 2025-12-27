@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Loader2, Lock, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { getCookie, setCookie, deleteGuideCookies } from "@/lib/utils/cookies"
 
 interface GuideLoginProps {
     propertyId: string
@@ -20,7 +21,7 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Validar que propertyId existe - LOGS MUY VISIBLES
+    // Leer cookies al montar el componente para pre-llenar los campos
     useEffect(() => {
         console.log("=".repeat(80))
         console.log("🔵🔵🔵 [GuideLogin] COMPONENT MOUNTED 🔵🔵🔵")
@@ -28,8 +29,24 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
         console.log("🔵 [GuideLogin] propertyName:", propertyName)
         console.log("🔵 [GuideLogin] This component should be visible on screen")
         console.log("=".repeat(80))
+        
         if (!propertyId) {
             console.error("🔴 [GuideLogin] No propertyId provided")
+            return
+        }
+
+        // Leer cookies específicas para esta propiedad
+        const savedFirstName = getCookie(`guide_guest_${propertyId}_firstName`)
+        const savedLastName = getCookie(`guide_guest_${propertyId}_lastName`)
+
+        if (savedFirstName) {
+            console.log("🔵 [GuideLogin] Cookie encontrada para firstName:", savedFirstName)
+            setFirstName(savedFirstName)
+        }
+
+        if (savedLastName) {
+            console.log("🔵 [GuideLogin] Cookie encontrada para lastName:", savedLastName)
+            setLastName(savedLastName)
         }
     }, [propertyId, propertyName])
 
@@ -66,12 +83,22 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
             const result = await response.json()
 
             if (result.success) {
+                // Guardar cookies después de login exitoso (15 días de caducidad)
+                setCookie(`guide_guest_${propertyId}_firstName`, firstName, 15)
+                setCookie(`guide_guest_${propertyId}_lastName`, lastName, 15)
+                console.log("🔵 [GuideLogin] Cookies guardadas para:", { firstName, lastName })
+                
                 onLoginSuccess(result.booking)
             } else {
+                // Si la validación falla, eliminar las cookies existentes
+                deleteGuideCookies(propertyId)
+                console.log("🔴 [GuideLogin] Validación fallida, cookies eliminadas")
                 setError(result.message || "No se pudo validar el acceso")
             }
         } catch (err) {
             console.error('[GuideLogin] Error:', err)
+            // En caso de error, también eliminar cookies por seguridad
+            deleteGuideCookies(propertyId)
             setError("Error al conectar con el servidor")
         } finally {
             setLoading(false)
@@ -145,12 +172,9 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
                         </Button>
                     </form>
 
-                    <div className="mt-8 pt-6 border-t border-gray-100 text-center space-y-2">
+                    <div className="mt-8 pt-6 border-t border-gray-100 text-center">
                         <p className="text-xs text-gray-400 italic">
                             El acceso se activa 10 días antes de tu llegada y finaliza el día siguiente a tu salida.
-                        </p>
-                        <p className="text-xs text-gray-500">
-                            <span className="font-medium">Acceso genérico:</span> Usa "GUEST" o "INVITADO" como nombre o apellido para acceder sin reserva.
                         </p>
                     </div>
                 </CardContent>

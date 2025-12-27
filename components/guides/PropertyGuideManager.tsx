@@ -5,6 +5,7 @@ import { useGuideData } from "@/hooks/useGuideData"
 import { BeachesEditForm } from "@/components/admin/BeachesEditForm"
 import { RestaurantsEditForm } from "@/components/admin/RestaurantsEditForm"
 import { ActivitiesEditForm } from "@/components/admin/ActivitiesEditForm"
+import { ContactInfoEditForm } from "@/components/admin/ContactInfoEditForm"
 import { createGuideSection, updateGuideSection, deleteGuideSection, createGuide, updateGuide } from "@/lib/api/guides-client"
 import { SectionManager } from "@/components/admin/SectionManager"
 import { HouseRulesManager } from "@/components/admin/HouseRulesManager"
@@ -821,16 +822,16 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
           </TabsContent>
 
           <TabsContent value="contact">
-            <SectionManager
-              section={getSectionByType('contact')}
-              guideId={data?.guide?.id || ''}
-              sectionType="contact"
-              defaultTitle="Información de Contacto"
-              defaultIcon="fas fa-phone-alt"
-              iconCategory="general"
-              placeholder="Proporciona información de contacto, números de emergencia, horarios de atención..."
-              onSectionChange={handleSectionChange}
-            />
+            {data?.guide?.id ? (
+              <ContactInfoEditForm guideId={data.guide.id} />
+            ) : (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <i className="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                  <p className="text-gray-600">No se puede gestionar contactos sin una guía creada</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="beaches">

@@ -9,9 +9,10 @@ const supabasePublic = createClient(supabaseUrl, supabaseAnonKey)
 /**
  * Obtiene una propiedad por su slug (acceso público)
  * @param slug Slug de la propiedad
+ * @param includeInactive Si es true, incluye propiedades inactivas
  * @returns Propiedad encontrada o null
  */
-export async function getPropertyBySlugPublic(slug: string): Promise<Property | null> {
+export async function getPropertyBySlugPublic(slug: string, includeInactive: boolean = false): Promise<Property | null> {
   try {
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error('[properties-public] Missing Supabase environment variables')
@@ -20,7 +21,7 @@ export async function getPropertyBySlugPublic(slug: string): Promise<Property | 
 
     const normalizedSlug = slug.toLowerCase().trim()
 
-    const { data, error } = await supabasePublic
+    let query = supabasePublic
       .from('properties')
       .select(`
         id,
@@ -44,8 +45,12 @@ export async function getPropertyBySlugPublic(slug: string): Promise<Property | 
         tenant_id
       `)
       .eq('slug', normalizedSlug)
-      .eq('is_active', true)
-      .maybeSingle()
+
+    if (!includeInactive) {
+      query = query.eq('is_active', true)
+    }
+
+    const { data, error } = await query.maybeSingle()
 
     if (error) {
       console.error('[properties-public] Error fetching property by slug:', error)

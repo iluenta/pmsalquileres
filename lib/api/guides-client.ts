@@ -741,7 +741,12 @@ export async function createGuideContactInfoClient(data: CreateContactInfoData):
       phone: data.phone,
       email: data.email,
       whatsapp: data.whatsapp,
+      host_message: data.host_message,
+      support_person_name: data.support_person_name,
+      support_person_phone: data.support_person_phone,
+      support_person_whatsapp: data.support_person_whatsapp,
       emergency_numbers: data.emergency_numbers,
+      interest_phones: data.interest_phones,
       service_issues: data.service_issues,
     })
     .select()

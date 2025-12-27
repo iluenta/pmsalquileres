@@ -308,20 +308,55 @@ export async function getCurrentWeather(lat: number, lon: number): Promise<Curre
     throw new Error('API key de Google Weather no configurada');
   }
 
+  // Validar coordenadas antes de hacer la llamada
+  if (!isValidCoordinates(lat, lon)) {
+    throw new Error('Coordenadas no válidas. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.');
+  }
+
+  // Verificar que no sean coordenadas por defecto (0,0)
+  if (lat === 0 && lon === 0) {
+    throw new Error('Las coordenadas de la propiedad no están configuradas. Por favor, configura la ubicación de la propiedad.');
+  }
+
   try {
     const response = await fetch(
       `${GOOGLE_WEATHER_BASE_URL}/currentConditions:lookup?key=${API_KEY}&location.latitude=${lat}&location.longitude=${lon}`
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Error de Google Weather API: ${errorData.error?.message || response.statusText}`);
+      let errorData: any;
+      let errorMessage: string;
+      
+      try {
+        errorData = await response.json();
+        errorMessage = errorData.error?.message || errorData.message || response.statusText;
+      } catch (parseError) {
+        // Si no se puede parsear el JSON, usar el status text
+        errorMessage = response.statusText || 'Error desconocido de la API';
+      }
+      
+      // Manejar error específico de ubicación no soportada
+      if (errorMessage.includes('not supported for this location') || 
+          errorMessage.includes('Information is not supported') ||
+          errorMessage.includes('not supported')) {
+        const customError = new Error('La ubicación de la propiedad no está soportada por el servicio de clima. Por favor, verifica las coordenadas de la propiedad.');
+        // Marcar el error como controlado para evitar stack traces innecesarios
+        (customError as any).isControlled = true;
+        throw customError;
+      }
+      
+      const apiError = new Error(`Error de Google Weather API: ${errorMessage}`);
+      (apiError as any).isControlled = true;
+      throw apiError;
     }
 
     const data: GoogleWeatherCurrentResponse = await response.json();
     return transformGoogleCurrentWeather(data);
   } catch (error) {
-    console.error('Error fetching current weather from Google:', error);
+    // Solo loggear si no es un error controlado
+    if (!(error as any)?.isControlled) {
+      console.error('[Weather API] Error obteniendo clima actual:', error);
+    }
     throw error;
   }
 }
@@ -332,31 +367,161 @@ export async function getWeatherForecast(lat: number, lon: number): Promise<Weat
     throw new Error('API key de Google Weather no configurada');
   }
 
+  // Validar coordenadas antes de hacer la llamada
+  if (!isValidCoordinates(lat, lon)) {
+    throw new Error('Coordenadas no válidas. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.');
+  }
+
+  // Verificar que no sean coordenadas por defecto (0,0)
+  if (lat === 0 && lon === 0) {
+    throw new Error('Las coordenadas de la propiedad no están configuradas. Por favor, configura la ubicación de la propiedad.');
+  }
+
   try {
     const response = await fetch(
       `${GOOGLE_WEATHER_BASE_URL}/forecast/days:lookup?key=${API_KEY}&location.latitude=${lat}&location.longitude=${lon}&days=5`
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Error de Google Weather API: ${errorData.error?.message || response.statusText}`);
+      let errorData: any;
+      let errorMessage: string;
+      
+      try {
+        errorData = await response.json();
+        errorMessage = errorData.error?.message || errorData.message || response.statusText;
+      } catch (parseError) {
+        // Si no se puede parsear el JSON, usar el status text
+        errorMessage = response.statusText || 'Error desconocido de la API';
+      }
+      
+      // Manejar error específico de ubicación no soportada
+      if (errorMessage.includes('not supported for this location') || 
+          errorMessage.includes('Information is not supported') ||
+          errorMessage.includes('not supported')) {
+        const customError = new Error('La ubicación de la propiedad no está soportada por el servicio de clima. Por favor, verifica las coordenadas de la propiedad.');
+        // Marcar el error como controlado para evitar stack traces innecesarios
+        (customError as any).isControlled = true;
+        throw customError;
+      }
+      
+      const apiError = new Error(`Error de Google Weather API: ${errorMessage}`);
+      (apiError as any).isControlled = true;
+      throw apiError;
     }
 
     const data: GoogleWeatherForecastResponse = await response.json();
     return transformGoogleForecast(data);
   } catch (error) {
-    console.error('Error fetching weather forecast from Google:', error);
+    // Solo loggear si no es un error controlado
+    if (!(error as any)?.isControlled) {
+      console.error('[Weather API] Error obteniendo pronóstico:', error);
+    }
     throw error;
   }
 }
 
 // Obtener datos completos de clima (actual + pronóstico)
 export async function getWeatherData(lat: number, lon: number): Promise<WeatherData> {
-  try {
-    const [current, forecast] = await Promise.all([
-      getCurrentWeather(lat, lon),
-      getWeatherForecast(lat, lon)
-    ]);
+  // Validar coordenadas antes de hacer cualquier llamada
+  if (!isValidCoordinates(lat, lon)) {
+    throw new Error('Coordenadas no válidas. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.');
+  }
+
+  if (lat === 0 && lon === 0) {
+    throw new Error('Las coordenadas de la propiedad no están configuradas. Por favor, configura la ubicación de la propiedad.');
+  }
+
+    try {
+      // Intentar obtener ambos datos, pero manejar errores de forma independiente
+      let current: CurrentWeather | null = null;
+      let forecast: WeatherForecast[] = [];
+      let errorMessage: string | null = null;
+      let hasLocationError = false;
+
+      try {
+        current = await getCurrentWeather(lat, lon);
+      } catch (error) {
+        const err = error instanceof Error ? error.message : 'Error desconocido';
+        const isControlled = (error as any)?.isControlled || 
+                           err.includes('no está soportada') || 
+                           err.includes('not supported') ||
+                           err.includes('no están configuradas') ||
+                           err.includes('Coordenadas no válidas');
+        
+        // Solo loggear como warning si es un error controlado, para evitar que Next.js lo trate como error no controlado
+        if (isControlled) {
+          console.warn('[Weather API] Ubicación no soportada para clima actual:', err);
+        } else {
+          console.error('[Weather API] Error obteniendo clima actual:', err);
+        }
+        
+        // Detectar si es un error de ubicación no soportada
+        if (err.includes('no está soportada') || err.includes('not supported')) {
+          hasLocationError = true;
+        }
+        
+        errorMessage = err;
+        // Si falla el clima actual, intentamos con el pronóstico de todas formas
+      }
+
+      try {
+        forecast = await getWeatherForecast(lat, lon);
+      } catch (error) {
+        const err = error instanceof Error ? error.message : 'Error desconocido';
+        const isControlled = (error as any)?.isControlled || 
+                           err.includes('no está soportada') || 
+                           err.includes('not supported') ||
+                           err.includes('no están configuradas') ||
+                           err.includes('Coordenadas no válidas');
+        
+        // Solo loggear como warning si es un error controlado, para evitar que Next.js lo trate como error no controlado
+        if (isControlled) {
+          console.warn('[Weather API] Ubicación no soportada para pronóstico:', err);
+        } else {
+          console.error('[Weather API] Error obteniendo pronóstico:', err);
+        }
+        
+        // Detectar si es un error de ubicación no soportada
+        if (err.includes('no está soportada') || err.includes('not supported')) {
+          hasLocationError = true;
+        }
+        
+        // Si no hay error previo, usar este
+        if (!errorMessage) {
+          errorMessage = err;
+        }
+      }
+
+      // Si ambas llamadas fallaron, lanzar el error con mensaje específico
+      if (!current && forecast.length === 0) {
+        const finalMessage = hasLocationError 
+          ? 'La ubicación de la propiedad no está soportada por el servicio de clima. Por favor, verifica las coordenadas de la propiedad.'
+          : (errorMessage || 'No se pudo obtener información del clima para esta ubicación.');
+        
+        const finalError = new Error(finalMessage);
+        (finalError as any).isControlled = true;
+        throw finalError;
+      }
+
+    // Si al menos una llamada tuvo éxito, continuar
+    // Si falta el clima actual, crear uno básico
+    if (!current) {
+      current = {
+        temperature: 20,
+        feelsLike: 20,
+        condition: 'Despejado',
+        description: 'Información no disponible',
+        humidity: 50,
+        pressure: 1013,
+        windSpeed: 0,
+        windDirection: 'N',
+        uvIndex: 0,
+        sunrise: '--:--',
+        sunset: '--:--',
+        icon: '01d',
+        timestamp: Math.floor(Date.now() / 1000)
+      };
+    }
 
     // Obtener el nombre de la ciudad usando Google Geocoding API
     const cityName = await getCityName(lat, lon);
@@ -372,7 +537,12 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
       }
     };
   } catch (error) {
-    console.error('Error fetching weather data from Google:', error);
+    // Si es un error controlado, solo loggear como warning para evitar que Next.js lo trate como error no controlado
+    if ((error as any)?.isControlled) {
+      console.warn('[Weather API] Error controlado de clima:', error instanceof Error ? error.message : 'Error desconocido');
+    } else {
+      console.error('[Weather API] Error obteniendo datos del clima:', error);
+    }
     throw error;
   }
 }

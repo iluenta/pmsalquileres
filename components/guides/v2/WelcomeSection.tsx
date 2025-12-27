@@ -1,5 +1,6 @@
 import type { PropertyGuide } from "@/types/guides"
 import { Sparkles, MapPin } from "lucide-react"
+import { FormattedText } from "@/components/ui/formatted-text"
 
 interface WelcomeSectionProps {
     guide: PropertyGuide
@@ -42,11 +43,21 @@ export function WelcomeSection({
                         </div>
 
                         {/* Texto de Bienvenida */}
-                        <div className="prose prose-gray max-w-none text-gray-600 leading-relaxed text-pretty">
-                            <p className="whitespace-pre-wrap font-light text-base md:text-lg">
-                                {guide.welcome_message}
-                            </p>
+                        <div className="mb-6">
+                            <FormattedText
+                                text={guide.welcome_message}
+                                className="text-gray-600 font-light text-sm md:text-base leading-relaxed"
+                            />
                         </div>
+
+                        {/* Firma de los Anfitriones */}
+                        {guide.host_signature && (
+                            <div className="mt-6">
+                                <p className="text-gray-700 text-sm md:text-base italic font-medium text-center bg-gray-50 border-l-4 border-blue-500 pl-4 py-3 rounded-r">
+                                    "{guide.host_signature}"
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Columna Derecha: Imágenes y Dirección (Desktop) */}

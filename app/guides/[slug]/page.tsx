@@ -57,6 +57,30 @@ export default async function GuidePublicPage({ params }: PageProps) {
         const result = await getCachedProperty(slug)
 
         if (!result) {
+            // Verificar si la propiedad existe pero no está activa
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
+            
+            if (!isUUID) {
+                const { getPropertyBySlugPublic } = await import('@/lib/api/properties-public')
+                const inactiveProperty = await getPropertyBySlugPublic(slug, true) // includeInactive = true
+                
+                if (inactiveProperty && !inactiveProperty.is_active) {
+                    // La propiedad existe pero no está activa
+                    return (
+                        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+                            <div className="text-center max-w-md">
+                                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                                    Guía no disponible
+                                </h1>
+                                <p className="text-gray-600 mb-6">
+                                    La guía de esta propiedad no está disponible en este momento.
+                                </p>
+                            </div>
+                        </div>
+                    )
+                }
+            }
+            
             notFound()
         }
 

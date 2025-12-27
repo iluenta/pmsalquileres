@@ -1,142 +1,256 @@
-import type { GuideContactInfo } from "@/types/guides"
+import type { GuideContactInfo, InterestPhoneCategory } from "@/types/guides"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Phone, Mail, MessageCircle, AlertTriangle, ShieldCheck, Stethoscope, Flame } from "lucide-react"
+import { Phone, Mail, MessageCircle, AlertTriangle, Wrench, CheckCircle2, MapPin, MessageSquare, Stethoscope, Pill } from "lucide-react"
 
 interface ContactSectionProps {
     contactInfo: GuideContactInfo
 }
 
 export function ContactSection({ contactInfo }: ContactSectionProps) {
+    // Parse emergency_numbers
+    const emergencyNumbers = contactInfo.emergency_numbers && typeof contactInfo.emergency_numbers === 'object'
+        ? contactInfo.emergency_numbers
+        : null
+
+    const emergencias = emergencyNumbers?.emergencias || "112"
+    const policiaLocal = emergencyNumbers?.policia_local || contactInfo.police_contact || "092"
+    const guardiaCivil = emergencyNumbers?.guardia_civil || contactInfo.police_contact || "062"
+    const bomberos = emergencyNumbers?.bomberos || contactInfo.fire_contact || "080"
+
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
-            <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
-                    <Phone className="h-8 w-8 text-blue-600" />
+        <div className="max-w-6xl mx-auto space-y-6">
+            {/* Grid de 2 columnas: Anfitriones + Servicios (izq) y Teléfonos (der) */}
+            <div className="grid md:grid-cols-2 gap-6">
+                {/* Columna Izquierda */}
+                <div className="space-y-6">
+                    {/* Tarjeta 1: Tus Anfitriones */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <MessageSquare className="h-5 w-5 text-blue-600" />
+                                Tus Anfitriones
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {contactInfo.host_names && (
+                                <div className="text-lg font-semibold text-gray-900 mb-4">
+                                    {contactInfo.host_names}
+                                </div>
+                            )}
+
+                            {contactInfo.phone && (
+                                <a href={`tel:${contactInfo.phone}`} className="flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors">
+                                    <Phone className="h-5 w-5 text-gray-500" />
+                                    <span className="font-medium">Llamar</span>
+                                    <span>{contactInfo.phone}</span>
+                                </a>
+                            )}
+
+                            {contactInfo.email && (
+                                <a href={`mailto:${contactInfo.email}`} className="flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors">
+                                    <Mail className="h-5 w-5 text-gray-500" />
+                                    <span className="font-medium">Email</span>
+                                    <span>{contactInfo.email}</span>
+                                </a>
+                            )}
+
+                            {contactInfo.whatsapp && (
+                                <a
+                                    href={`https://wa.me/${contactInfo.whatsapp.replace(/[^0-9]/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors"
+                                >
+                                    <MessageCircle className="h-5 w-5 text-gray-500" />
+                                    <span className="font-medium">WhatsApp</span>
+                                    <span>{contactInfo.whatsapp}</span>
+                                </a>
+                            )}
+
+                            {contactInfo.support_person_name && contactInfo.support_person_phone && (
+                                <div className="border-t pt-4 mt-4">
+                                    <h4 className="text-sm font-semibold text-gray-800 mb-2">Persona de Soporte</h4>
+                                    <p className="text-sm text-gray-600 mb-2">
+                                        {contactInfo.support_person_name} está disponible para cualquier duda o incidencia durante tu estancia.
+                                    </p>
+                                    <div className="space-y-2">
+                                        <a href={`tel:${contactInfo.support_person_phone}`} className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
+                                            <Phone className="h-4 w-4" />
+                                            <span className="text-sm">{contactInfo.support_person_phone}</span>
+                                        </a>
+                                        {contactInfo.support_person_whatsapp && (
+                                            <a
+                                                href={`https://wa.me/${contactInfo.support_person_whatsapp.replace(/[^0-9]/g, '')}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+                                            >
+                                                <MessageCircle className="h-4 w-4" />
+                                                <span className="text-sm">{contactInfo.support_person_whatsapp}</span>
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {contactInfo.host_message && (
+                                <p className="text-xs text-gray-500 text-center mt-6 pt-4 border-t">
+                                    {contactInfo.host_message}
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Tarjeta 3: Servicios del Apartamento */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Wrench className="h-5 w-5 text-blue-600" />
+                                Servicios del Apartamento
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-gray-700 text-sm">
+                                Si encuentras cualquier problema en el apartamento durante tu estancia, por favor contáctanos inmediatamente:
+                            </p>
+
+                            {contactInfo.service_issues && contactInfo.service_issues.length > 0 ? (
+                                <div className="grid grid-cols-2 gap-3">
+                                    {contactInfo.service_issues.map((issue, index) => (
+                                        <div key={index} className="flex items-start gap-2">
+                                            <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                            <span className="text-sm text-gray-700">{issue}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500 italic">
+                                    No hay problemas comunes listados. Contacta directamente con los anfitriones si encuentras algún problema.
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
-                <h2 className="text-3xl font-bold text-gray-900">Contacto</h2>
-                <p className="text-gray-600 mt-2">Estamos aquí para ayudarte</p>
-            </div>
 
-            {/* Información del Anfitrión */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Tus Anfitriones</CardTitle>
-                </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-6">
-                    {contactInfo.host_names && (
-                        <div className="text-lg font-medium">{contactInfo.host_names}</div>
-                    )}
-
-                    <div className="space-y-4 col-span-2">
-                        {contactInfo.phone && (
-                            <a href={`tel:${contactInfo.phone}`} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                <div className="bg-green-100 p-2 rounded-full"><Phone className="h-5 w-5 text-green-600" /></div>
-                                <div>
-                                    <div className="text-sm text-gray-500">Teléfono</div>
-                                    <div className="font-semibold text-gray-900">{contactInfo.phone}</div>
-                                </div>
-                            </a>
-                        )}
-
-                        {contactInfo.whatsapp && (
-                            <a
-                                href={`https://wa.me/${contactInfo.whatsapp.replace(/[^0-9]/g, '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                {/* Columna Derecha: Teléfonos de Interés */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                            Teléfonos de Interés
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Grid de números básicos de emergencia */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <a 
+                                href={`tel:${emergencias}`} 
+                                className="bg-red-50 border-2 border-red-500 p-3 rounded-lg text-center hover:bg-red-100 transition-colors"
                             >
-                                <div className="bg-green-100 p-2 rounded-full"><MessageCircle className="h-5 w-5 text-green-600" /></div>
-                                <div>
-                                    <div className="text-sm text-gray-500">WhatsApp</div>
-                                    <div className="font-semibold text-gray-900">{contactInfo.whatsapp}</div>
-                                </div>
+                                <div className="font-bold text-sm mb-1 text-red-500">EMERGENCIAS</div>
+                                <div className="text-lg font-semibold text-red-700">{emergencias}</div>
                             </a>
-                        )}
-
-                        {contactInfo.email && (
-                            <a href={`mailto:${contactInfo.email}`} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                <div className="bg-blue-100 p-2 rounded-full"><Mail className="h-5 w-5 text-blue-600" /></div>
-                                <div>
-                                    <div className="text-sm text-gray-500">Email</div>
-                                    <div className="font-semibold text-gray-900">{contactInfo.email}</div>
-                                </div>
+                            <a 
+                                href={`tel:${policiaLocal}`} 
+                                className="bg-white border-2 border-gray-200 p-3 rounded-lg text-center hover:border-gray-300 transition-colors"
+                            >
+                                <div className="font-bold text-sm mb-1 text-gray-800">POLICÍA LOCAL</div>
+                                <div className="text-lg font-semibold text-gray-900">{policiaLocal}</div>
                             </a>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Números de Emergencia */}
-            <h3 className="text-xl font-bold text-gray-900 mt-8 mb-4 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-                Números de Emergencia
-            </h3>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-                {/* Emergencias General */}
-                <Card className="border-l-4 border-l-red-500">
-                    <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <ShieldCheck className="h-8 w-8 text-red-100 text-red-500" />
-                            <div>
-                                <div className="font-bold">Emergencias</div>
-                                <div className="text-xs text-gray-500">112 / General</div>
-                            </div>
+                            <a 
+                                href={`tel:${guardiaCivil}`} 
+                                className="bg-white border-2 border-gray-200 p-3 rounded-lg text-center hover:border-gray-300 transition-colors"
+                            >
+                                <div className="font-bold text-sm mb-1 text-gray-800">GUARDIA CIVIL</div>
+                                <div className="text-lg font-semibold text-gray-900">{guardiaCivil}</div>
+                            </a>
+                            <a 
+                                href={`tel:${bomberos}`} 
+                                className="bg-white border-2 border-gray-200 p-3 rounded-lg text-center hover:border-gray-300 transition-colors"
+                            >
+                                <div className="font-bold text-sm mb-1 text-gray-800">BOMBEROS</div>
+                                <div className="text-lg font-semibold text-gray-900">{bomberos}</div>
+                            </a>
                         </div>
-                        <a href="tel:112" className="text-lg font-black text-red-600 hover:underline">112</a>
+
+                        {/* Categorías adicionales de interest_phones */}
+                        {contactInfo.interest_phones && contactInfo.interest_phones.length > 0 && (
+                            <div className="space-y-4 pt-4 border-t">
+                                {contactInfo.interest_phones.map((category: InterestPhoneCategory, catIndex: number) => {
+                                    const categoryLabels: Record<string, string> = {
+                                        farmacia: 'Farmacia',
+                                        veterinario: 'Veterinario',
+                                        medico: 'Médico',
+                                        otros: 'Otros'
+                                    }
+
+                                    const categoryLabel = categoryLabels[category.category] || category.category
+                                    const isMedico = category.category === 'medico'
+                                    const isFarmacia = category.category === 'farmacia'
+                                    const isVeterinario = category.category === 'veterinario'
+                                    const isOtros = category.category === 'otros'
+
+                                    if (category.contacts.length === 0) return null
+
+                                    // Colores para cada categoría
+                                    const getIconColor = () => {
+                                        if (isFarmacia) return "text-green-600"
+                                        if (isMedico) return "text-blue-600"
+                                        if (isVeterinario) return "text-orange-600"
+                                        if (isOtros) return "text-purple-600"
+                                        return "text-gray-600"
+                                    }
+
+                                    return (
+                                        <div key={catIndex} className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                {isMedico ? (
+                                                    <Stethoscope className={`h-4 w-4 ${getIconColor()}`} />
+                                                ) : isFarmacia ? (
+                                                    <Pill className={`h-4 w-4 ${getIconColor()}`} />
+                                                ) : (
+                                                    <Phone className={`h-4 w-4 ${getIconColor()}`} />
+                                                )}
+                                                <h5 className="text-sm font-semibold text-gray-800">{categoryLabel}</h5>
+                                            </div>
+                                            <div className="pl-6 space-y-3">
+                                                {category.contacts.map((contact, contactIndex) => (
+                                                    <div key={contactIndex} className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <Phone className="h-4 w-4 text-gray-400" />
+                                                            <a 
+                                                                href={`tel:${contact.phone}`} 
+                                                                className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                                                            >
+                                                                {contact.name}
+                                                            </a>
+                                                        </div>
+                                                        <a 
+                                                            href={`tel:${contact.phone}`} 
+                                                            className="text-sm text-gray-700 hover:text-blue-600 transition-colors block pl-6"
+                                                        >
+                                                            {contact.phone}
+                                                        </a>
+                                                        {contact.address && (
+                                                            <div className="flex items-start gap-2 pl-6 text-xs text-gray-600">
+                                                                <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                                                <span>{contact.address}</span>
+                                                            </div>
+                                                        )}
+                                                        {contact.description && (
+                                                            <p className="pl-6 text-xs text-gray-500 italic">{contact.description}</p>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-
-                {contactInfo.police_contact && (
-                    <Card className="border-l-4 border-l-blue-500">
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <ShieldCheck className="h-6 w-6 text-blue-500" />
-                                <div>
-                                    <div className="font-bold">Policía</div>
-                                    <div className="text-xs text-gray-500">Local / Nacional</div>
-                                </div>
-                            </div>
-                            <a href={`tel:${contactInfo.police_contact}`} className="text-lg font-bold text-blue-600 hover:underline">{contactInfo.police_contact}</a>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {contactInfo.medical_contact && (
-                    <Card className="border-l-4 border-l-green-500">
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <Stethoscope className="h-6 w-6 text-green-500" />
-                                <div>
-                                    <div className="font-bold">Médico</div>
-                                    <div className="text-xs text-gray-500">Centro Salud / Urgencias</div>
-                                </div>
-                            </div>
-                            <a href={`tel:${contactInfo.medical_contact}`} className="text-lg font-bold text-green-600 hover:underline">{contactInfo.medical_contact}</a>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {contactInfo.fire_contact && (
-                    <Card className="border-l-4 border-l-orange-500">
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <Flame className="h-6 w-6 text-orange-500" />
-                                <div>
-                                    <div className="font-bold">Bomberos</div>
-                                </div>
-                            </div>
-                            <a href={`tel:${contactInfo.fire_contact}`} className="text-lg font-bold text-orange-600 hover:underline">{contactInfo.fire_contact}</a>
-                        </CardContent>
-                    </Card>
-                )}
             </div>
-
-            {contactInfo.emergency_numbers && typeof contactInfo.emergency_numbers === 'object' && (
-                <div className="text-center text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
-                    <p>Si tienes alguna duda urgente y no nos puedes contactar, recuerda que el <span className="font-bold">112</span> es el número de emergencias para toda Europa.</p>
-                </div>
-            )}
         </div>
     )
 }

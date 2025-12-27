@@ -64,6 +64,25 @@ export default async function LandingPage({ params }: PageProps) {
   const property = await getCachedProperty(slug)
 
   if (!property) {
+    // Verificar si la propiedad existe pero no está activa
+    const inactiveProperty = await getPropertyBySlugPublic(slug, true) // includeInactive = true
+    
+    if (inactiveProperty && !inactiveProperty.is_active) {
+      // La propiedad existe pero no está activa
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+          <div className="text-center max-w-md">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Propiedad no disponible
+            </h1>
+            <p className="text-gray-600 mb-6">
+              Esta propiedad no está disponible en este momento.
+            </p>
+          </div>
+        </div>
+      )
+    }
+    
     notFound()
   }
 

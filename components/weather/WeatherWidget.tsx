@@ -116,11 +116,26 @@ export function WeatherWidget({ latitude, longitude, locality, propertyName }: W
   }
 
   if (error) {
+    // Determinar el tipo de error para mostrar un mensaje más específico
+    const isLocationError = error.message?.includes('no está soportada') || 
+                           error.message?.includes('not supported') ||
+                           error.message?.includes('no están configuradas') ||
+                           error.message?.includes('Coordenadas no válidas')
+    
     return (
-      <Card className="rounded-2xl border-red-100 bg-red-50">
+      <Card className="rounded-2xl border-orange-100 bg-orange-50">
         <CardContent className="p-8 text-center">
-          <p className="text-red-600 font-medium">Error al cargar el clima.</p>
-          <Button onClick={refetch} variant="outline" size="sm" className="mt-4">Reintentar</Button>
+          <p className="text-orange-700 font-medium mb-2">
+            {isLocationError 
+              ? '⚠️ No se puede obtener el clima para esta ubicación'
+              : 'Error al cargar el clima'}
+          </p>
+          <p className="text-sm text-orange-600 mb-4">
+            {error.message || 'Por favor, verifica que las coordenadas de la propiedad estén configuradas correctamente.'}
+          </p>
+          <Button onClick={refetch} variant="outline" size="sm" className="mt-2">
+            Reintentar
+          </Button>
         </CardContent>
       </Card>
     )

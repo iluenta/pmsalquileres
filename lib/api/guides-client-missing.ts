@@ -34,6 +34,7 @@ import type {
   ApartmentSection,
   Beach,
   Restaurant,
+  Shopping,
   Activity,
   CreateApartmentSectionData,
   UpdateApartmentSectionData,
@@ -41,6 +42,8 @@ import type {
   UpdateBeachData,
   CreateRestaurantData,
   UpdateRestaurantData,
+  CreateShoppingData,
+  UpdateShoppingData,
   CreateActivityData,
   UpdateActivityData,
 } from "@/types/guides"
@@ -383,6 +386,149 @@ export async function deleteRestaurant(id: string): Promise<boolean> {
 
   if (error) {
     console.error("[v0] Error deleting restaurant:", error)
+    return false
+  }
+
+  return true
+}
+
+// ============================================================================
+// SHOPPING CRUD (Client-side)
+// ============================================================================
+
+export async function createShopping(data: CreateShoppingData): Promise<Shopping | null> {
+  const supabase = getSupabaseBrowserClient()
+
+  const tenantId = await getCurrentUserTenantId()
+  if (!tenantId) {
+    return null
+  }
+
+  // Mapear los campos correctamente para guide_places
+  // Filtrar campos undefined/null para evitar errores
+  const insertData: any = {
+    tenant_id: tenantId,
+    guide_id: data.guide_id,
+    name: data.name,
+    place_type: "shopping",
+    order_index: data.order_index || 0,
+  }
+
+  // Agregar campos opcionales solo si tienen valor
+  if (data.description !== undefined && data.description !== null) {
+    insertData.description = data.description
+  }
+  if (data.address !== undefined && data.address !== null && data.address !== '') {
+    insertData.address = data.address
+  }
+  if (data.rating !== undefined && data.rating !== null) {
+    insertData.rating = data.rating
+  }
+  if (data.review_count !== undefined && data.review_count !== null) {
+    insertData.review_count = data.review_count
+  }
+  if (data.price_range !== undefined && data.price_range !== null && data.price_range !== '') {
+    insertData.price_range = data.price_range
+  }
+  // Agregar shopping_type solo si tiene valor
+  // NOTA: Si obtienes un error sobre columna no encontrada, ejecuta el script:
+  // scripts/079_add_shopping_type_to_guide_places.sql
+  if (data.shopping_type !== undefined && data.shopping_type !== null && data.shopping_type !== '') {
+    insertData.shopping_type = data.shopping_type
+  }
+  if (data.distance !== undefined && data.distance !== null) {
+    insertData.distance = data.distance
+  }
+  if (data.badge !== undefined && data.badge !== null && data.badge !== '') {
+    insertData.badge = data.badge
+  }
+  if (data.image_url !== undefined && data.image_url !== null && data.image_url !== '') {
+    insertData.image_url = data.image_url
+  }
+  if (data.url !== undefined && data.url !== null && data.url !== '') {
+    insertData.url = data.url
+  }
+
+  console.log("[v0] Creating shopping with data:", insertData)
+
+  const { data: result, error } = await supabase
+    .from("guide_places")
+    .insert(insertData)
+    .select()
+    .single()
+
+  if (error) {
+    console.error("[v0] Error creating shopping:")
+    console.error("- Error object:", error)
+    console.error("- Error message:", error.message)
+    console.error("- Error details:", error.details)
+    console.error("- Error hint:", error.hint)
+    console.error("- Error code:", error.code)
+    console.error("- Insert data:", insertData)
+    
+    // Si el error es sobre columna no encontrada, dar instrucciones claras
+    if (error.message?.includes('shopping_type') || error.message?.includes('column') || error.code === '42703') {
+      console.error("[v0] ⚠️ IMPORTANTE: La columna 'shopping_type' no existe en la tabla 'guide_places'.")
+      console.error("[v0] Por favor, ejecuta el script SQL: scripts/079_add_shopping_type_to_guide_places.sql")
+      console.error("[v0] Este script agregará la columna necesaria para lugares de compras.")
+    }
+    
+    return null
+  }
+
+  console.log("[v0] Shopping created successfully:", result)
+  return result
+}
+
+export async function updateShopping(id: string, data: UpdateShoppingData): Promise<Shopping | null> {
+  const supabase = getSupabaseBrowserClient()
+
+  console.log("[v0] Updating shopping with id:", id)
+  console.log("[v0] Update data:", data)
+
+  // Filtrar campos undefined para evitar errores
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([_, value]) => value !== undefined)
+  ) as UpdateShoppingData
+
+  console.log("[v0] Cleaned data:", cleanData)
+
+  const { data: result, error } = await supabase
+    .from("guide_places")
+    .update(cleanData)
+    .eq("id", id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error("[v0] Error updating shopping:")
+    console.error("- Error object:", error)
+    console.error("- Error message:", error.message)
+    console.error("- Error details:", error.details)
+    console.error("- Error hint:", error.hint)
+    console.error("- Error code:", error.code)
+    return null
+  }
+
+  if (!result) {
+    console.error("[v0] No result returned from update")
+    return null
+  }
+
+  console.log("[v0] Shopping updated successfully:", result)
+  return result
+}
+
+export async function deleteShopping(id: string): Promise<boolean> {
+  const supabase = getSupabaseBrowserClient()
+
+  const { error } = await supabase
+    .from("guide_places")
+    .delete()
+    .eq("id", id)
+
+  if (error) {
+    console.error("[v0] Error deleting shopping:", error)
     return false
   }
 

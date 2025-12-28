@@ -112,6 +112,7 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
       apartmentSections,
       beaches,
       restaurants,
+      shopping,
       activities,
       houseRules,
       houseGuideItems,
@@ -139,6 +140,14 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
         .select('*')
         .eq('guide_id', guide.id)
         .eq('place_type', 'restaurant'),
+      
+      // Compras
+      supabasePublic
+        .from('guide_places')
+        .select('*')
+        .eq('guide_id', guide.id)
+        .eq('place_type', 'shopping')
+        .order('order_index', { ascending: true }),
       
       // Actividades
       supabasePublic
@@ -187,6 +196,9 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
     if (restaurants.error) {
       console.error('[v0] Error fetching restaurants:', restaurants.error)
     }
+    if (shopping.error) {
+      console.error('[v0] Error fetching shopping:', shopping.error)
+    }
     if (activities.error) {
       console.error('[v0] Error fetching activities:', activities.error)
     }
@@ -210,6 +222,7 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
       apartmentSections.error,
       beaches.error,
       restaurants.error,
+      shopping.error,
       activities.error,
       houseRules.error,
       houseGuideItems.error,
@@ -226,14 +239,16 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
     const result = {
       property,
       guide,
+      sections: [],
       apartment_sections: apartmentSections.data || [],
       beaches: beaches.data || [],
       restaurants: restaurants.data || [],
+      shopping: shopping.data || [],
       activities: activities.data || [],
       house_rules: houseRules.data || [],
       house_guide_items: houseGuideItems.data || [],
       tips: tips.data || [],
-      contact_info: contactInfo.data || [],
+      contact_info: contactInfo.data || null,
       practical_info: practicalInfo.data || []
     }
 

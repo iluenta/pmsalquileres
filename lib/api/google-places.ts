@@ -4,7 +4,7 @@ import type {
   GooglePlacesTextSearchResponse,
   GooglePlacesDetailsResponse,
 } from '@/types/google-places'
-import type { Restaurant, Beach, Activity } from '@/types/guides'
+import type { Restaurant, Beach, Activity, Shopping } from '@/types/guides'
 
 const GOOGLE_PLACES_BASE_URL = 'https://maps.googleapis.com/maps/api/place'
 // Nota: La API key se usa en las API routes del servidor, no directamente aquí
@@ -302,7 +302,7 @@ export function mapPlaceDetailsToRestaurant(
  */
 async function getPlaceFromGoogleUrl<T>(
   url: string,
-  placeType: 'restaurant' | 'beach' | 'activity',
+  placeType: 'restaurant' | 'beach' | 'activity' | 'shopping',
   searchTypes: string[],
   mapper: (placeDetails: PlaceDetails) => Partial<T>
 ): Promise<Partial<T> | null> {
@@ -406,6 +406,112 @@ export async function getRestaurantFromGoogleUrl(
     'restaurant',
     ['restaurant', 'food', 'point_of_interest'],
     mapPlaceDetailsToRestaurant
+  )
+}
+
+/**
+ * Mapea los datos de Google Places al formato de Shopping
+ */
+export function mapPlaceDetailsToShopping(
+  placeDetails: PlaceDetails
+): Partial<Shopping> {
+  // Mapear price_level (0-4) a price_range con rangos específicos de precios
+  const priceLevelToRange = (level?: number): string => {
+    if (level === undefined || level === null) return ''
+    const ranges: Record<number, string> = {
+      0: '',              // No definido
+      1: '€',             // Económico
+      2: '€€',            // Moderado
+      3: '€€€',           // Caro
+      4: '€€€€'           // Muy Caro
+    }
+    return ranges[level] || ''
+  }
+
+  // Generar badge basado en rating
+  const generateBadge = (rating?: number): string | null => {
+    if (rating && rating >= 4.5) {
+      return 'Recomendado'
+    }
+    if (rating && rating >= 4.0) {
+      return 'Muy bueno'
+    }
+    return null
+  }
+
+  // Extraer tipo de compras de los types
+  const extractShoppingType = (types?: string[]): string | null => {
+    if (!types) return null
+    
+    // Mapear tipos de Google Places a tipos de compras
+    const typeMapping: Record<string, string> = {
+      'supermarket': 'supermercado',
+      'shopping_mall': 'centro_comercial',
+      'store': 'tienda',
+      'pharmacy': 'farmacia',
+      'market': 'mercado',
+      'grocery_or_supermarket': 'supermercado',
+      'department_store': 'tienda',
+      'clothing_store': 'tienda',
+      'convenience_store': 'tienda',
+    }
+    
+    // Buscar el primer tipo que coincida
+    for (const type of types) {
+      const baseType = type.split('_')[0] // Tomar la primera parte del tipo
+      if (typeMapping[type]) {
+        return typeMapping[type]
+      }
+      if (typeMapping[baseType]) {
+        return typeMapping[baseType]
+      }
+    }
+    
+    // Si no hay coincidencia exacta, intentar inferir del nombre
+    return null
+  }
+
+  // Obtener URL de imagen si hay fotos
+  const imageUrl =
+    placeDetails.photos && placeDetails.photos.length > 0
+      ? getPlacePhoto(placeDetails.photos[0].photo_reference, 680)
+      : null
+
+  // Obtener descripción (preferir editorial_summary)
+  const description =
+    placeDetails.editorial_summary?.overview || null
+
+  // Obtener dirección formateada
+  const address = placeDetails.formatted_address || null
+
+  // Obtener URL (preferir website, sino usar url de Google Maps)
+  const shoppingUrl = placeDetails.website || placeDetails.url || null
+
+  return {
+    name: placeDetails.name,
+    description: description,
+    address: address,
+    shopping_type: extractShoppingType(placeDetails.types),
+    rating: placeDetails.rating || null,
+    review_count: placeDetails.user_ratings_total || null,
+    price_range: priceLevelToRange(placeDetails.price_level),
+    image_url: imageUrl,
+    badge: generateBadge(placeDetails.rating),
+    url: shoppingUrl,
+  }
+}
+
+/**
+ * Función principal que obtiene información completa de un lugar de compras desde una URL de Google
+ */
+export async function getShoppingFromGoogleUrl(
+  url: string
+): Promise<Partial<Shopping> | null> {
+  return getPlaceFromGoogleUrl<Shopping>(
+    url,
+    'shopping',
+    ['supermarket', 'shopping_mall', 'store', 'pharmacy', 'market', 'grocery_or_supermarket', 'point_of_interest'],
+    mapPlaceDetailsToShopping
   )
 }
 

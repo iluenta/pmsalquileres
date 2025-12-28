@@ -9,12 +9,13 @@ import { ApartmentSection } from "./sections/ApartmentSection"
 import { HouseRulesSection } from "./sections/HouseRulesSection"
 import { HouseGuideSection } from "./sections/HouseGuideSection"
 import { TipsSection } from "./sections/TipsSection"
+import { ShoppingSection } from "./sections/ShoppingSection"
 import { BeachesSection } from "./sections/BeachesSection"
 import { RestaurantsSection } from "./sections/RestaurantsSection"
 import { ActivitiesSection } from "./sections/ActivitiesSection"
 import { ContactSection } from "./sections/ContactSection"
 import { WeatherSection } from "./sections/WeatherSection"
-import { Loader2, AlertTriangle, Home, ClipboardList, Book, Lightbulb, Umbrella, Utensils, Mountain, Phone, Sparkles, CloudSun } from "lucide-react"
+import { Loader2, AlertTriangle, Home, ClipboardList, Book, Lightbulb, Umbrella, Utensils, Mountain, Phone, Sparkles, CloudSun, ShoppingBag } from "lucide-react"
 
 interface PropertyGuideV2Props {
     propertyId: string
@@ -126,6 +127,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             { id: "normas", label: "Normas", icon: ClipboardList, show: data.house_rules?.length > 0 },
             { id: "guia-casa", label: "Guía Casa", icon: Book, show: data.house_guide_items?.length > 0 },
             { id: "consejos", label: "Consejos", icon: Lightbulb, show: data.tips?.length > 0 },
+            { id: "compras", label: "Compras", icon: ShoppingBag, show: data.shopping?.length > 0 },
             { id: "playas", label: "Playas", icon: Umbrella, show: data.beaches?.length > 0 },
             { id: "restaurantes", label: "Restaurantes", icon: Utensils, show: data.restaurants?.length > 0 },
             { id: "actividades", label: "Actividades", icon: Mountain, show: data.activities?.length > 0 },
@@ -195,6 +197,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             { id: "normas", label: "Normas", icon: ClipboardList, show: data.house_rules?.length > 0 },
             { id: "guia-casa", label: "Guía Casa", icon: Book, show: data.house_guide_items?.length > 0 },
             { id: "consejos", label: "Consejos", icon: Lightbulb, show: data.tips?.length > 0 },
+            { id: "compras", label: "Compras", icon: ShoppingBag, show: data.shopping?.length > 0 },
             { id: "playas", label: "Playas", icon: Umbrella, show: data.beaches?.length > 0 },
             { id: "restaurantes", label: "Restaurantes", icon: Utensils, show: data.restaurants?.length > 0 },
             { id: "actividades", label: "Actividades", icon: Mountain, show: data.activities?.length > 0 },
@@ -291,6 +294,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
         { id: "normas", label: "Normas", icon: ClipboardList, show: data.house_rules?.length > 0 },
         { id: "guia-casa", label: "Guía Casa", icon: Book, show: data.house_guide_items?.length > 0 },
         { id: "consejos", label: "Consejos", icon: Lightbulb, show: data.tips?.length > 0 },
+        { id: "compras", label: "Compras", icon: ShoppingBag, show: data.shopping?.length > 0 },
         { id: "playas", label: "Playas", icon: Umbrella, show: data.beaches?.length > 0 },
         { id: "restaurantes", label: "Restaurantes", icon: Utensils, show: data.restaurants?.length > 0 },
         { id: "actividades", label: "Actividades", icon: Mountain, show: data.activities?.length > 0 },
@@ -372,6 +376,15 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             sections.push(
                 <section key="consejos" data-section-id="consejos" ref={(el) => { sectionRefs.current["consejos"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
                     <TipsSection tips={data.tips} introSection={tipsIntro} />
+                </section>
+            )
+        }
+
+        // Compras
+        if (tabs.find(t => t.id === "compras")) {
+            sections.push(
+                <section key="compras" data-section-id="compras" ref={(el) => { sectionRefs.current["compras"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                    <ShoppingSection shopping={data.shopping} />
                 </section>
             )
         }

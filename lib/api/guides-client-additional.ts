@@ -67,6 +67,28 @@ export async function getRestaurantsClient(guideId: string): Promise<any[]> {
 }
 
 // ============================================================================
+// SHOPPING (Client-side)
+// ============================================================================
+
+export async function getShoppingClient(guideId: string): Promise<any[]> {
+  const supabase = getSupabaseBrowserClient()
+
+  const { data, error } = await supabase
+    .from("guide_places")
+    .select("*")
+    .eq("guide_id", guideId)
+    .eq("place_type", "shopping")
+    .order("order_index", { ascending: true })
+
+  if (error) {
+    console.error("[v0] Error fetching shopping:", error)
+    return []
+  }
+
+  return data || []
+}
+
+// ============================================================================
 // ACTIVITIES (Client-side)
 // ============================================================================
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useGuideData } from "@/hooks/useGuideData"
 import { BeachesEditForm } from "@/components/admin/BeachesEditForm"
 import { RestaurantsEditForm } from "@/components/admin/RestaurantsEditForm"
+import { ShoppingEditForm } from "@/components/admin/ShoppingEditForm"
 import { ActivitiesEditForm } from "@/components/admin/ActivitiesEditForm"
 import { ContactInfoEditForm } from "@/components/admin/ContactInfoEditForm"
 import { createGuideSection, updateGuideSection, deleteGuideSection, createGuide, updateGuide } from "@/lib/api/guides-client"
@@ -41,6 +42,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
   const [sections, setSections] = useState<GuideSection[]>([])
   const [beaches, setBeaches] = useState<any[]>([])
   const [restaurants, setRestaurants] = useState<any[]>([])
+  const [shopping, setShopping] = useState<any[]>([])
   const [activities, setActivities] = useState<any[]>([])
   const [showAddSection, setShowAddSection] = useState(false)
   const [editingSection, setEditingSection] = useState<GuideSection | null>(null)
@@ -84,6 +86,9 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
     }
     if (data?.restaurants) {
       setRestaurants(data.restaurants)
+    }
+    if (data?.shopping) {
+      setShopping(data.shopping)
     }
     if (data?.activities) {
       setActivities(data.activities)
@@ -417,7 +422,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
           {/* Desktop: Tabs */}
           <div className="hidden md:block">
-            <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
+            <TabsList className="grid w-full grid-cols-5 lg:grid-cols-11">
               <TabsTrigger value="overview" className="text-xs">
                 Resumen
               </TabsTrigger>
@@ -465,6 +470,9 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
               <TabsTrigger value="restaurants" className="text-xs">
                 Restaurantes
               </TabsTrigger>
+              <TabsTrigger value="shopping" className="text-xs">
+                Compras
+              </TabsTrigger>
               <TabsTrigger value="activities" className="text-xs">
                 Actividades
               </TabsTrigger>
@@ -481,7 +489,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <i className="fas fa-list text-2xl text-blue-600 mb-2"></i>
                       <p className="font-semibold">{data.apartment_sections?.length || 0}</p>
@@ -496,6 +504,11 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                       <i className="fas fa-utensils text-2xl text-orange-600 mb-2"></i>
                       <p className="font-semibold">{data.restaurants.length}</p>
                       <p className="text-sm text-gray-600">Restaurantes</p>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <i className="fas fa-shopping-bag text-2xl text-blue-600 mb-2"></i>
+                      <p className="font-semibold">{data.shopping?.length || 0}</p>
+                      <p className="text-sm text-gray-600">Compras</p>
                     </div>
                     <div className="text-center p-4 bg-purple-50 rounded-lg">
                       <i className="fas fa-hiking text-2xl text-purple-600 mb-2"></i>
@@ -863,6 +876,23 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                 <CardContent className="text-center py-8">
                   <i className="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
                   <p className="text-gray-600">No se puede gestionar restaurantes sin una guía creada</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="shopping">
+            {data?.guide?.id ? (
+              <ShoppingEditForm 
+                shopping={shopping} 
+                guideId={data.guide.id} 
+                onShoppingChange={setShopping}
+              />
+            ) : (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <i className="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                  <p className="text-gray-600">No se puede gestionar compras sin una guía creada</p>
                 </CardContent>
               </Card>
             )}

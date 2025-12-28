@@ -390,6 +390,37 @@ export interface UpdateRestaurantData {
   order_index?: number
 }
 
+export interface CreateShoppingData {
+  guide_id: string
+  name: string
+  description?: string | null
+  address?: string | null
+  shopping_type?: string | null
+  price_range?: string | null
+  distance?: number | null
+  image_url?: string | null
+  rating?: number | null
+  review_count?: number | null
+  badge?: string | null
+  url?: string | null
+  order_index?: number
+}
+
+export interface UpdateShoppingData {
+  name?: string
+  description?: string | null
+  address?: string | null
+  shopping_type?: string | null
+  price_range?: string | null
+  distance?: number | null
+  image_url?: string | null
+  rating?: number | null
+  review_count?: number | null
+  badge?: string | null
+  url?: string | null
+  order_index?: number
+}
+
 export interface CreateActivityData {
   guide_id: string
   name: string
@@ -596,6 +627,7 @@ export interface CompleteGuideDataResponse {
   apartment_sections: ApartmentSection[]
   beaches: Beach[]
   restaurants: Restaurant[]
+  shopping: Shopping[]
   activities: Activity[]
   house_rules: HouseRule[]
   house_guide_items: HouseGuideItem[]
@@ -611,6 +643,7 @@ export interface GuideData {
   apartment_sections: ApartmentSection[]
   beaches: Beach[]
   restaurants: Restaurant[]
+  shopping: Shopping[]
   activities: Activity[]
   house_rules: HouseRule[]
   house_guide_items: HouseGuideItem[]

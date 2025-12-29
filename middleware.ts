@@ -46,6 +46,21 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Protect private API routes
+  // We allow /api/auth and public routes like /api/properties (if used for landing)
+  // But generally, sensitive APIs should be protected
+  if (request.nextUrl.pathname.startsWith("/api") && !request.nextUrl.pathname.startsWith("/api/auth")) {
+    // If it's a private API and no user, return 401
+    // Exception: some APIs might be public (like for the guest guide)
+    // For now, let's just ensure session is refreshed
+    if (!user && !request.nextUrl.pathname.includes("/public/")) {
+      // return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+      // For now, we rely on RLS, but refreshing user above is already good.
+      // If we want to strictly block:
+      // return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
+
   // Redirect to dashboard if already logged in
   if (request.nextUrl.pathname === "/login" && user) {
     const url = request.nextUrl.clone()
@@ -58,15 +73,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all request paths except for the ones starting with:
-    // - _next/static (static files)
-    // - _next/image (image optimization files)
-    // - favicon.ico (favicon file)
-    // - public folder files (images, etc.)
-    // - api routes (except auth)
-    // - login/register pages
-    // - public guide pages
-    // - public landing pages
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/(?!auth)|login|register|guides/.*|landing/.*).*)",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder files (images, etc.)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }

@@ -1,31 +1,43 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { CONFIG_CODES } from '@/lib/constants/config'
 
 // Helper para obtener person_type 'guest'
 async function getGuestPersonTypeId(tenantId: string): Promise<string | null> {
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
-    // Obtener configuration_type 'person_type' (buscar múltiples variantes)
+
+    // Obtener configuration_type 'PERSON_TYPE' usando el código estable
     const { data: personTypeConfig } = await supabase
       .from('configuration_types')
       .select('id')
       .eq('tenant_id', tenantId)
-      .or('name.eq.person_type,name.eq.Tipo de Persona,name.eq.Tipos de Persona')
-      .eq('is_active', true)
-      .single()
-    
-    if (!personTypeConfig) return null
-    
+      .eq('code', CONFIG_CODES.PERSON_TYPE)
+      .maybeSingle()
+
+    let configTypeId: string | null = personTypeConfig?.id || null
+
+    if (!configTypeId) {
+      // Fallback legacy
+      const { data: legacy } = await supabase
+        .from('configuration_types')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .or('name.eq.person_type,name.eq.Tipo de Persona,name.eq.Tipos de Persona')
+        .maybeSingle()
+      if (!legacy) return null
+      configTypeId = legacy.id
+    }
+
     // Obtener configuration_value 'guest'
     const { data: guestValue } = await supabase
       .from('configuration_values')
       .select('id')
-      .eq('configuration_type_id', personTypeConfig.id)
-      .ilike('label', 'guest')
+      .eq('configuration_type_id', configTypeId)
       .eq('is_active', true)
-      .single()
-    
+      .or('value.eq.guest,label.ilike.huésped,label.ilike.guest')
+      .maybeSingle()
+
     return guestValue?.id || null
   } catch (error) {
     console.error('Error getting guest person_type:', error)
@@ -77,25 +89,25 @@ export async function getDashboardStats(tenantId: string, year?: number | null):
     .select("*", { count: "exact", head: true })
     .eq("tenant_id", tenantId)
     .gte("check_out_date", today)
-  
+
   if (year !== null && year !== undefined) {
     const yearStart = `${year}-01-01`
     const yearEnd = `${year}-12-31`
     activeBookingsQuery = activeBookingsQuery.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
   }
-  
+
   const { count: activeBookings } = await activeBookingsQuery
 
   // Total guests (unique persons with bookings) - aplicar filtro de año si existe
   const guestPersonTypeId = await getGuestPersonTypeId(tenantId)
-  
+
   let guestsQuery = guestPersonTypeId
     ? supabase
-        .from("persons")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenantId)
-        .eq("person_type", guestPersonTypeId)
-        .eq("is_active", true)
+      .from("persons")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("person_type", guestPersonTypeId)
+      .eq("is_active", true)
     : null
 
   // Si hay filtro de año, necesitamos contar solo personas con reservas en ese año
@@ -108,9 +120,9 @@ export async function getDashboardStats(tenantId: string, year?: number | null):
       .eq("tenant_id", tenantId)
       .lte('check_in_date', yearEnd)
       .gte('check_out_date', yearStart)
-    
+
     const personIds = [...new Set((bookingsInYear || []).map((b: any) => b.person_id).filter(Boolean))]
-    
+
     if (personIds.length > 0) {
       guestsQuery = supabase
         .from("persons")
@@ -123,7 +135,7 @@ export async function getDashboardStats(tenantId: string, year?: number | null):
       guestsQuery = { count: 0 }
     }
   }
-  
+
   const { count: totalGuests } = guestsQuery
     ? await guestsQuery
     : { count: 0 }
@@ -131,7 +143,7 @@ export async function getDashboardStats(tenantId: string, year?: number | null):
   // Monthly revenue - aplicar filtro de año si existe
   let revenueStartDate: string
   let revenueEndDate: string
-  
+
   if (year !== null && year !== undefined) {
     revenueStartDate = `${year}-01-01`
     revenueEndDate = `${year}-12-31`
@@ -140,7 +152,7 @@ export async function getDashboardStats(tenantId: string, year?: number | null):
     revenueStartDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0]
     revenueEndDate = new Date().toISOString().split("T")[0]
   }
-  
+
   let paymentsQuery = supabase
     .from("payments")
     .select("amount")
@@ -157,13 +169,13 @@ export async function getDashboardStats(tenantId: string, year?: number | null):
     .select("check_in_date, check_out_date")
     .eq("tenant_id", tenantId)
     .gte("check_out_date", today)
-  
+
   if (year !== null && year !== undefined) {
     const yearStart = `${year}-01-01`
     const yearEnd = `${year}-12-31`
     occupancyQuery = occupancyQuery.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
   }
-  
+
   const { data: bookingsData } = await occupancyQuery
 
   // Calcular días para ocupación
@@ -176,7 +188,7 @@ export async function getDashboardStats(tenantId: string, year?: number | null):
     // Si no hay filtro, usar días del mes actual
     daysInPeriod = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
   }
-  
+
   const totalPossibleDays = (totalProperties || 1) * daysInPeriod
   const bookedDays =
     bookingsData?.reduce((sum: number, booking: any) => {
@@ -194,13 +206,13 @@ export async function getDashboardStats(tenantId: string, year?: number | null):
     .select("total_amount, paid_amount")
     .eq("tenant_id", tenantId)
     .gte("check_out_date", today)
-  
+
   if (year !== null && year !== undefined) {
     const yearStart = `${year}-01-01`
     const yearEnd = `${year}-12-31`
     pendingPaymentsQuery = pendingPaymentsQuery.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
   }
-  
+
   const { data: bookingsWithPending } = await pendingPaymentsQuery
 
   const pendingPayments =
@@ -237,14 +249,14 @@ export async function getRecentBookings(tenantId: string, limit = 5, year?: numb
     `,
     )
     .eq("tenant_id", tenantId)
-  
+
   // Aplicar filtro de año si se proporciona
   if (year !== null && year !== undefined) {
     const yearStart = `${year}-01-01`
     const yearEnd = `${year}-12-31`
     query = query.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
   }
-  
+
   const { data } = await query.order("created_at", { ascending: false }).limit(limit)
 
   return (
@@ -275,7 +287,7 @@ export async function getPropertyOccupancy(tenantId: string, limit = 5, year?: n
   if (!properties) return []
 
   const today = new Date().toISOString().split("T")[0]
-  
+
   // Calcular días del período
   let daysInPeriod: number
   if (year !== null && year !== undefined) {
@@ -292,14 +304,14 @@ export async function getPropertyOccupancy(tenantId: string, limit = 5, year?: n
         .select("check_in_date, check_out_date")
         .eq("property_id", property.id)
         .gte("check_out_date", today)
-      
+
       // Aplicar filtro de año si se proporciona
       if (year !== null && year !== undefined) {
         const yearStart = `${year}-01-01`
         const yearEnd = `${year}-12-31`
         bookingsQuery = bookingsQuery.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
       }
-      
+
       const { data: bookings } = await bookingsQuery
 
       const bookedDays =

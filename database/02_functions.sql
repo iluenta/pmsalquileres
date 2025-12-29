@@ -23,7 +23,11 @@ COMMENT ON FUNCTION public.user_tenant_id() IS 'Safely returns the tenant_id of 
 
 -- 2. Slug Generation Logic
 CREATE OR REPLACE FUNCTION public.normalize_to_slug(input_text TEXT)
-RETURNS TEXT AS $$
+RETURNS TEXT 
+LANGUAGE plpgsql 
+IMMUTABLE
+SET search_path = 'public'
+AS $$
 DECLARE
     result TEXT;
 BEGIN
@@ -46,10 +50,13 @@ BEGIN
     END IF;
     RETURN result;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$$;
 
 CREATE OR REPLACE FUNCTION public.generate_unique_slug(base_text TEXT, exclude_property_id UUID DEFAULT NULL)
-RETURNS TEXT AS $$
+RETURNS TEXT 
+LANGUAGE plpgsql
+SET search_path = 'public'
+AS $$
 DECLARE
     base_slug TEXT;
     final_slug TEXT;
@@ -73,10 +80,13 @@ BEGIN
     END LOOP;
     RETURN final_slug;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE OR REPLACE FUNCTION public.auto_generate_slug()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+SET search_path = 'public'
+AS $$
 BEGIN
     IF NEW.slug IS NULL OR TRIM(NEW.slug) = '' THEN
         NEW.slug := public.generate_unique_slug(NEW.name, NEW.id);
@@ -92,22 +102,108 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
-CREATE TRIGGER trigger_auto_generate_slug
-BEFORE INSERT OR UPDATE ON public.properties
-FOR EACH ROW
-EXECUTE FUNCTION public.auto_generate_slug();
-
--- 3. Coordinates Sync Logic (from 019_add_coordinates_trigger.sql)
-CREATE OR REPLACE FUNCTION public.sync_property_coordinates_to_guide()
-RETURNS TRIGGER AS $$
+DO $$
 BEGIN
-    -- This is a placeholder since the full implementation should be verified 
-    -- from script 019 and 020.
-    UPDATE public.property_guides
-    SET updated_at = now()
-    WHERE property_id = NEW.id;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'properties' AND table_schema = 'public') THEN
+        DROP TRIGGER IF EXISTS trigger_auto_generate_slug ON public.properties;
+        CREATE TRIGGER trigger_auto_generate_slug
+        BEFORE INSERT OR UPDATE ON public.properties
+        FOR EACH ROW
+        EXECUTE FUNCTION public.auto_generate_slug();
+    END IF;
+END $$;
+
+-- 3. Coordinates Sync Logic
+CREATE OR REPLACE FUNCTION public.sync_property_coordinates_to_guide()
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+SET search_path = 'public'
+AS $$
+BEGIN
+    -- This function handles both INSERT (new guide) and UPDATE (property coordinate change)
+    IF TG_TABLE_NAME = 'property_guides' THEN
+        -- Copiar coordenadas de la propiedad asociada al crear la guía
+        UPDATE public.property_guides
+        SET 
+            latitude = p.latitude,
+            longitude = p.longitude
+        FROM public.properties p
+        WHERE property_guides.property_id = p.id
+            AND property_guides.id = NEW.id
+            AND p.latitude IS NOT NULL 
+            AND p.longitude IS NOT NULL;
+    ELSIF TG_TABLE_NAME = 'properties' THEN
+        -- Sincronizar coordenadas a las guías cuando cambian en la propiedad
+        UPDATE public.property_guides
+        SET 
+            latitude = NEW.latitude,
+            longitude = NEW.longitude,
+            updated_at = now()
+        WHERE property_id = NEW.id;
+    END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
+
+DO $$
+BEGIN
+    -- Trigger for property_guides
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'property_guides' AND table_schema = 'public') THEN
+        DROP TRIGGER IF EXISTS trigger_copy_coordinates_on_guide_insert ON public.property_guides;
+        CREATE TRIGGER trigger_copy_coordinates_on_guide_insert
+            AFTER INSERT ON public.property_guides
+            FOR EACH ROW
+            EXECUTE FUNCTION public.sync_property_coordinates_to_guide();
+    END IF;
+
+    -- Trigger for properties (requires latitude/longitude columns)
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'properties' AND column_name = 'latitude' AND table_schema = 'public') THEN
+        DROP TRIGGER IF EXISTS trigger_sync_coordinates_on_property_update ON public.properties;
+        CREATE TRIGGER trigger_sync_coordinates_on_property_update
+            AFTER UPDATE OF latitude, longitude ON public.properties
+            FOR EACH ROW
+            EXECUTE FUNCTION public.sync_property_coordinates_to_guide();
+    END IF;
+END $$;
+
+-- 4. Universal Timestamp Update
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+SET search_path = 'public'
+AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$;
+
+-- Alias for backward compatibility if needed, but better to use the universal one
+CREATE OR REPLACE FUNCTION public.update_apartment_sections_updated_at()
+RETURNS TRIGGER 
+LANGUAGE plpgsql
+SET search_path = 'public'
+AS $$
+BEGIN
+    RETURN public.update_updated_at_column();
+END;
+$$;
+
+-- 5. Automatically apply the trigger to all tables that have an updated_at column
+DO $$ 
+DECLARE 
+  t RECORD;
+BEGIN
+  FOR t IN 
+    SELECT table_name 
+    FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND column_name = 'updated_at' 
+      AND table_name NOT IN (SELECT table_name FROM information_schema.views WHERE table_schema = 'public')
+  LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS update_%I_updated_at ON public.%I', t.table_name, t.table_name);
+    EXECUTE format('CREATE TRIGGER update_%I_updated_at BEFORE UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column()', t.table_name, t.table_name);
+  END LOOP;
+END $$;

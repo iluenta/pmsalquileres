@@ -9,7 +9,9 @@
     "lint": "next lint",
     "start": "next start",
     "postinstall": "next telemetry disable",
-    "install-deps": "npm install --legacy-peer-deps"
+    "install-deps": "npm install --legacy-peer-deps",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -74,9 +76,12 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "4.7.0",
+    "jsdom": "25.0.1",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "2.1.9"
   }
 }

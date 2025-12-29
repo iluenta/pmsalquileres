@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { CONFIG_CODES } from "@/lib/constants/config"
 
 export interface Property {
   id: string
@@ -311,25 +312,39 @@ export async function getPropertyById(propertyId: string, tenantId: string) {
 export async function getPropertyTypes(tenantId: string) {
   const supabase = await getSupabaseServerClient()
 
-  // Get property type configuration - try multiple possible names
+  // Get property type configuration using the stable code
   const { data: configType } = await supabase
     .from("configuration_types")
     .select("id, name")
     .eq("tenant_id", tenantId)
-    .or("name.eq.Tipo de Propiedad,name.eq.property_type,name.eq.Tipos de Propiedades,name.eq.property_types")
+    .eq("code", CONFIG_CODES.PROPERTY_TYPE)
     .single()
 
-  if (!configType) {
-    console.error("[v0] No property type configuration found for tenant:", tenantId)
-    return []
-  }
+  let finalConfigTypeId: string
 
-  console.log("[v0] Found property type config:", configType.name, "for tenant:", tenantId)
+  if (!configType) {
+    console.warn("[v0] No property type configuration found with code:", CONFIG_CODES.PROPERTY_TYPE, "for tenant:", tenantId)
+    // Fallback to name-based search for legacy support
+    const { data: legacyConfigType } = await supabase
+      .from("configuration_types")
+      .select("id, name")
+      .eq("tenant_id", tenantId)
+      .or("name.eq.Tipo de Propiedad,name.eq.property_type,name.eq.Tipos de Propiedades,name.eq.property_types")
+      .single()
+
+    if (!legacyConfigType) {
+      console.error("[v0] No property type configuration found for tenant:", tenantId)
+      return []
+    }
+    finalConfigTypeId = legacyConfigType.id
+  } else {
+    finalConfigTypeId = configType.id
+  }
 
   const { data, error } = await supabase
     .from("configuration_values")
     .select("*")
-    .eq("configuration_type_id", configType.id)
+    .eq("configuration_type_id", finalConfigTypeId)
     .eq("is_active", true)
     .order("sort_order", { ascending: true })
 

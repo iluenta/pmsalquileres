@@ -2,6 +2,7 @@
 // Integrado con Supabase y multi-tenant
 
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { CONFIG_CODES } from '@/lib/constants/config'
 import type {
   Person,
   PersonWithDetails,
@@ -43,12 +44,12 @@ export async function getPersons(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return []
-    
+
     let query = supabase
       .from('persons')
       .select('*')
       .eq('tenant_id', tenantId)
-    
+
     // Filtro de estado
     if (options?.isActive !== null && options?.isActive !== undefined) {
       query = query.eq('is_active', options.isActive)
@@ -56,40 +57,40 @@ export async function getPersons(
       // Por defecto, solo activos si no se especifica includeInactive
       query = query.eq('is_active', true)
     }
-    
+
     if (options?.personType) {
       query = query.eq('person_type', options.personType)
     }
-    
+
     // Búsqueda general (retrocompatibilidad)
     if (options?.search) {
       const searchPattern = `%${options.search}%`
       query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},full_name.ilike.${searchPattern},document_number.ilike.${searchPattern}`)
     }
-    
+
     // Búsquedas específicas
     if (options?.searchName) {
       const searchPattern = `%${options.searchName}%`
       query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},full_name.ilike.${searchPattern}`)
     }
-    
+
     if (options?.searchDocument) {
       const searchPattern = `%${options.searchDocument}%`
       query = query.ilike('document_number', searchPattern)
     }
-    
+
     const { data: persons, error } = await query
       .order('created_at', { ascending: false })
-    
+
     if (error) {
       console.error('Error fetching persons:', error)
       return []
     }
-    
+
     if (!persons || persons.length === 0) {
       return []
     }
-    
+
     // Obtener tipos de persona
     const personTypeIds = [...new Set(persons.map((p: any) => p.person_type).filter(Boolean))]
     const personTypesMap = new Map<string, ConfigurationValue>()
@@ -98,12 +99,12 @@ export async function getPersons(
         .from('configuration_values')
         .select('id, label, value, description, color, icon')
         .in('id', personTypeIds)
-      
-      ;(personTypes || []).forEach((pt: any) => {
-        personTypesMap.set(pt.id, pt)
-      })
+
+        ; (personTypes || []).forEach((pt: any) => {
+          personTypesMap.set(pt.id, pt)
+        })
     }
-    
+
     // Obtener contactos de todas las personas
     const personIds = persons.map((p: any) => p.id)
     const { data: allContacts } = await supabase
@@ -112,7 +113,7 @@ export async function getPersons(
       .in('person_id', personIds)
       .eq('tenant_id', tenantId)
       .eq('is_active', true)
-    
+
     // Obtener direcciones de todas las personas
     const { data: allAddresses } = await supabase
       .from('person_fiscal_addresses')
@@ -120,28 +121,28 @@ export async function getPersons(
       .in('person_id', personIds)
       .eq('tenant_id', tenantId)
       .eq('is_active', true)
-    
+
     // Crear maps de contactos y direcciones por persona
     const contactsByPerson = new Map<string, PersonContactInfo[]>()
-    ;(allContacts || []).forEach((contact: any) => {
-      const existing = contactsByPerson.get(contact.person_id) || []
-      existing.push(contact)
-      contactsByPerson.set(contact.person_id, existing)
-    })
-    
+      ; (allContacts || []).forEach((contact: any) => {
+        const existing = contactsByPerson.get(contact.person_id) || []
+        existing.push(contact)
+        contactsByPerson.set(contact.person_id, existing)
+      })
+
     const addressesByPerson = new Map<string, PersonFiscalAddress[]>()
-    ;(allAddresses || []).forEach((address: any) => {
-      const existing = addressesByPerson.get(address.person_id) || []
-      existing.push(address)
-      addressesByPerson.set(address.person_id, existing)
-    })
-    
+      ; (allAddresses || []).forEach((address: any) => {
+        const existing = addressesByPerson.get(address.person_id) || []
+        existing.push(address)
+        addressesByPerson.set(address.person_id, existing)
+      })
+
     // Combinar datos
     let result = persons.map((person: any) => {
       const contacts = contactsByPerson.get(person.id) || []
       const addresses = addressesByPerson.get(person.id) || []
       const { email, phone } = extractEmailAndPhoneFromContacts(contacts)
-      
+
       return {
         ...person,
         person_type_value: personTypesMap.get(person.person_type),
@@ -151,23 +152,23 @@ export async function getPersons(
         phone,
       }
     })
-    
+
     // Filtrar por email si se especifica
     if (options?.searchEmail) {
       const emailPattern = options.searchEmail.toLowerCase()
-      result = result.filter((person: PersonWithDetails) => 
+      result = result.filter((person: PersonWithDetails) =>
         person.email?.toLowerCase().includes(emailPattern)
       )
     }
-    
+
     // Filtrar por teléfono si se especifica
     if (options?.searchPhone) {
       const phonePattern = options.searchPhone.replace(/\s/g, '')
-      result = result.filter((person: PersonWithDetails) => 
+      result = result.filter((person: PersonWithDetails) =>
         person.phone?.replace(/\s/g, '').includes(phonePattern)
       )
     }
-    
+
     return result
   } catch (error) {
     console.error('Error in getPersons:', error)
@@ -180,26 +181,26 @@ export async function getPersonById(id: string, tenantId: string): Promise<Perso
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
+
     const { data: person, error } = await supabase
       .from('persons')
       .select('*')
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .single()
-    
+
     if (error || !person) {
       console.error('Error fetching person:', error)
       return null
     }
-    
+
     // Obtener tipo de persona
     const { data: personType } = await supabase
       .from('configuration_values')
       .select('id, label, value, description, color, icon')
       .eq('id', person.person_type)
       .single()
-    
+
     // Obtener contactos
     const { data: contacts } = await supabase
       .from('person_contact_infos')
@@ -208,7 +209,7 @@ export async function getPersonById(id: string, tenantId: string): Promise<Perso
       .eq('tenant_id', tenantId)
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: true })
-    
+
     // Obtener direcciones
     const { data: addresses } = await supabase
       .from('person_fiscal_addresses')
@@ -217,9 +218,9 @@ export async function getPersonById(id: string, tenantId: string): Promise<Perso
       .eq('tenant_id', tenantId)
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: true })
-    
+
     const { email, phone } = extractEmailAndPhoneFromContacts(contacts || [])
-    
+
     return {
       ...person,
       person_type_value: personType || undefined,
@@ -239,27 +240,38 @@ async function getGuestPersonTypeId(tenantId: string): Promise<string | null> {
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
-    // Obtener configuration_type 'person_type' (buscar múltiples variantes)
+
+    // Obtener configuration_type 'PERSON_TYPE' usando el código estable
     const { data: personTypeConfig } = await supabase
       .from('configuration_types')
       .select('id')
       .eq('tenant_id', tenantId)
-      .or('name.eq.person_type,name.eq.Tipo de Persona,name.eq.Tipos de Persona')
-      .eq('is_active', true)
+      .eq('code', CONFIG_CODES.PERSON_TYPE)
       .maybeSingle()
-    
-    if (!personTypeConfig) return null
-    
+
+    let configTypeId: string | null = personTypeConfig?.id || null
+
+    if (!configTypeId) {
+      // Fallback legacy
+      const { data: legacy } = await supabase
+        .from('configuration_types')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .or('name.eq.person_type,name.eq.Tipo de Persona,name.eq.Tipos de Persona')
+        .maybeSingle()
+      if (!legacy) return null
+      configTypeId = legacy.id
+    }
+
     // Obtener configuration_value 'guest' (buscar por value o label)
     const { data: guestValue } = await supabase
       .from('configuration_values')
       .select('id')
-      .eq('configuration_type_id', personTypeConfig.id)
+      .eq('configuration_type_id', configTypeId)
       .eq('is_active', true)
       .or('value.eq.guest,label.ilike.huésped,label.ilike.guest')
       .maybeSingle()
-    
+
     return guestValue?.id || null
   } catch (error) {
     console.error('Error getting guest person_type:', error)
@@ -275,7 +287,7 @@ export async function createPerson(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
+
     // Si no se proporciona person_type, obtener el tipo "guest" automáticamente
     let personTypeId: string | undefined = data.person_type
     if (!personTypeId) {
@@ -285,7 +297,7 @@ export async function createPerson(
       }
       personTypeId = guestTypeId
     }
-    
+
     const { data: person, error } = await supabase
       .from('persons')
       .insert({
@@ -303,16 +315,16 @@ export async function createPerson(
       })
       .select()
       .single()
-    
+
     if (error || !person) {
       console.error('Error creating person:', error)
       throw error || new Error('Error al crear la persona')
     }
-    
+
     // Crear contactos si se proporcionaron
     if (data.email || data.phone) {
       const contactInserts: any[] = []
-      
+
       if (data.email) {
         contactInserts.push({
           tenant_id: tenantId,
@@ -323,7 +335,7 @@ export async function createPerson(
           is_active: true,
         })
       }
-      
+
       if (data.phone) {
         contactInserts.push({
           tenant_id: tenantId,
@@ -334,19 +346,19 @@ export async function createPerson(
           is_active: true,
         })
       }
-      
+
       if (contactInserts.length > 0) {
         const { error: contactsError } = await supabase
           .from('person_contact_infos')
           .insert(contactInserts)
-        
+
         if (contactsError) {
           console.error('Error creating contacts:', contactsError)
           // No lanzar error, solo loguear - la persona ya se creó
         }
       }
     }
-    
+
     // Retornar la persona con detalles
     return await getPersonById(person.id, tenantId)
   } catch (error) {
@@ -364,7 +376,7 @@ export async function updatePerson(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
+
     const updateData: any = {}
     if (data.person_type !== undefined) updateData.person_type = data.person_type
     if (data.first_name !== undefined) updateData.first_name = data.first_name
@@ -376,18 +388,18 @@ export async function updatePerson(
     if (data.nationality !== undefined) updateData.nationality = data.nationality
     if (data.notes !== undefined) updateData.notes = data.notes
     if (data.is_active !== undefined) updateData.is_active = data.is_active
-    
+
     const { error } = await supabase
       .from('persons')
       .update(updateData)
       .eq('id', id)
       .eq('tenant_id', tenantId)
-    
+
     if (error) {
       console.error('Error updating person:', error)
       throw error
     }
-    
+
     return await getPersonById(id, tenantId)
   } catch (error) {
     console.error('Error in updatePerson:', error)
@@ -400,7 +412,7 @@ export async function deletePerson(id: string, tenantId: string): Promise<{ succ
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return { success: false, error: "Error de conexión con la base de datos" }
-    
+
     // Verificar si la persona tiene reservas asociadas ANTES de intentar eliminar
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
@@ -408,17 +420,17 @@ export async function deletePerson(id: string, tenantId: string): Promise<{ succ
       .eq('person_id', id)
       .eq('tenant_id', tenantId)
       .limit(1)
-    
+
     if (bookingsError) {
       console.error('Error checking bookings:', bookingsError)
       // Si hay error en la verificación, continuar y dejar que el delete falle con el error de foreign key
     } else if (bookings && bookings.length > 0) {
-      return { 
-        success: false, 
-        error: "No se puede eliminar esta persona porque tiene reservas asociadas. Por favor, elimine primero las reservas o marque la persona como inactiva." 
+      return {
+        success: false,
+        error: "No se puede eliminar esta persona porque tiene reservas asociadas. Por favor, elimine primero las reservas o marque la persona como inactiva."
       }
     }
-    
+
     // Verificar si la persona está asociada a un proveedor de servicios
     const { data: serviceProviders, error: spError } = await supabase
       .from('service_providers')
@@ -426,16 +438,16 @@ export async function deletePerson(id: string, tenantId: string): Promise<{ succ
       .eq('person_id', id)
       .eq('tenant_id', tenantId)
       .limit(1)
-    
+
     if (spError) {
       console.error('Error checking service providers:', spError)
     } else if (serviceProviders && serviceProviders.length > 0) {
-      return { 
-        success: false, 
-        error: "No se puede eliminar esta persona porque está asociada a un proveedor de servicios. Elimine primero el proveedor de servicios." 
+      return {
+        success: false,
+        error: "No se puede eliminar esta persona porque está asociada a un proveedor de servicios. Elimine primero el proveedor de servicios."
       }
     }
-    
+
     // Verificar si la persona está asociada a un canal de venta
     const { data: salesChannels, error: scError } = await supabase
       .from('sales_channels')
@@ -443,31 +455,31 @@ export async function deletePerson(id: string, tenantId: string): Promise<{ succ
       .eq('person_id', id)
       .eq('tenant_id', tenantId)
       .limit(1)
-    
+
     if (scError) {
       console.error('Error checking sales channels:', scError)
     } else if (salesChannels && salesChannels.length > 0) {
-      return { 
-        success: false, 
-        error: "No se puede eliminar esta persona porque está asociada a un canal de venta. Elimine primero el canal de venta." 
+      return {
+        success: false,
+        error: "No se puede eliminar esta persona porque está asociada a un canal de venta. Elimine primero el canal de venta."
       }
     }
-    
+
     // Si no hay referencias, proceder con la eliminación
     const { error } = await supabase
       .from('persons')
       .delete()
       .eq('id', id)
       .eq('tenant_id', tenantId)
-    
+
     if (error) {
       console.error('Error deleting person:', error)
-      
+
       // Detectar error de foreign key constraint (por si acaso hay otras referencias)
       if (error.code === '23503') {
         const errorText = `${error.details || ''} ${error.message || ''}`.toLowerCase()
         let errorMessage = "No se puede eliminar esta persona porque está siendo utilizada en el sistema."
-        
+
         if (errorText.includes('bookings') || errorText.includes('reserva')) {
           errorMessage = "No se puede eliminar esta persona porque tiene reservas asociadas. Por favor, elimine primero las reservas o marque la persona como inactiva."
         } else if (errorText.includes('service_providers') || errorText.includes('proveedor')) {
@@ -475,13 +487,13 @@ export async function deletePerson(id: string, tenantId: string): Promise<{ succ
         } else if (errorText.includes('sales_channels') || errorText.includes('canal')) {
           errorMessage = "No se puede eliminar esta persona porque está asociada a un canal de venta. Elimine primero el canal de venta."
         }
-        
+
         return { success: false, error: errorMessage }
       }
-      
+
       return { success: false, error: error.message || "Error al eliminar la persona" }
     }
-    
+
     return { success: true }
   } catch (error: any) {
     console.error('Error in deletePerson:', error)
@@ -500,7 +512,7 @@ export async function addPersonContact(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
+
     // Si se marca como primario, desmarcar otros del mismo tipo
     if (data.is_primary) {
       await supabase
@@ -510,7 +522,7 @@ export async function addPersonContact(
         .eq('tenant_id', tenantId)
         .eq('contact_type', data.contact_type)
     }
-    
+
     const { data: contact, error } = await supabase
       .from('person_contact_infos')
       .insert({
@@ -524,12 +536,12 @@ export async function addPersonContact(
       })
       .select()
       .single()
-    
+
     if (error || !contact) {
       console.error('Error adding contact:', error)
       throw error || new Error('Error al añadir el contacto')
     }
-    
+
     return contact
   } catch (error) {
     console.error('Error in addPersonContact:', error)
@@ -546,7 +558,7 @@ export async function updatePersonContact(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
+
     // Obtener el contacto actual para saber el person_id
     const { data: currentContact } = await supabase
       .from('person_contact_infos')
@@ -554,11 +566,11 @@ export async function updatePersonContact(
       .eq('id', contactId)
       .eq('tenant_id', tenantId)
       .single()
-    
+
     if (!currentContact) {
       throw new Error('Contacto no encontrado')
     }
-    
+
     // Si se marca como primario, desmarcar otros del mismo tipo
     if (data.is_primary) {
       await supabase
@@ -569,14 +581,14 @@ export async function updatePersonContact(
         .eq('contact_type', data.contact_type || currentContact.contact_type)
         .neq('id', contactId)
     }
-    
+
     const updateData: any = {}
     if (data.contact_type !== undefined) updateData.contact_type = data.contact_type
     if (data.contact_value !== undefined) updateData.contact_value = data.contact_value
     if (data.contact_name !== undefined) updateData.contact_name = data.contact_name || null
     if (data.is_primary !== undefined) updateData.is_primary = data.is_primary
     if (data.is_active !== undefined) updateData.is_active = data.is_active
-    
+
     const { data: contact, error } = await supabase
       .from('person_contact_infos')
       .update(updateData)
@@ -584,12 +596,12 @@ export async function updatePersonContact(
       .eq('tenant_id', tenantId)
       .select()
       .single()
-    
+
     if (error || !contact) {
       console.error('Error updating contact:', error)
       throw error || new Error('Error al actualizar el contacto')
     }
-    
+
     return contact
   } catch (error) {
     console.error('Error in updatePersonContact:', error)
@@ -602,18 +614,18 @@ export async function deletePersonContact(contactId: string, tenantId: string): 
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return false
-    
+
     const { error } = await supabase
       .from('person_contact_infos')
       .delete()
       .eq('id', contactId)
       .eq('tenant_id', tenantId)
-    
+
     if (error) {
       console.error('Error deleting contact:', error)
       return false
     }
-    
+
     return true
   } catch (error) {
     console.error('Error in deletePersonContact:', error)
@@ -632,7 +644,7 @@ export async function addPersonAddress(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
+
     // Si se marca como primaria, desmarcar otras
     if (data.is_primary) {
       await supabase
@@ -641,7 +653,7 @@ export async function addPersonAddress(
         .eq('person_id', personId)
         .eq('tenant_id', tenantId)
     }
-    
+
     const { data: address, error } = await supabase
       .from('person_fiscal_addresses')
       .insert({
@@ -660,12 +672,12 @@ export async function addPersonAddress(
       })
       .select()
       .single()
-    
+
     if (error || !address) {
       console.error('Error adding address:', error)
       throw error || new Error('Error al añadir la dirección')
     }
-    
+
     return address
   } catch (error) {
     console.error('Error in addPersonAddress:', error)
@@ -682,7 +694,7 @@ export async function updatePersonAddress(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
+
     // Obtener la dirección actual para saber el person_id
     const { data: currentAddress } = await supabase
       .from('person_fiscal_addresses')
@@ -690,11 +702,11 @@ export async function updatePersonAddress(
       .eq('id', addressId)
       .eq('tenant_id', tenantId)
       .single()
-    
+
     if (!currentAddress) {
       throw new Error('Dirección no encontrada')
     }
-    
+
     // Si se marca como primaria, desmarcar otras
     if (data.is_primary) {
       await supabase
@@ -704,7 +716,7 @@ export async function updatePersonAddress(
         .eq('tenant_id', tenantId)
         .neq('id', addressId)
     }
-    
+
     const updateData: any = {}
     if (data.street !== undefined) updateData.street = data.street
     if (data.number !== undefined) updateData.number = data.number
@@ -716,7 +728,7 @@ export async function updatePersonAddress(
     if (data.country !== undefined) updateData.country = data.country
     if (data.is_primary !== undefined) updateData.is_primary = data.is_primary
     if (data.is_active !== undefined) updateData.is_active = data.is_active
-    
+
     const { data: address, error } = await supabase
       .from('person_fiscal_addresses')
       .update(updateData)
@@ -724,12 +736,12 @@ export async function updatePersonAddress(
       .eq('tenant_id', tenantId)
       .select()
       .single()
-    
+
     if (error || !address) {
       console.error('Error updating address:', error)
       throw error || new Error('Error al actualizar la dirección')
     }
-    
+
     return address
   } catch (error) {
     console.error('Error in updatePersonAddress:', error)
@@ -742,18 +754,18 @@ export async function deletePersonAddress(addressId: string, tenantId: string): 
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return false
-    
+
     const { error } = await supabase
       .from('person_fiscal_addresses')
       .delete()
       .eq('id', addressId)
       .eq('tenant_id', tenantId)
-    
+
     if (error) {
       console.error('Error deleting address:', error)
       return false
     }
-    
+
     return true
   } catch (error) {
     console.error('Error in deletePersonAddress:', error)

@@ -2,6 +2,7 @@
 // Integrado con Supabase y multi-tenant
 
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { CONFIG_CODES } from '@/lib/constants/config'
 import type {
   Movement,
   MovementWithDetails,
@@ -10,26 +11,11 @@ import type {
   BookingPaymentInfo,
   CreateExpenseItemData,
 } from '@/types/movements'
+import { calculateExpenseItemTotal, calculateItemsSum as calculateMovementTotal } from '@/lib/utils/financials'
 import type { ConfigurationValue } from '@/lib/api/configuration'
 
-// Helper: Calcular total de un item con impuesto
-export function calculateExpenseItemTotal(
-  amount: number,
-  taxPercentage?: number | null
-): number {
-  if (!taxPercentage || taxPercentage <= 0) {
-    return amount
-  }
-  const taxAmount = (amount * taxPercentage) / 100
-  return amount + taxAmount
-}
-
-// Helper: Calcular total del movimiento desde items
-export function calculateMovementTotal(
-  items: Array<{ total_amount: number }>
-): number {
-  return items.reduce((sum, item) => sum + Number(item.total_amount || 0), 0)
-}
+// Re-exporting for compatibility or local use if needed
+export { calculateExpenseItemTotal, calculateMovementTotal }
 
 // Calcular importe pagado de una reserva (suma de movimientos de ingreso)
 export async function calculateBookingPaidAmount(
@@ -39,28 +25,39 @@ export async function calculateBookingPaidAmount(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return 0
-    
-    // Obtener el tipo de movimiento "Ingreso"
-    const { data: incomeType } = await supabase
+
+    // Obtener el tipo de movimiento "MOVEMENT_TYPE" usando el código estable
+    const { data: movementTypeConfig } = await supabase
       .from('configuration_types')
       .select('id')
       .eq('tenant_id', tenantId)
-      .or('name.eq.movement_type,name.eq.Tipo de Movimiento')
-      .eq('is_active', true)
-      .single()
-    
-    if (!incomeType) return 0
-    
+      .eq('code', CONFIG_CODES.MOVEMENT_TYPE)
+      .maybeSingle()
+
+    let configTypeId: string | null = movementTypeConfig?.id || null
+
+    if (!configTypeId) {
+      // Fallback legacy
+      const { data: legacy } = await supabase
+        .from('configuration_types')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .or('name.eq.movement_type,name.eq.Tipo de Movimiento')
+        .maybeSingle()
+      if (!legacy) return 0
+      configTypeId = legacy.id
+    }
+
     const { data: incomeValue } = await supabase
       .from('configuration_values')
       .select('id')
-      .eq('configuration_type_id', incomeType.id)
+      .eq('configuration_type_id', configTypeId)
       .or('value.eq.income,label.eq.Ingreso')
       .eq('is_active', true)
-      .single()
-    
+      .maybeSingle()
+
     if (!incomeValue) return 0
-    
+
     // Sumar todos los movimientos de ingreso asociados a la reserva
     const { data: movements, error } = await supabase
       .from('movements')
@@ -68,12 +65,12 @@ export async function calculateBookingPaidAmount(
       .eq('tenant_id', tenantId)
       .eq('booking_id', bookingId)
       .eq('movement_type_id', incomeValue.id)
-    
+
     if (error) {
       console.error('Error calculating paid amount:', error)
       return 0
     }
-    
+
     return movements?.reduce((sum: number, m: { amount?: number | null }) => sum + Number(m.amount || 0), 0) || 0
   } catch (error) {
     console.error('Error in calculateBookingPaidAmount:', error)
@@ -91,7 +88,7 @@ export async function calculateBookingPaymentInfo(
     if (!supabase) {
       return { paid_amount: 0, pending_amount: 0, total_to_pay: 0 }
     }
-    
+
     // Obtener la reserva
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
@@ -99,7 +96,7 @@ export async function calculateBookingPaymentInfo(
       .eq('id', bookingId)
       .eq('tenant_id', tenantId)
       .single()
-    
+
     if (bookingError || !booking) {
       // Si la reserva no existe (error PGRST116), es un caso válido (puede haber sido eliminada)
       // No loguear como error, solo retornar valores por defecto
@@ -111,19 +108,19 @@ export async function calculateBookingPaymentInfo(
       console.error('Error fetching booking:', bookingError)
       return { paid_amount: 0, pending_amount: 0, total_to_pay: 0 }
     }
-    
+
     // Determinar el total a pagar
     // Si tiene canal: net_amount, si no: total_amount
-    const totalToPay = booking.channel_id 
+    const totalToPay = booking.channel_id
       ? Number(booking.net_amount || 0)
       : Number(booking.total_amount || 0)
-    
+
     // Calcular importe pagado
     const paidAmount = await calculateBookingPaidAmount(bookingId, tenantId)
-    
+
     // Calcular pendiente
     const pendingAmount = Math.max(0, totalToPay - paidAmount)
-    
+
     return {
       paid_amount: paidAmount,
       pending_amount: pendingAmount,
@@ -154,7 +151,7 @@ export async function getMovements(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return []
-    
+
     let query = supabase
       .from('movements')
       .select(`
@@ -200,41 +197,41 @@ export async function getMovements(
         )
       `)
       .eq('tenant_id', tenantId)
-    
+
     if (options?.movementType) {
       query = query.eq('movement_type_id', options.movementType)
     }
-    
+
     if (options?.movementStatus) {
       query = query.eq('movement_status_id', options.movementStatus)
     }
-    
+
     if (options?.bookingId) {
       query = query.eq('booking_id', options.bookingId)
     }
-    
+
     if (options?.serviceProviderId) {
       query = query.eq('service_provider_id', options.serviceProviderId)
     }
-    
+
     if (options?.treasuryAccountId) {
       query = query.eq('treasury_account_id', options.treasuryAccountId)
     }
-    
+
     // Búsqueda por reserva (código, nombre de huésped o fecha)
     // Esta búsqueda se aplicará después de obtener los movimientos
     // porque necesitamos filtrar por los datos relacionados de booking
-    
+
     // Aplicar filtro de año por defecto (del contexto)
     // Los filtros dateFrom/dateTo son para restringir más el rango dentro del año
     if (options?.year) {
       const yearStart = `${options.year}-01-01`
       const yearEnd = `${options.year}-12-31`
-      
+
       // Determinar las fechas de inicio y fin efectivas
       let effectiveDateFrom = yearStart
       let effectiveDateTo = yearEnd
-      
+
       // Si hay dateFrom, usar el máximo entre el inicio del año y dateFrom
       if (options?.dateFrom) {
         const dateFromValue = options.dateFrom.trim()
@@ -253,7 +250,7 @@ export async function getMovements(
           }
         }
       }
-      
+
       // Si hay dateTo, usar el mínimo entre el fin del año y dateTo
       if (options?.dateTo) {
         const dateToValue = options.dateTo.trim()
@@ -272,7 +269,7 @@ export async function getMovements(
           }
         }
       }
-      
+
       // Aplicar los filtros de fecha efectivos
       query = query.gte('movement_date', effectiveDateFrom).lte('movement_date', effectiveDateTo)
     } else {
@@ -293,7 +290,7 @@ export async function getMovements(
           }
         }
       }
-      
+
       if (options?.dateTo) {
         const dateToValue = options.dateTo.trim()
         if (dateToValue) {
@@ -311,20 +308,20 @@ export async function getMovements(
         }
       }
     }
-    
+
     const { data: movements, error } = await query
       .order('movement_date', { ascending: false })
       .order('created_at', { ascending: false })
-    
+
     if (error) {
       console.error('Error fetching movements:', error)
       return []
     }
-    
+
     if (!movements || movements.length === 0) {
       return []
     }
-    
+
     // Obtener tipos de configuración
     const configTypeIds = [
       ...new Set(movements.map((m: any) => [
@@ -333,19 +330,19 @@ export async function getMovements(
         m.movement_status_id,
       ]).flat().filter(Boolean))
     ]
-    
+
     const configValuesMap = new Map<string, ConfigurationValue>()
     if (configTypeIds.length > 0) {
       const { data: configValues } = await supabase
         .from('configuration_values')
         .select('id, label, value, description, color, icon')
         .in('id', configTypeIds)
-      
-      ;(configValues || []).forEach((cv: any) => {
-        configValuesMap.set(cv.id, cv)
-      })
+
+        ; (configValues || []).forEach((cv: any) => {
+          configValuesMap.set(cv.id, cv)
+        })
     }
-    
+
     // Combinar datos
     let result = movements.map((movement: any) => ({
       ...movement,
@@ -353,18 +350,18 @@ export async function getMovements(
       payment_method: configValuesMap.get(movement.payment_method_id),
       movement_status: configValuesMap.get(movement.movement_status_id),
     }))
-    
+
     // Aplicar búsqueda por reserva si existe (después de obtener los datos relacionados)
     if (options?.bookingSearch) {
       const searchTerm = options.bookingSearch.trim().toLowerCase()
-      
+
       result = result.filter((movement: any) => {
         if (!movement.booking) return false
-        
+
         // Buscar en código de reserva
         const bookingCode = movement.booking.booking_code?.toLowerCase() || ""
         if (bookingCode.includes(searchTerm)) return true
-        
+
         // Buscar en nombre de huésped
         const person = movement.booking.person
         if (person) {
@@ -375,14 +372,14 @@ export async function getMovements(
             return true
           }
         }
-        
+
         // Buscar en fechas de reserva (formato ISO y formato DD/MM/YYYY)
         const checkIn = movement.booking.check_in_date || ""
         const checkOut = movement.booking.check_out_date || ""
         if (checkIn.includes(searchTerm) || checkOut.includes(searchTerm)) {
           return true
         }
-        
+
         // Formatear fechas para búsqueda en formato DD/MM/YYYY
         if (checkIn) {
           try {
@@ -397,7 +394,7 @@ export async function getMovements(
             // Ignorar errores de fecha
           }
         }
-        
+
         if (checkOut) {
           try {
             const checkOutDate = new Date(checkOut)
@@ -411,11 +408,11 @@ export async function getMovements(
             // Ignorar errores de fecha
           }
         }
-        
+
         return false
       })
     }
-    
+
     return result
   } catch (error) {
     console.error('Error in getMovements:', error)
@@ -439,7 +436,7 @@ export async function getMovementById(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
+
     const { data: movement, error } = await supabase
       .from('movements')
       .select(`
@@ -487,31 +484,31 @@ export async function getMovementById(
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .single()
-    
+
     if (error || !movement) {
       console.error('Error fetching movement:', error)
       return null
     }
-    
+
     // Obtener tipos de configuración
     const configTypeIds = [
       movement.movement_type_id,
       movement.payment_method_id,
       movement.movement_status_id,
     ].filter(Boolean)
-    
+
     const configValuesMap = new Map<string, ConfigurationValue>()
     if (configTypeIds.length > 0) {
       const { data: configValues } = await supabase
         .from('configuration_values')
         .select('id, label, value, description, color, icon')
         .in('id', configTypeIds)
-      
-      ;(configValues || []).forEach((cv: any) => {
-        configValuesMap.set(cv.id, cv)
-      })
+
+        ; (configValues || []).forEach((cv: any) => {
+          configValuesMap.set(cv.id, cv)
+        })
     }
-    
+
     return {
       ...movement,
       movement_type: configValuesMap.get(movement.movement_type_id),
@@ -532,31 +529,31 @@ export async function createMovement(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
+
     // Obtener tipo de movimiento para validaciones
     const { data: movementType } = await supabase
       .from('configuration_values')
       .select('value, label')
       .eq('id', data.movement_type_id)
       .single()
-    
+
     if (!movementType) {
       throw new Error('Tipo de movimiento no válido')
     }
-    
+
     const isIncome = movementType.value === 'income' || movementType.label === 'Ingreso'
-    
+
     // Validaciones según tipo de movimiento
     if (isIncome) {
       // INGRESO: debe tener booking_id y NO debe tener service_provider_id
       if (!data.booking_id) {
         throw new Error('Los ingresos deben estar asociados a una reserva')
       }
-      
+
       if (data.service_provider_id) {
         throw new Error('Los ingresos no pueden tener un proveedor de servicios asociado')
       }
-      
+
       // Validar que el importe no exceda el pendiente
       const paymentInfo = await calculateBookingPaymentInfo(data.booking_id, tenantId)
       if (data.amount > paymentInfo.pending_amount) {
@@ -567,15 +564,15 @@ export async function createMovement(
       if (!data.service_provider_id) {
         throw new Error('Los gastos deben estar asociados a un proveedor de servicios')
       }
-      
+
       // Validar que los gastos tengan al menos un expense item
       if (!data.expense_items || data.expense_items.length === 0) {
         throw new Error('Los gastos deben tener al menos un servicio asociado')
       }
     }
-    
+
     const { data: { user } } = await supabase.auth.getUser()
-    
+
     // Calcular amount total si hay expense_items
     let finalAmount = data.amount
     if (!isIncome && data.expense_items && data.expense_items.length > 0) {
@@ -583,7 +580,7 @@ export async function createMovement(
         total_amount: item.total_amount ?? calculateExpenseItemTotal(item.amount, 0)
       })))
     }
-    
+
     const { data: movement, error } = await supabase
       .from('movements')
       .insert({
@@ -604,12 +601,12 @@ export async function createMovement(
       })
       .select()
       .single()
-    
+
     if (error || !movement) {
       console.error('Error creating movement:', error)
       throw error || new Error('Error al crear el movimiento')
     }
-    
+
     // Crear expense items si es un gasto
     if (!isIncome && data.expense_items && data.expense_items.length > 0) {
       const itemsToInsert = data.expense_items.map((item: CreateExpenseItemData) => ({
@@ -622,11 +619,11 @@ export async function createMovement(
         total_amount: item.total_amount ?? calculateExpenseItemTotal(item.amount, 0),
         notes: item.notes?.trim() || null,
       }))
-      
+
       const { error: itemsError } = await supabase
         .from('movement_expense_items')
         .insert(itemsToInsert)
-      
+
       if (itemsError) {
         console.error('Error creating expense items:', itemsError)
         // Intentar eliminar el movimiento creado
@@ -634,7 +631,7 @@ export async function createMovement(
         throw new Error('Error al crear los servicios del gasto')
       }
     }
-    
+
     return movement
   } catch (error) {
     console.error('Error in createMovement:', error)
@@ -651,7 +648,7 @@ export async function updateMovement(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return null
-    
+
     // Obtener movimiento actual
     const { data: currentMovement } = await supabase
       .from('movements')
@@ -659,42 +656,42 @@ export async function updateMovement(
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .single()
-    
+
     if (!currentMovement) {
       throw new Error('Movimiento no encontrado')
     }
-    
+
     // Obtener tipo de movimiento
     const { data: movementType } = await supabase
       .from('configuration_values')
       .select('value, label')
       .eq('id', currentMovement.movement_type_id)
       .single()
-    
+
     const isIncome = movementType?.value === 'income' || movementType?.label === 'Ingreso'
-    
+
     // Validaciones según tipo de movimiento
     if (isIncome) {
       // INGRESO: debe tener booking_id y NO debe tener service_provider_id
       const finalBookingId = data.booking_id !== undefined ? data.booking_id : currentMovement.booking_id
       const finalServiceProviderId = data.service_provider_id !== undefined ? data.service_provider_id : currentMovement.service_provider_id
-      
+
       if (!finalBookingId) {
         throw new Error('Los ingresos deben estar asociados a una reserva')
       }
-      
+
       if (finalServiceProviderId) {
         throw new Error('Los ingresos no pueden tener un proveedor de servicios asociado')
       }
     } else {
       // GASTO: debe tener service_provider_id y puede tener booking_id (opcional)
       const finalServiceProviderId = data.service_provider_id !== undefined ? data.service_provider_id : currentMovement.service_provider_id
-      
+
       if (!finalServiceProviderId) {
         throw new Error('Los gastos deben estar asociados a un proveedor de servicios')
       }
     }
-    
+
     // Validaciones si se cambia el importe o la reserva - SOLO para INGRESOS
     if (isIncome && (data.amount !== undefined || data.booking_id !== undefined)) {
       const bookingId = data.booking_id !== undefined ? data.booking_id : currentMovement.booking_id
@@ -704,17 +701,17 @@ export async function updateMovement(
         // Restar el importe actual del movimiento solo si está en la misma reserva
         // Si el movimiento cambia de reserva, el paid_amount de la nueva reserva no incluye este movimiento
         const isSameBooking = bookingId === currentMovement.booking_id
-        const currentPaid = isSameBooking 
+        const currentPaid = isSameBooking
           ? paymentInfo.paid_amount - Number(currentMovement.amount)
           : paymentInfo.paid_amount
         const newPending = paymentInfo.total_to_pay - currentPaid
-        
+
         if (newAmount > newPending) {
           throw new Error(`El importe del pago (${newAmount.toFixed(2)} €) excede el importe pendiente (${newPending.toFixed(2)} €)`)
         }
       }
     }
-    
+
     // Gestionar expense items si es un gasto
     if (!isIncome && data.expense_items !== undefined) {
       // Obtener items actuales
@@ -722,14 +719,14 @@ export async function updateMovement(
         .from('movement_expense_items')
         .select('id')
         .eq('movement_id', id)
-      
+
       const currentItemIds = new Set((currentItems || []).map((item: any) => item.id))
       const newItemIds = new Set(
         data.expense_items
           .filter((item: any) => item.id)
           .map((item: any) => item.id)
       )
-      
+
       // Eliminar items que ya no están
       const itemsToDelete = Array.from(currentItemIds).filter(
         (id) => !newItemIds.has(id)
@@ -740,7 +737,7 @@ export async function updateMovement(
           .delete()
           .in('id', itemsToDelete)
       }
-      
+
       // Crear/actualizar items
       for (const item of data.expense_items) {
         const itemData: any = {
@@ -752,7 +749,7 @@ export async function updateMovement(
           total_amount: item.total_amount ?? calculateExpenseItemTotal(item.amount, 0),
           notes: item.notes?.trim() || null,
         }
-        
+
         if (item.id && newItemIds.has(item.id)) {
           // Actualizar item existente
           await supabase
@@ -769,18 +766,18 @@ export async function updateMovement(
             })
         }
       }
-      
+
       // Recalcular amount total
       const { data: updatedItems } = await supabase
         .from('movement_expense_items')
         .select('total_amount')
         .eq('movement_id', id)
-      
+
       if (updatedItems && updatedItems.length > 0) {
         data.amount = calculateMovementTotal(updatedItems)
       }
     }
-    
+
     const updateData: any = {}
     if (data.movement_type_id !== undefined) updateData.movement_type_id = data.movement_type_id
     if (data.booking_id !== undefined) updateData.booking_id = data.booking_id || null
@@ -794,7 +791,7 @@ export async function updateMovement(
     if (data.reference !== undefined) updateData.reference = data.reference?.trim() || null
     if (data.movement_date !== undefined) updateData.movement_date = data.movement_date
     if (data.notes !== undefined) updateData.notes = data.notes?.trim() || null
-    
+
     const { data: movement, error } = await supabase
       .from('movements')
       .update(updateData)
@@ -802,12 +799,12 @@ export async function updateMovement(
       .eq('tenant_id', tenantId)
       .select()
       .single()
-    
+
     if (error || !movement) {
       console.error('Error updating movement:', error)
       throw error || new Error('Error al actualizar el movimiento')
     }
-    
+
     return movement
   } catch (error) {
     console.error('Error in updateMovement:', error)
@@ -823,18 +820,18 @@ export async function deleteMovement(
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return false
-    
+
     const { error } = await supabase
       .from('movements')
       .delete()
       .eq('id', id)
       .eq('tenant_id', tenantId)
-    
+
     if (error) {
       console.error('Error deleting movement:', error)
       throw error
     }
-    
+
     return true
   } catch (error) {
     console.error('Error in deleteMovement:', error)
@@ -851,17 +848,17 @@ export async function duplicateMovement(
   try {
     // Obtener el movimiento original con todos sus datos
     const originalMovement = await getMovementById(movementId, tenantId)
-    
+
     if (!originalMovement) {
       throw new Error('Movimiento no encontrado')
     }
-    
+
     // Validar que la nueva fecha sea válida
     const newDateObj = new Date(newDate)
     if (isNaN(newDateObj.getTime())) {
       throw new Error('Fecha inválida')
     }
-    
+
     // Preparar datos para el nuevo movimiento
     // Copiar todos los campos excepto: id, movement_date, invoice_number, created_at, updated_at
     const duplicateData: CreateMovementData = {
@@ -878,7 +875,7 @@ export async function duplicateMovement(
       movement_date: newDate,
       notes: originalMovement.notes || null,
     }
-    
+
     // Si tiene expense_items, copiarlos también
     if (originalMovement.expense_items && originalMovement.expense_items.length > 0) {
       duplicateData.expense_items = originalMovement.expense_items.map((item) => ({
@@ -891,10 +888,10 @@ export async function duplicateMovement(
         notes: item.notes || null,
       }))
     }
-    
+
     // Crear el nuevo movimiento usando createMovement (que maneja todas las validaciones)
     const newMovement = await createMovement(duplicateData, tenantId)
-    
+
     return newMovement
   } catch (error) {
     console.error('Error in duplicateMovement:', error)

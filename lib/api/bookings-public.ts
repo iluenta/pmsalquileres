@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { getSupabaseServerClient } from '@/lib/supabase/server'
+import { CONFIG_CODES } from '@/lib/constants/config'
 import type { CreatePersonData, Booking, Person } from '@/types/bookings'
 import { getPropertyTenantId } from './properties-public'
 import { getOwnSalesChannel } from './sales-channels'
@@ -27,7 +28,7 @@ async function getPublicConfigurations(propertyId: string, tenantId: string): Pr
       throw new Error('No se pudo conectar con la base de datos')
     }
 
-    // Obtener todas las configuraciones necesarias en paralelo
+    // Obtener todas las configuraciones necesarias en paralelo usando códigos
     const [
       personTypeResult,
       bookingStatusResult,
@@ -38,15 +39,27 @@ async function getPublicConfigurations(propertyId: string, tenantId: string): Pr
         .from('configuration_types')
         .select('id')
         .eq('tenant_id', tenantId)
-        .or('name.eq.person_type,name.eq.Tipo de Persona,name.eq.Tipos de Persona')
-        .eq('is_active', true)
+        .eq('code', CONFIG_CODES.PERSON_TYPE)
         .maybeSingle()
         .then(async (result: { data: { id: string } | null; error: any }) => {
-          if (!result.data) return null
+          let typeId: string | null = result.data?.id || null
+
+          if (!typeId) {
+            // Fallback legacy
+            const { data: legacy } = await supabase
+              .from('configuration_types')
+              .select('id')
+              .eq('tenant_id', tenantId)
+              .or('name.eq.person_type,name.eq.Tipo de Persona,name.eq.Tipos de Persona')
+              .maybeSingle()
+            if (!legacy) return null
+            typeId = legacy.id
+          }
+
           const guestValue = await supabase
             .from('configuration_values')
             .select('id')
-            .eq('configuration_type_id', result.data.id)
+            .eq('configuration_type_id', typeId)
             .eq('is_active', true)
             .or('value.eq.guest,label.ilike.huésped,label.ilike.guest')
             .maybeSingle()
@@ -58,15 +71,26 @@ async function getPublicConfigurations(propertyId: string, tenantId: string): Pr
         .from('configuration_types')
         .select('id')
         .eq('tenant_id', tenantId)
-        .or('name.eq.Estado de Reserva,name.eq.Booking Status,name.eq.Estados de Reserva')
-        .eq('is_active', true)
+        .eq('code', CONFIG_CODES.BOOKING_STATUS)
         .maybeSingle()
         .then(async (result: { data: { id: string } | null; error: any }) => {
-          if (!result.data) return null
+          let typeId: string | null = result.data?.id || null
+
+          if (!typeId) {
+            const { data: legacy } = await supabase
+              .from('configuration_types')
+              .select('id')
+              .eq('tenant_id', tenantId)
+              .or('name.eq.Estado de Reserva,name.eq.Booking Status,name.eq.Estados de Reserva')
+              .maybeSingle()
+            if (!legacy) return null
+            typeId = legacy.id
+          }
+
           const pendingValue = await supabase
             .from('configuration_values')
             .select('id')
-            .eq('configuration_type_id', result.data.id)
+            .eq('configuration_type_id', typeId)
             .eq('is_active', true)
             .or('value.eq.pending,label.ilike.pendiente')
             .maybeSingle()
@@ -78,15 +102,26 @@ async function getPublicConfigurations(propertyId: string, tenantId: string): Pr
         .from('configuration_types')
         .select('id')
         .eq('tenant_id', tenantId)
-        .or('name.eq.Tipo de Reserva,name.eq.Booking Type,name.eq.Tipos de Reserva')
-        .eq('is_active', true)
+        .eq('code', CONFIG_CODES.BOOKING_TYPE)
         .maybeSingle()
         .then(async (result: { data: { id: string } | null; error: any }) => {
-          if (!result.data) return null
+          let typeId: string | null = result.data?.id || null
+
+          if (!typeId) {
+            const { data: legacy } = await supabase
+              .from('configuration_types')
+              .select('id')
+              .eq('tenant_id', tenantId)
+              .or('name.eq.Tipo de Reserva,name.eq.Booking Type,name.eq.Tipos de Reserva')
+              .maybeSingle()
+            if (!legacy) return null
+            typeId = legacy.id
+          }
+
           const commercialValue = await supabase
             .from('configuration_values')
             .select('id')
-            .eq('configuration_type_id', result.data.id)
+            .eq('configuration_type_id', typeId)
             .eq('is_active', true)
             .or('value.eq.commercial,label.ilike.comercial')
             .maybeSingle()

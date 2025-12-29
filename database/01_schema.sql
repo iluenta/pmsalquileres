@@ -1,5 +1,6 @@
 -- Consolidated Schema Baseline
 -- Based on 000_base_datos_completa.sql
+-- Idempotent version: Can be run multiple times without errors
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -8,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- Tables in order of dependency
 
 -- 1. Tenants
-CREATE TABLE public.tenants (
+CREATE TABLE IF NOT EXISTS public.tenants (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name character varying NOT NULL,
   slug character varying NOT NULL UNIQUE,
@@ -19,7 +20,7 @@ CREATE TABLE public.tenants (
 );
 
 -- 2. Configuration System
-CREATE TABLE public.configuration_types (
+CREATE TABLE IF NOT EXISTS public.configuration_types (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   name character varying NOT NULL,
@@ -32,7 +33,23 @@ CREATE TABLE public.configuration_types (
   CONSTRAINT configuration_types_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id)
 );
 
-CREATE TABLE public.configuration_values (
+-- Add 'code' column if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='configuration_types' AND column_name='code') THEN
+        ALTER TABLE public.configuration_types ADD COLUMN code character varying;
+    END IF;
+END $$;
+
+-- Add unique constraint if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'configuration_types_tenant_code_unique') THEN
+        ALTER TABLE public.configuration_types ADD CONSTRAINT configuration_types_tenant_code_unique UNIQUE (tenant_id, code);
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.configuration_values (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   configuration_type_id uuid NOT NULL,
   value character varying NOT NULL,
@@ -49,8 +66,16 @@ CREATE TABLE public.configuration_values (
   CONSTRAINT configuration_values_configuration_type_id_fkey FOREIGN KEY (configuration_type_id) REFERENCES public.configuration_types(id)
 );
 
+-- Add unique constraint if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'configuration_values_type_value_unique') THEN
+        ALTER TABLE public.configuration_values ADD CONSTRAINT configuration_values_type_value_unique UNIQUE (configuration_type_id, value);
+    END IF;
+END $$;
+
 -- 3. Users and Authentication
-CREATE TABLE public.users (
+CREATE TABLE IF NOT EXISTS public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   email character varying NOT NULL UNIQUE,
@@ -70,7 +95,7 @@ CREATE TABLE public.users (
   CONSTRAINT users_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id)
 );
 
-CREATE TABLE public.user_settings (
+CREATE TABLE IF NOT EXISTS public.user_settings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   setting_key character varying NOT NULL,
@@ -82,7 +107,7 @@ CREATE TABLE public.user_settings (
 );
 
 -- 4. Persons and Entities
-CREATE TABLE public.persons (
+CREATE TABLE IF NOT EXISTS public.persons (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   person_type character varying NOT NULL,
@@ -101,7 +126,7 @@ CREATE TABLE public.persons (
   CONSTRAINT persons_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id)
 );
 
-CREATE TABLE public.person_contact_infos (
+CREATE TABLE IF NOT EXISTS public.person_contact_infos (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   person_id uuid NOT NULL,
@@ -117,7 +142,7 @@ CREATE TABLE public.person_contact_infos (
   CONSTRAINT person_contact_infos_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.persons(id)
 );
 
-CREATE TABLE public.person_fiscal_addresses (
+CREATE TABLE IF NOT EXISTS public.person_fiscal_addresses (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   person_id uuid NOT NULL,
@@ -139,7 +164,7 @@ CREATE TABLE public.person_fiscal_addresses (
 );
 
 -- 5. Properties and Inventory
-CREATE TABLE public.properties (
+CREATE TABLE IF NOT EXISTS public.properties (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   property_code character varying NOT NULL,
@@ -176,7 +201,21 @@ CREATE TABLE public.properties (
   CONSTRAINT properties_owner_person_id_fkey FOREIGN KEY (owner_person_id) REFERENCES public.persons(id)
 );
 
-CREATE TABLE public.property_amenities (
+-- Add coordinate columns if they don't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='properties' AND column_name='latitude') THEN
+        ALTER TABLE public.properties ADD COLUMN latitude numeric;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='properties' AND column_name='longitude') THEN
+        ALTER TABLE public.properties ADD COLUMN longitude numeric;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='properties' AND column_name='locality') THEN
+        ALTER TABLE public.properties ADD COLUMN locality character varying;
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.property_amenities (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   property_id uuid NOT NULL,
@@ -192,7 +231,7 @@ CREATE TABLE public.property_amenities (
   CONSTRAINT property_amenities_amenity_type_id_fkey FOREIGN KEY (amenity_type_id) REFERENCES public.configuration_values(id)
 );
 
-CREATE TABLE public.property_images (
+CREATE TABLE IF NOT EXISTS public.property_images (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   property_id uuid NOT NULL,
@@ -211,7 +250,7 @@ CREATE TABLE public.property_images (
   CONSTRAINT property_images_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.properties(id)
 );
 
-CREATE TABLE public.property_guides (
+CREATE TABLE IF NOT EXISTS public.property_guides (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid,
   property_id uuid,
@@ -231,7 +270,7 @@ CREATE TABLE public.property_guides (
 );
 
 -- 6. Sales and Commissions
-CREATE TABLE public.sales_channels (
+CREATE TABLE IF NOT EXISTS public.sales_channels (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   person_id uuid NOT NULL,
@@ -252,7 +291,7 @@ CREATE TABLE public.sales_channels (
   CONSTRAINT sales_channels_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.persons(id)
 );
 
-CREATE TABLE public.property_sales_channels (
+CREATE TABLE IF NOT EXISTS public.property_sales_channels (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   property_id uuid NOT NULL,
@@ -268,7 +307,7 @@ CREATE TABLE public.property_sales_channels (
 );
 
 -- 7. Bookings
-CREATE TABLE public.bookings (
+CREATE TABLE IF NOT EXISTS public.bookings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   booking_code character varying NOT NULL,
@@ -300,7 +339,7 @@ CREATE TABLE public.bookings (
 );
 
 -- 8. Treasury and Payments
-CREATE TABLE public.treasury_accounts (
+CREATE TABLE IF NOT EXISTS public.treasury_accounts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   name character varying NOT NULL CHECK (length(TRIM(BOTH FROM name)) > 0),
@@ -313,7 +352,7 @@ CREATE TABLE public.treasury_accounts (
   CONSTRAINT treasury_accounts_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id)
 );
 
-CREATE TABLE public.payments (
+CREATE TABLE IF NOT EXISTS public.payments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   booking_id uuid,
@@ -335,7 +374,7 @@ CREATE TABLE public.payments (
 );
 
 -- 9. Finance and Movements
-CREATE TABLE public.service_providers (
+CREATE TABLE IF NOT EXISTS public.service_providers (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   person_id uuid NOT NULL,
@@ -349,7 +388,7 @@ CREATE TABLE public.service_providers (
   CONSTRAINT service_providers_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.persons(id)
 );
 
-CREATE TABLE public.service_provider_services (
+CREATE TABLE IF NOT EXISTS public.service_provider_services (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   service_provider_id uuid NOT NULL,
   service_type_id uuid NOT NULL,
@@ -366,7 +405,7 @@ CREATE TABLE public.service_provider_services (
   CONSTRAINT service_provider_services_tax_type_id_fkey FOREIGN KEY (tax_type_id) REFERENCES public.configuration_values(id)
 );
 
-CREATE TABLE public.movements (
+CREATE TABLE IF NOT EXISTS public.movements (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   movement_type_id uuid NOT NULL,
@@ -391,11 +430,11 @@ CREATE TABLE public.movements (
   CONSTRAINT movements_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id),
   CONSTRAINT movements_movement_type_id_fkey FOREIGN KEY (movement_type_id) REFERENCES public.configuration_values(id),
   CONSTRAINT movements_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id),
-  CONSTRAINT movements_service_provider_id_fkey FOREIGN KEY (service_provider_id) REFERENCES public.service_providers(id),
+  CONSTRAINT movements_service_provider_id_fkey FOREIGN KEY (service_providers_id) REFERENCES public.service_providers(id),
   CONSTRAINT movements_service_provider_service_id_fkey FOREIGN KEY (service_provider_service_id) REFERENCES public.service_provider_services(id)
 );
 
-CREATE TABLE public.movement_expense_items (
+CREATE TABLE IF NOT EXISTS public.movement_expense_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   movement_id uuid NOT NULL,
   service_provider_service_id uuid,
@@ -414,7 +453,7 @@ CREATE TABLE public.movement_expense_items (
 );
 
 -- 10. Guide-Specific Tables
-CREATE TABLE public.apartment_sections (
+CREATE TABLE IF NOT EXISTS public.apartment_sections (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   guide_id uuid NOT NULL,
   tenant_id uuid NOT NULL,
@@ -433,7 +472,7 @@ CREATE TABLE public.apartment_sections (
   CONSTRAINT apartment_sections_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id)
 );
 
-CREATE TABLE public.guide_sections (
+CREATE TABLE IF NOT EXISTS public.guide_sections (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid,
   guide_id uuid,
@@ -450,7 +489,7 @@ CREATE TABLE public.guide_sections (
   CONSTRAINT guide_sections_guide_id_fkey FOREIGN KEY (guide_id) REFERENCES public.property_guides(id)
 );
 
-CREATE TABLE public.guide_places (
+CREATE TABLE IF NOT EXISTS public.guide_places (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid,
   guide_id uuid,
@@ -480,7 +519,7 @@ CREATE TABLE public.guide_places (
   CONSTRAINT guide_places_guide_id_fkey FOREIGN KEY (guide_id) REFERENCES public.property_guides(id)
 );
 
-CREATE TABLE public.guide_contact_info (
+CREATE TABLE IF NOT EXISTS public.guide_contact_info (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid,
   guide_id uuid,
@@ -502,7 +541,7 @@ CREATE TABLE public.guide_contact_info (
   CONSTRAINT guide_contact_info_guide_id_fkey FOREIGN KEY (guide_id) REFERENCES public.property_guides(id)
 );
 
-CREATE TABLE public.house_guide_items (
+CREATE TABLE IF NOT EXISTS public.house_guide_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid,
   guide_id uuid,
@@ -517,7 +556,7 @@ CREATE TABLE public.house_guide_items (
   CONSTRAINT house_guide_items_guide_id_fkey FOREIGN KEY (guide_id) REFERENCES public.property_guides(id)
 );
 
-CREATE TABLE public.house_rules (
+CREATE TABLE IF NOT EXISTS public.house_rules (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid,
   guide_id uuid,
@@ -531,7 +570,7 @@ CREATE TABLE public.house_rules (
   CONSTRAINT house_rules_guide_id_fkey FOREIGN KEY (guide_id) REFERENCES public.property_guides(id)
 );
 
-CREATE TABLE public.practical_info (
+CREATE TABLE IF NOT EXISTS public.practical_info (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   tenant_id uuid,
   guide_id uuid,
@@ -547,7 +586,7 @@ CREATE TABLE public.practical_info (
   CONSTRAINT practical_info_guide_id_fkey FOREIGN KEY (guide_id) REFERENCES public.property_guides(id)
 );
 
-CREATE TABLE public.tips (
+CREATE TABLE IF NOT EXISTS public.tips (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   guide_id uuid NOT NULL,
   tenant_id uuid NOT NULL,
@@ -564,7 +603,7 @@ CREATE TABLE public.tips (
 );
 
 -- 11. Property Extras
-CREATE TABLE public.property_highlights (
+CREATE TABLE IF NOT EXISTS public.property_highlights (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   property_id uuid NOT NULL,
   tenant_id uuid NOT NULL,
@@ -579,7 +618,7 @@ CREATE TABLE public.property_highlights (
   CONSTRAINT property_highlights_property_id_fkey FOREIGN KEY (property_id) REFERENCES public.properties(id)
 );
 
-CREATE TABLE public.property_pricing_plans (
+CREATE TABLE IF NOT EXISTS public.property_pricing_plans (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   property_id uuid NOT NULL,
   tenant_id uuid NOT NULL,
@@ -599,7 +638,7 @@ CREATE TABLE public.property_pricing_plans (
   CONSTRAINT property_pricing_plans_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id)
 );
 
-CREATE TABLE public.property_reviews (
+CREATE TABLE IF NOT EXISTS public.property_reviews (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   property_id uuid NOT NULL,
   tenant_id uuid NOT NULL,
@@ -623,7 +662,7 @@ CREATE TABLE public.property_reviews (
 );
 
 -- 12. System Health
-CREATE TABLE public.health_checks (
+CREATE TABLE IF NOT EXISTS public.health_checks (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   status character varying NOT NULL CHECK (status::text = ANY (ARRAY['success'::character varying, 'error'::character varying]::text[])),
   response_time_ms integer NOT NULL,
@@ -640,8 +679,8 @@ CREATE TABLE public.health_checks (
 );
 
 -- Indexes for performance
-CREATE UNIQUE INDEX idx_properties_slug_unique ON public.properties(slug);
-CREATE INDEX idx_bookings_check_in ON public.bookings(check_in_date);
-CREATE INDEX idx_bookings_check_out ON public.bookings(check_out_date);
-CREATE INDEX idx_movements_date ON public.movements(movement_date);
-CREATE INDEX idx_configuration_values_type ON public.configuration_values(configuration_type_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_properties_slug_unique ON public.properties(slug);
+CREATE INDEX IF NOT EXISTS idx_bookings_check_in ON public.bookings(check_in_date);
+CREATE INDEX IF NOT EXISTS idx_bookings_check_out ON public.bookings(check_out_date);
+CREATE INDEX IF NOT EXISTS idx_movements_date ON public.movements(movement_date);
+CREATE INDEX IF NOT EXISTS idx_configuration_values_type ON public.configuration_values(configuration_type_id);

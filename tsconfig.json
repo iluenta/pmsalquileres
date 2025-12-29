@@ -38,6 +38,7 @@
     "node_modules",
     "guia",
     "temp_export",
-    "guia_ejemplo"
+    "guia_ejemplo",
+    "archive"
   ]
 }

@@ -1,0 +1,9 @@
+node_modules
+.next
+archive
+guia
+temp_export
+guia_ejemplo
+public
+database
+# Add other directories if needed

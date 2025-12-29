@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Mountain, Clock, MapPin, Star, ExternalLink, ChevronDown, ChevronUp } from "lucide-react"
+import { DistanceDisplay } from "./DistanceDisplay"
 
 interface ActivitiesSectionProps {
     activities: Activity[]
@@ -45,6 +46,8 @@ function ActivityCard({ activity }: { activity: Activity }) {
                         </div>
                     )}
                 </div>
+
+                <DistanceDisplay walkingTime={activity.walking_time} drivingTime={activity.driving_time} />
 
                 <div className="flex items-center justify-end text-sm text-gray-500 mb-3">
                     {activity.price_range && (

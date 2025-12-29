@@ -193,6 +193,12 @@ export async function createBeach(data: CreateBeachData): Promise<Beach | null> 
   if (data.distance !== undefined && data.distance !== null) {
     insertData.distance = data.distance
   }
+  if (data.walking_time !== undefined && data.walking_time !== null) {
+    insertData.walking_time = data.walking_time
+  }
+  if (data.driving_time !== undefined && data.driving_time !== null) {
+    insertData.driving_time = data.driving_time
+  }
   if (data.badge !== undefined && data.badge !== null && data.badge !== '') {
     insertData.badge = data.badge
   }
@@ -301,6 +307,12 @@ export async function createRestaurant(data: CreateRestaurantData): Promise<Rest
   }
   if (data.distance !== undefined && data.distance !== null) {
     insertData.distance = data.distance
+  }
+  if (data.walking_time !== undefined && data.walking_time !== null) {
+    insertData.walking_time = data.walking_time
+  }
+  if (data.driving_time !== undefined && data.driving_time !== null) {
+    insertData.driving_time = data.driving_time
   }
   if (data.badge !== undefined && data.badge !== null && data.badge !== '') {
     insertData.badge = data.badge
@@ -438,6 +450,12 @@ export async function createShopping(data: CreateShoppingData): Promise<Shopping
   }
   if (data.distance !== undefined && data.distance !== null) {
     insertData.distance = data.distance
+  }
+  if (data.walking_time !== undefined && data.walking_time !== null) {
+    insertData.walking_time = data.walking_time
+  }
+  if (data.driving_time !== undefined && data.driving_time !== null) {
+    insertData.driving_time = data.driving_time
   }
   if (data.badge !== undefined && data.badge !== null && data.badge !== '') {
     insertData.badge = data.badge
@@ -590,6 +608,12 @@ export async function createActivity(data: CreateActivityData): Promise<Activity
   }
   if (data.distance !== undefined && data.distance !== null) {
     insertData.distance = data.distance
+  }
+  if (data.walking_time !== undefined && data.walking_time !== null) {
+    insertData.walking_time = data.walking_time
+  }
+  if (data.driving_time !== undefined && data.driving_time !== null) {
+    insertData.driving_time = data.driving_time
   }
   if (data.badge !== undefined && data.badge !== null && data.badge !== '') {
     insertData.badge = data.badge

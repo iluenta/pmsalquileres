@@ -19,9 +19,12 @@ interface ShoppingEditFormProps {
   shopping: Shopping[]
   guideId: string
   onShoppingChange: (shopping: Shopping[]) => void
+  propertyLatitude?: number | null
+  propertyLongitude?: number | null
 }
 
-export function ShoppingEditForm({ shopping, guideId, onShoppingChange }: ShoppingEditFormProps) {
+export function ShoppingEditForm({ shopping, guideId, onShoppingChange, propertyLatitude, propertyLongitude }: ShoppingEditFormProps) {
+  
   const [editingShopping, setEditingShopping] = useState<Shopping | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -48,6 +51,8 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange }: Shoppi
       address: "",
       shopping_type: "",
       distance: null,
+      walking_time: null,
+      driving_time: null,
       rating: 0,
       review_count: 0,
       price_range: "",
@@ -78,6 +83,8 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange }: Shoppi
           rating: editingShopping.rating,
           review_count: editingShopping.review_count,
           price_range: editingShopping.price_range,
+          walking_time: editingShopping.walking_time,
+          driving_time: editingShopping.driving_time,
           badge: editingShopping.badge,
           image_url: editingShopping.image_url,
           url: editingShopping.url,
@@ -97,6 +104,8 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange }: Shoppi
           rating: editingShopping.rating,
           review_count: editingShopping.review_count,
           price_range: editingShopping.price_range,
+          walking_time: editingShopping.walking_time,
+          driving_time: editingShopping.driving_time,
           badge: editingShopping.badge,
           image_url: editingShopping.image_url,
           url: editingShopping.url,
@@ -161,7 +170,7 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange }: Shoppi
       setGoogleError(null)
       setGoogleShoppingData(null)
 
-      const shoppingData = await getShoppingFromGoogleUrl(googleUrl)
+      const shoppingData = await getShoppingFromGoogleUrl(googleUrl, propertyLatitude || undefined, propertyLongitude || undefined)
 
       if (shoppingData) {
         setGoogleShoppingData(shoppingData)
@@ -188,6 +197,8 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange }: Shoppi
       shopping_type: googleShoppingData.shopping_type || prev?.shopping_type || "",
       rating: googleShoppingData.rating || prev?.rating || 0,
       review_count: googleShoppingData.review_count || prev?.review_count || 0,
+      walking_time: googleShoppingData.walking_time ?? prev?.walking_time ?? null,
+      driving_time: googleShoppingData.driving_time ?? prev?.driving_time ?? null,
       price_range: googleShoppingData.price_range || prev?.price_range || "",
       badge: googleShoppingData.badge || prev?.badge || "",
       image_url: googleShoppingData.image_url || prev?.image_url || "",
@@ -475,6 +486,37 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange }: Shoppi
                     onChange={(e) => setEditingShopping({ ...editingShopping, price_range: e.target.value })}
                     placeholder="€, €€, €€€"
                   />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="shopping-walking-time">Tiempo caminando (minutos)</Label>
+                  <Input
+                    id="shopping-walking-time"
+                    type="number"
+                    min="0"
+                    value={editingShopping.walking_time || ''}
+                    onChange={(e) => setEditingShopping({ ...editingShopping, walking_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                    placeholder="Ej: 15"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Tiempo en minutos caminando desde la propiedad
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="shopping-driving-time">Tiempo en coche (minutos)</Label>
+                  <Input
+                    id="shopping-driving-time"
+                    type="number"
+                    min="0"
+                    value={editingShopping.driving_time || ''}
+                    onChange={(e) => setEditingShopping({ ...editingShopping, driving_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                    placeholder="Ej: 3"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Tiempo en minutos en coche desde la propiedad
+                  </p>
                 </div>
               </div>
 

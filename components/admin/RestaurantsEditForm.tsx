@@ -18,9 +18,11 @@ interface RestaurantsEditFormProps {
   restaurants: Restaurant[]
   guideId: string
   onRestaurantsChange: (restaurants: Restaurant[]) => void
+  propertyLatitude?: number | null
+  propertyLongitude?: number | null
 }
 
-export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange }: RestaurantsEditFormProps) {
+export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange, propertyLatitude, propertyLongitude }: RestaurantsEditFormProps) {
   const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -47,6 +49,8 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
       address: "",
       cuisine_type: "",
       distance: null,
+      walking_time: null,
+      driving_time: null,
       rating: 0,
       review_count: 0,
       price_range: "",
@@ -76,6 +80,8 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
           rating: editingRestaurant.rating,
           review_count: editingRestaurant.review_count,
           price_range: editingRestaurant.price_range,
+          walking_time: editingRestaurant.walking_time,
+          driving_time: editingRestaurant.driving_time,
           badge: editingRestaurant.badge,
           image_url: editingRestaurant.image_url,
           url: editingRestaurant.url,
@@ -94,6 +100,8 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
           rating: editingRestaurant.rating,
           review_count: editingRestaurant.review_count,
           price_range: editingRestaurant.price_range,
+          walking_time: editingRestaurant.walking_time,
+          driving_time: editingRestaurant.driving_time,
           badge: editingRestaurant.badge,
           image_url: editingRestaurant.image_url,
           url: editingRestaurant.url,
@@ -158,7 +166,7 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
       setGoogleError(null)
       setGoogleRestaurantData(null)
 
-      const restaurantData = await getRestaurantFromGoogleUrl(googleUrl)
+      const restaurantData = await getRestaurantFromGoogleUrl(googleUrl, propertyLatitude || undefined, propertyLongitude || undefined)
 
       if (restaurantData) {
         setGoogleRestaurantData(restaurantData)
@@ -185,6 +193,8 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
       cuisine_type: googleRestaurantData.cuisine_type || prev?.cuisine_type || "",
       rating: googleRestaurantData.rating || prev?.rating || 0,
       review_count: googleRestaurantData.review_count || prev?.review_count || 0,
+      walking_time: googleRestaurantData.walking_time ?? prev?.walking_time ?? null,
+      driving_time: googleRestaurantData.driving_time ?? prev?.driving_time ?? null,
       price_range: googleRestaurantData.price_range || prev?.price_range || "",
       badge: googleRestaurantData.badge || prev?.badge || "",
       image_url: googleRestaurantData.image_url || prev?.image_url || "",
@@ -451,6 +461,37 @@ export function RestaurantsEditForm({ restaurants, guideId, onRestaurantsChange 
                   />
                   <p className="text-xs text-gray-500">
                     Se establece automáticamente desde Google (€10-€20, €20-€40, €40-€80, €80+). Puedes editarlo manualmente.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="restaurant-walking-time">Tiempo caminando (minutos)</Label>
+                  <Input
+                    id="restaurant-walking-time"
+                    type="number"
+                    min="0"
+                    value={editingRestaurant.walking_time || ''}
+                    onChange={(e) => setEditingRestaurant({ ...editingRestaurant, walking_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                    placeholder="Ej: 15"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Tiempo en minutos caminando desde la propiedad
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="restaurant-driving-time">Tiempo en coche (minutos)</Label>
+                  <Input
+                    id="restaurant-driving-time"
+                    type="number"
+                    min="0"
+                    value={editingRestaurant.driving_time || ''}
+                    onChange={(e) => setEditingRestaurant({ ...editingRestaurant, driving_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                    placeholder="Ej: 3"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Tiempo en minutos en coche desde la propiedad
                   </p>
                 </div>
               </div>

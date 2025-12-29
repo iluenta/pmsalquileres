@@ -51,21 +51,15 @@ export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
       // Si el nombre contiene caracteres codificados (%XX), decodificarlo
       if (encodedName.includes('%')) {
         try {
-          const decoded = decodeURIComponent(encodedName)
-          console.log('[Google Places] Nombre decodificado con decodeURIComponent:', decoded)
-          return decoded
+          return decodeURIComponent(encodedName)
         } catch (decodeError: any) {
-          console.log('[Google Places] Error en decodeURIComponent:', decodeError.message)
           // Decodificar manualmente solo los caracteres %XX bien formados
-          const manuallyDecoded = encodedName.replace(/%([0-9A-F]{2})/gi, (match, hex) => {
+          return encodedName.replace(/%([0-9A-F]{2})/gi, (match, hex) => {
             return String.fromCharCode(parseInt(hex, 16))
           })
-          console.log('[Google Places] Nombre decodificado manualmente:', manuallyDecoded)
-          return manuallyDecoded
         }
       } else {
         // El nombre ya está decodificado, solo devolverlo
-        console.log('[Google Places] Nombre ya decodificado:', encodedName)
         return encodedName
       }
     }
@@ -80,18 +74,13 @@ export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
       
       if (directName.includes('%')) {
         try {
-          const decoded = decodeURIComponent(directName)
-          console.log('[Google Places] Nombre decodificado de URL directa:', decoded)
-          return decoded
+          return decodeURIComponent(directName)
         } catch {
-          const manuallyDecoded = directName.replace(/%([0-9A-F]{2})/gi, (match, hex) => {
+          return directName.replace(/%([0-9A-F]{2})/gi, (match, hex) => {
             return String.fromCharCode(parseInt(hex, 16))
           })
-          console.log('[Google Places] Nombre decodificado manualmente de URL directa:', manuallyDecoded)
-          return manuallyDecoded
         }
       }
-      console.log('[Google Places] Nombre de URL directa (sin codificar):', directName)
       return directName
     }
     
@@ -101,6 +90,7 @@ export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
     return null
   }
 }
+
 
 /**
  * Extrae las coordenadas de una URL de Google Maps si están disponibles
@@ -115,6 +105,17 @@ function extractCoordinatesFromGoogleUrl(url: string): { lat: number; lng: numbe
     if (coordMatch && coordMatch[1] && coordMatch[2]) {
       const lat = parseFloat(coordMatch[1])
       const lng = parseFloat(coordMatch[2])
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return { lat, lng }
+      }
+    }
+    
+    // También buscar coordenadas en formato !8m2!3dlat!4dlng
+    // Ejemplo: !8m2!3d37.2137302!4d-1.8313155
+    const coordMatch2 = pathname.match(/[!]8m2[!]3d(-?\d+\.?\d*)[!]4d(-?\d+\.?\d*)/)
+    if (coordMatch2 && coordMatch2[1] && coordMatch2[2]) {
+      const lat = parseFloat(coordMatch2[1])
+      const lng = parseFloat(coordMatch2[2])
       if (!isNaN(lat) && !isNaN(lng)) {
         return { lat, lng }
       }
@@ -181,12 +182,6 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | n
       return null
     }
 
-    // Log para debugging: ver todos los campos disponibles
-    if (data.result) {
-      console.log('[Google Places] Campos disponibles en la respuesta:', Object.keys(data.result))
-      console.log('[Google Places] price_level recibido:', data.result.price_level)
-      console.log('[Google Places] Respuesta completa:', JSON.stringify(data.result, null, 2))
-    }
 
     return data.result
   } catch (error) {
@@ -206,11 +201,54 @@ export function getPlacePhoto(photoReference: string, maxWidth: number = 400): s
 }
 
 /**
+ * Calcula la distancia desde la propiedad hasta un lugar usando Distance Matrix API
+ * Retorna tiempos en minutos para caminar y en coche
+ */
+async function calculateDistanceFromProperty(
+  propertyLat: number,
+  propertyLng: number,
+  placeLat: number,
+  placeLng: number
+): Promise<{ walking_time: number | null; driving_time: number | null }> {
+  try {
+    const origin = `${propertyLat},${propertyLng}`
+    const destination = `${placeLat},${placeLng}`
+    
+    const response = await fetch(
+      `/api/google-places/distance?origin=${origin}&destination=${destination}`
+    )
+    
+    if (!response.ok) {
+      console.error('[calculateDistanceFromProperty] Error HTTP calculando distancia:', response.status)
+      return { walking_time: null, driving_time: null }
+    }
+
+    const data = await response.json()
+    
+    // Verificar si hay un error en la respuesta
+    if (data.error) {
+      console.error('[calculateDistanceFromProperty] Error en respuesta de API:', data.error)
+      return { walking_time: null, driving_time: null }
+    }
+    
+    const walking_time = data.walking?.value ?? null
+    const driving_time = data.driving?.value ?? null
+
+    return { walking_time, driving_time }
+  } catch (error) {
+    console.error('[Google Places] Error calculating distance from property:', error)
+    return { walking_time: null, driving_time: null }
+  }
+}
+
+/**
  * Mapea los datos de Google Places al formato de Restaurant
  */
-export function mapPlaceDetailsToRestaurant(
-  placeDetails: PlaceDetails
-): Partial<Restaurant> {
+export async function mapPlaceDetailsToRestaurant(
+  placeDetails: PlaceDetails,
+  propertyLat?: number,
+  propertyLng?: number
+): Promise<Partial<Restaurant>> {
   // Mapear price_level (0-4) a price_range con rangos específicos de precios
   // Escala basada en price_level de Google Places:
   // 1 = Económico (€10-€20)
@@ -282,6 +320,25 @@ export function mapPlaceDetailsToRestaurant(
   // Obtener URL (preferir website, sino usar url de Google Maps)
   const restaurantUrl = placeDetails.website || placeDetails.url || null
 
+  // Calcular distancias si hay coordenadas de propiedad y del lugar
+  let walking_time: number | null = null
+  let driving_time: number | null = null
+  
+  if (propertyLat && propertyLng && placeDetails.geometry?.location) {
+    const placeLat = placeDetails.geometry.location.lat
+    const placeLng = placeDetails.geometry.location.lng
+    
+    const distances = await calculateDistanceFromProperty(
+      propertyLat,
+      propertyLng,
+      placeLat,
+      placeLng
+    )
+    
+    walking_time = distances.walking_time
+    driving_time = distances.driving_time
+  }
+
   return {
     name: placeDetails.name,
     description: description,
@@ -293,6 +350,8 @@ export function mapPlaceDetailsToRestaurant(
     image_url: imageUrl,
     badge: generateBadge(placeDetails.rating, placeDetails.types),
     url: restaurantUrl,
+    walking_time,
+    driving_time,
   }
 }
 
@@ -304,11 +363,10 @@ async function getPlaceFromGoogleUrl<T>(
   url: string,
   placeType: 'restaurant' | 'beach' | 'activity' | 'shopping',
   searchTypes: string[],
-  mapper: (placeDetails: PlaceDetails) => Partial<T>
+  mapper: (placeDetails: PlaceDetails, propertyLat?: number, propertyLng?: number) => Promise<Partial<T>>,
+  propertyLat?: number,
+  propertyLng?: number
 ): Promise<Partial<T> | null> {
-  console.log(`[Google Places] ========== INICIO búsqueda ${placeType} ==========`)
-  console.log(`[Google Places] URL recibida:`, url)
-
   // Validar que la URL sea válida
   try {
     new URL(url)
@@ -317,12 +375,22 @@ async function getPlaceFromGoogleUrl<T>(
     throw new Error(`La URL proporcionada no es válida: ${url}`)
   }
 
+  // Estrategia 0: Intentar extraer Place ID directamente de la URL (más preciso)
+  const placeId = extractPlaceIdFromGoogleUrl(url)
+  if (placeId) {
+    try {
+      const placeDetails = await getPlaceDetails(placeId)
+      if (placeDetails) {
+        return mapper(placeDetails, propertyLat, propertyLng)
+      }
+    } catch (error: any) {
+      // Continuar con otras estrategias
+    }
+  }
+
   // Extraer coordenadas y nombre de la URL
   const coordinates = extractCoordinatesFromGoogleUrl(url)
   const placeName = extractRestaurantNameFromGoogleUrl(url)
-  
-  console.log(`[Google Places] Nombre extraído (${placeType}):`, placeName)
-  console.log(`[Google Places] Coordenadas extraídas (${placeType}):`, coordinates)
 
   // Si no hay nombre, no podemos continuar
   if (!placeName || placeName.trim() === '') {
@@ -332,38 +400,29 @@ async function getPlaceFromGoogleUrl<T>(
 
   // Estrategia 1: Si tenemos coordenadas, intentar búsqueda por proximidad primero
   if (coordinates) {
-    console.log(`[Google Places] Intentando búsqueda por coordenadas y nombre para ${placeType}`)
     try {
       const searchResult = await searchPlaceByCoordinates(coordinates.lat, coordinates.lng, placeName)
       if (searchResult && searchResult.place_id) {
-        console.log(`[Google Places] ${placeType} encontrado por coordenadas`)
         const placeDetails = await getPlaceDetails(searchResult.place_id)
         if (placeDetails) {
-          return mapper(placeDetails)
+          return await mapper(placeDetails, propertyLat, propertyLng)
         }
       }
     } catch (error: any) {
-      console.log(`[Google Places] Error en búsqueda por coordenadas para ${placeType}:`, error.message)
-      console.log(`[Google Places] Continuando con búsqueda por nombre para ${placeType}`)
+      // Continuar con búsqueda por nombre
     }
   }
 
   // Estrategia 2: Intentar múltiples estrategias de búsqueda por nombre
-  console.log(`[Google Places] Buscando ${placeType} por nombre:`, placeName)
-
   let searchResult: PlaceSearchResult | null = null
 
   // 1. Búsqueda sin restricción de tipo (más amplia)
   searchResult = await searchPlaceByName(placeName)
-  if (searchResult && searchResult.place_id) {
-    console.log(`[Google Places] ${placeType} encontrado con búsqueda general`)
-  } else {
+  if (!searchResult || !searchResult.place_id) {
     // 2. Intentar con los tipos específicos proporcionados
     for (const type of searchTypes) {
-      console.log(`[Google Places] Intentando búsqueda de ${placeType} por nombre "${placeName}" con tipo "${type}"`)
       searchResult = await searchPlaceByName(placeName, type as any)
       if (searchResult && searchResult.place_id) {
-        console.log(`[Google Places] ${placeType} encontrado con tipo "${type}"`)
         break
       }
     }
@@ -371,50 +430,45 @@ async function getPlaceFromGoogleUrl<T>(
 
   if (!searchResult || !searchResult.place_id) {
     console.error(`[Google Places] No se encontró el ${placeType} con nombre:`, placeName)
-    console.error(`[Google Places] Tipos de búsqueda intentados:`, searchTypes)
-    console.error(`[Google Places] ========== FIN búsqueda ${placeType} (NO ENCONTRADO) ==========`)
     throw new Error(`No se encontró información para "${placeName}" en Google Places. Por favor, verifica que el nombre del lugar sea correcto o intenta con una URL diferente.`)
   }
-
-  console.log(`[Google Places] Lugar encontrado, obteniendo detalles...`)
-  console.log(`[Google Places] Place ID:`, searchResult.place_id)
 
   // Obtener detalles completos
   const placeDetails = await getPlaceDetails(searchResult.place_id)
   if (!placeDetails) {
     console.error(`[Google Places] No se pudieron obtener los detalles del ${placeType}`)
-    console.error(`[Google Places] ========== FIN búsqueda ${placeType} (ERROR EN DETALLES) ==========`)
     throw new Error(`No se pudieron obtener los detalles del lugar desde Google Places. Por favor, intenta de nuevo.`)
   }
 
-  console.log(`[Google Places] Detalles obtenidos correctamente`)
-  console.log(`[Google Places] Nombre del lugar:`, placeDetails.name)
-  console.log(`[Google Places] ========== FIN búsqueda ${placeType} (ÉXITO) ==========`)
-
-  // Mapear según el tipo
-  return mapper(placeDetails)
+  return await mapper(placeDetails, propertyLat, propertyLng)
 }
 
 /**
  * Función principal que obtiene información completa de un restaurante desde una URL de Google
  */
 export async function getRestaurantFromGoogleUrl(
-  url: string
+  url: string,
+  propertyLat?: number,
+  propertyLng?: number
 ): Promise<Partial<Restaurant> | null> {
   return getPlaceFromGoogleUrl<Restaurant>(
     url,
     'restaurant',
     ['restaurant', 'food', 'point_of_interest'],
-    mapPlaceDetailsToRestaurant
+    mapPlaceDetailsToRestaurant,
+    propertyLat,
+    propertyLng
   )
 }
 
 /**
  * Mapea los datos de Google Places al formato de Shopping
  */
-export function mapPlaceDetailsToShopping(
-  placeDetails: PlaceDetails
-): Partial<Shopping> {
+export async function mapPlaceDetailsToShopping(
+  placeDetails: PlaceDetails,
+  propertyLat?: number,
+  propertyLng?: number
+): Promise<Partial<Shopping>> {
   // Mapear price_level (0-4) a price_range con rangos específicos de precios
   const priceLevelToRange = (level?: number): string => {
     if (level === undefined || level === null) return ''
@@ -487,6 +541,25 @@ export function mapPlaceDetailsToShopping(
   // Obtener URL (preferir website, sino usar url de Google Maps)
   const shoppingUrl = placeDetails.website || placeDetails.url || null
 
+  // Calcular distancias si hay coordenadas de propiedad y del lugar
+  let walking_time: number | null = null
+  let driving_time: number | null = null
+  
+  if (propertyLat && propertyLng && placeDetails.geometry?.location) {
+    const placeLat = placeDetails.geometry.location.lat
+    const placeLng = placeDetails.geometry.location.lng
+    
+    const distances = await calculateDistanceFromProperty(
+      propertyLat,
+      propertyLng,
+      placeLat,
+      placeLng
+    )
+    
+    walking_time = distances.walking_time
+    driving_time = distances.driving_time
+  }
+
   return {
     name: placeDetails.name,
     description: description,
@@ -498,6 +571,8 @@ export function mapPlaceDetailsToShopping(
     image_url: imageUrl,
     badge: generateBadge(placeDetails.rating),
     url: shoppingUrl,
+    walking_time,
+    driving_time,
   }
 }
 
@@ -505,13 +580,17 @@ export function mapPlaceDetailsToShopping(
  * Función principal que obtiene información completa de un lugar de compras desde una URL de Google
  */
 export async function getShoppingFromGoogleUrl(
-  url: string
+  url: string,
+  propertyLat?: number,
+  propertyLng?: number
 ): Promise<Partial<Shopping> | null> {
   return getPlaceFromGoogleUrl<Shopping>(
     url,
     'shopping',
     ['supermarket', 'shopping_mall', 'store', 'pharmacy', 'market', 'grocery_or_supermarket', 'point_of_interest'],
-    mapPlaceDetailsToShopping
+    mapPlaceDetailsToShopping,
+    propertyLat,
+    propertyLng
   )
 }
 
@@ -552,9 +631,11 @@ export async function searchPlaceByName(
 /**
  * Mapea los datos de Google Places al formato de Beach
  */
-export function mapPlaceDetailsToBeach(
-  placeDetails: PlaceDetails
-): Partial<Beach> {
+export async function mapPlaceDetailsToBeach(
+  placeDetails: PlaceDetails,
+  propertyLat?: number,
+  propertyLng?: number
+): Promise<Partial<Beach>> {
   const priceLevelToRange = (level?: number): string => {
     if (level === undefined || level === null) return ''
     const ranges: Record<number, string> = {
@@ -586,6 +667,30 @@ export function mapPlaceDetailsToBeach(
   const address = placeDetails.formatted_address || null
   const placeUrl = placeDetails.website || placeDetails.url || null
 
+  // Calcular distancias si hay coordenadas de propiedad y del lugar
+  let walking_time: number | null = null
+  let driving_time: number | null = null
+  
+  if (propertyLat && propertyLng && placeDetails.geometry?.location) {
+    const placeLat = placeDetails.geometry.location.lat
+    const placeLng = placeDetails.geometry.location.lng
+    
+    const distances = await calculateDistanceFromProperty(
+      propertyLat,
+      propertyLng,
+      placeLat,
+      placeLng
+    )
+    
+    walking_time = distances.walking_time
+    driving_time = distances.driving_time
+    
+    // Si walking_time > 15, asegurarse de calcular también driving_time
+    if (walking_time && walking_time > 15 && !driving_time) {
+      // Ya lo intentamos arriba, si no está disponible, dejamos null
+    }
+  }
+
   return {
     name: placeDetails.name,
     description: description,
@@ -596,15 +701,19 @@ export function mapPlaceDetailsToBeach(
     image_url: imageUrl,
     badge: generateBadge(placeDetails.rating),
     url: placeUrl,
+    walking_time,
+    driving_time,
   }
 }
 
 /**
  * Mapea los datos de Google Places al formato de Activity
  */
-export function mapPlaceDetailsToActivity(
-  placeDetails: PlaceDetails
-): Partial<Activity> {
+export async function mapPlaceDetailsToActivity(
+  placeDetails: PlaceDetails,
+  propertyLat?: number,
+  propertyLng?: number
+): Promise<Partial<Activity>> {
   const priceLevelToRange = (level?: number): string => {
     if (level === undefined || level === null) return ''
     const ranges: Record<number, string> = {
@@ -652,6 +761,30 @@ export function mapPlaceDetailsToActivity(
   const address = placeDetails.formatted_address || null
   const placeUrl = placeDetails.website || placeDetails.url || null
 
+  // Calcular distancias si hay coordenadas de propiedad y del lugar
+  let walking_time: number | null = null
+  let driving_time: number | null = null
+  
+  if (propertyLat && propertyLng && placeDetails.geometry?.location) {
+    const placeLat = placeDetails.geometry.location.lat
+    const placeLng = placeDetails.geometry.location.lng
+    
+    const distances = await calculateDistanceFromProperty(
+      propertyLat,
+      propertyLng,
+      placeLat,
+      placeLng
+    )
+    
+    walking_time = distances.walking_time
+    driving_time = distances.driving_time
+    
+    // Si walking_time > 15, asegurarse de calcular también driving_time
+    if (walking_time && walking_time > 15 && !driving_time) {
+      // Ya lo intentamos arriba, si no está disponible, dejamos null
+    }
+  }
+
   return {
     name: placeDetails.name,
     description: description,
@@ -663,6 +796,8 @@ export function mapPlaceDetailsToActivity(
     image_url: imageUrl,
     badge: generateBadge(placeDetails.rating),
     url: placeUrl,
+    walking_time,
+    driving_time,
   }
 }
 
@@ -670,69 +805,17 @@ export function mapPlaceDetailsToActivity(
  * Valida si un place_id tiene el formato correcto para Google Places API
  * Los place_ids válidos suelen empezar con letras o tener un formato específico
  */
-function isValidPlaceId(placeId: string): boolean {
-  // Los place_ids de Google Places API suelen tener formatos como:
-  // - ChIJ... (formato común)
-  // - No deben contener solo números hexadecimales separados por :
-  // - Deben tener al menos algunos caracteres alfanuméricos
-  
-  // Si contiene : y solo números hexadecimales, probablemente no es un place_id válido
-  if (placeId.includes(':') && /^0x[0-9a-f]+:0x[0-9a-f]+$/i.test(placeId)) {
-    return false
-  }
-  
-  // Si es muy corto o solo números, probablemente no es válido
-  if (placeId.length < 10) {
-    return false
-  }
-  
-  return true
-}
-
 /**
  * Extrae el place_id de una URL de Google Maps si está disponible
- * NOTA: Las URLs de Google Maps pueden contener place_ids en formato hexadecimal
- * que NO son compatibles con la API de Places. Esta función intenta extraerlos
- * pero se validan antes de usar.
+ * NOTA: Los place_ids en formato hexadecimal (0x...:0x...) que aparecen en las URLs
+ * de Google Maps NO son compatibles con la Places API. Esta función intenta extraerlos
+ * pero solo retorna place_ids válidos para la API (formato ChIJ...).
  */
 function extractPlaceIdFromGoogleUrl(url: string): string | null {
-  try {
-    const urlObj = new URL(url)
-    
-    // Formato 1: Buscar place_id en el pathname (formato !1s0x... o !3m5!1s0x...)
-    const pathname = urlObj.pathname
-    // Buscar patrones como !1s0x... o !3m5!1s0x...:0x...
-    const placeIdMatch = pathname.match(/![\d]+m[\d]+!1s([^!]+)/) || pathname.match(/!1s([^!]+)/)
-    if (placeIdMatch && placeIdMatch[1]) {
-      const extractedId = placeIdMatch[1]
-      // Validar antes de retornar
-      if (isValidPlaceId(extractedId)) {
-        return extractedId
-      } else {
-        console.log('[Google Places] Place ID extraído no es válido para Places API:', extractedId)
-      }
-    }
-    
-    // Formato 2: Buscar en el parámetro 'data' de la URL
-    const dataParam = urlObj.searchParams.get('data')
-    if (dataParam) {
-      // Buscar !1s0x... o !3m5!1s0x... en el parámetro data
-      const dataMatch = dataParam.match(/![\d]+m[\d]+!1s([^!]+)/) || dataParam.match(/!1s([^!]+)/)
-      if (dataMatch && dataMatch[1]) {
-        const extractedId = dataMatch[1]
-        if (isValidPlaceId(extractedId)) {
-          return extractedId
-        } else {
-          console.log('[Google Places] Place ID extraído del parámetro data no es válido:', extractedId)
-        }
-      }
-    }
-    
-    return null
-  } catch (error) {
-    console.error('[Google Places] Error extracting place_id from URL:', error)
-    return null
-  }
+  // Los place_ids hexadecimales en las URLs no funcionan con la Places API
+  // Por lo tanto, esta función no los extrae y retorna null
+  // Las búsquedas se harán por nombre + coordenadas en su lugar
+  return null
 }
 
 /**
@@ -744,15 +827,23 @@ async function searchPlaceByCoordinates(
   name?: string
 ): Promise<PlaceSearchResult | null> {
   try {
-    // Usar Nearby Search API con las coordenadas
-    const location = `${lat},${lng}`
-    let url = `/api/google-places/nearby?location=${location}&radius=100`
-    if (name) {
-      url += `&keyword=${encodeURIComponent(name)}`
+    if (!name) {
+      return null
     }
+
+    // Usar Text Search API con location bias en lugar de Nearby Search
+    // Text Search con location bias es más efectivo cuando tenemos un nombre específico
+    const location = `${lat},${lng}`
+    const encodedName = encodeURIComponent(name)
+    
+    // Usar Text Search con locationbias (prioriza resultados cerca de las coordenadas)
+    // Formato: locationbias=circle:radius@lat,lng
+    let url = `/api/google-places/search?query=${encodedName}&location=${location}`
     
     const response = await fetch(url)
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[Google Places] Error response:', errorText)
       throw new Error(`HTTP error! status: ${response.status}`)
     }
 
@@ -764,7 +855,28 @@ async function searchPlaceByCoordinates(
     }
 
     if (data.results && data.results.length > 0) {
-      console.log('[Google Places] Resultados encontrados por coordenadas:', data.results.length)
+      
+      // Si tenemos múltiples resultados, intentar encontrar el más cercano a las coordenadas dadas
+      if (data.results.length > 1) {
+        let closestResult = data.results[0]
+        let closestDistance = Infinity
+        
+        for (const result of data.results) {
+          if (result.geometry?.location) {
+            const resultLat = result.geometry.location.lat
+            const resultLng = result.geometry.location.lng
+            // Calcular distancia simple (no es la fórmula de Haversine, pero es suficiente para comparar)
+            const distance = Math.abs(resultLat - lat) + Math.abs(resultLng - lng)
+            if (distance < closestDistance) {
+              closestDistance = distance
+              closestResult = result
+            }
+          }
+        }
+        
+        return closestResult
+      }
+      
       return data.results[0]
     }
 
@@ -779,13 +891,17 @@ async function searchPlaceByCoordinates(
  * Función principal que obtiene información completa de una playa desde una URL de Google
  */
 export async function getBeachFromGoogleUrl(
-  url: string
+  url: string,
+  propertyLat?: number,
+  propertyLng?: number
 ): Promise<Partial<Beach> | null> {
   return getPlaceFromGoogleUrl<Beach>(
     url,
     'beach',
     ['natural_feature', 'tourist_attraction', 'point_of_interest'],
-    mapPlaceDetailsToBeach
+    mapPlaceDetailsToBeach,
+    propertyLat,
+    propertyLng
   )
 }
 
@@ -796,13 +912,17 @@ export async function getBeachFromGoogleUrl(
  * Función principal que obtiene información completa de una actividad desde una URL de Google
  */
 export async function getActivityFromGoogleUrl(
-  url: string
+  url: string,
+  propertyLat?: number,
+  propertyLng?: number
 ): Promise<Partial<Activity> | null> {
   return getPlaceFromGoogleUrl<Activity>(
     url,
     'activity',
     ['tourist_attraction', 'amusement_park', 'museum', 'art_gallery', 'park', 'point_of_interest'],
-    mapPlaceDetailsToActivity
+    mapPlaceDetailsToActivity,
+    propertyLat,
+    propertyLng
   )
 }
 

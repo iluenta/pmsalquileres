@@ -23,12 +23,17 @@ export async function GET(request: Request) {
     }
 
     const type = searchParams.get('type')
+    const location = searchParams.get('location') // formato: "lat,lng" para location bias
     const encodedQuery = encodeURIComponent(query)
     
     // Si no se especifica tipo, hacer búsqueda general sin restricción
     let url = `${GOOGLE_PLACES_BASE_URL}/textsearch/json?query=${encodedQuery}&language=es&key=${API_KEY}`
     if (type) {
       url += `&type=${type}`
+    }
+    // Agregar locationbias si se proporciona location (prioriza resultados cerca de las coordenadas)
+    if (location) {
+      url += `&location=${location}&radius=2000` // radius en metros para location bias
     }
 
     const response = await fetch(url)

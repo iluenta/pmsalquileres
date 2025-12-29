@@ -34,6 +34,7 @@ export async function GET(request: Request) {
       'formatted_phone_number',
       'website',
       'url', // URL de Google Maps
+      'geometry', // Coordenadas del lugar para calcular distancias
     ].join(',')
 
     const url = `${GOOGLE_PLACES_BASE_URL}/details/json?place_id=${placeId}&fields=${fields}&language=es&key=${API_KEY}`

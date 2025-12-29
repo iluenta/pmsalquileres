@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Utensils, MapPin, Star, Euro, ExternalLink, ChevronDown, ChevronUp } from "lucide-react"
+import { DistanceDisplay } from "./DistanceDisplay"
 
 interface RestaurantsSectionProps {
     restaurants: Restaurant[]
@@ -45,6 +46,8 @@ function RestaurantCard({ place }: { place: Restaurant }) {
                         </div>
                     )}
                 </div>
+
+                <DistanceDisplay walkingTime={place.walking_time} drivingTime={place.driving_time} />
 
                 <div className="flex items-center justify-end text-sm text-gray-500 mb-3">
                     {place.price_range && (

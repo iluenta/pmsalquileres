@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Umbrella, MapPin, Star, ExternalLink, ChevronDown, ChevronUp } from "lucide-react"
+import { DistanceDisplay } from "./DistanceDisplay"
 
 interface BeachesSectionProps {
     beaches: Beach[]
@@ -43,6 +44,8 @@ function BeachCard({ beach }: { beach: Beach }) {
                         </div>
                     )}
                 </div>
+
+                <DistanceDisplay walkingTime={beach.walking_time} drivingTime={beach.driving_time} />
 
                 <div className="flex items-center justify-end text-sm text-gray-500 mb-3">
                     {beach.price_range && (

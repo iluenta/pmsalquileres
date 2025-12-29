@@ -18,9 +18,11 @@ interface BeachesEditFormProps {
   beaches: Beach[]
   guideId: string
   onBeachesChange: (beaches: Beach[]) => void
+  propertyLatitude?: number | null
+  propertyLongitude?: number | null
 }
 
-export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEditFormProps) {
+export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLatitude, propertyLongitude }: BeachesEditFormProps) {
   const [editingBeach, setEditingBeach] = useState<Beach | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -46,6 +48,8 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
       description: "",
       address: "",
       distance: null,
+      walking_time: null,
+      driving_time: null,
       amenities: [],
       rating: null,
       review_count: null,
@@ -74,10 +78,8 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
     setGoogleBeachData(null)
 
     try {
-      console.log("[BeachesEditForm] Iniciando búsqueda con URL:", googleUrl)
-      const data = await getBeachFromGoogleUrl(googleUrl)
+      const data = await getBeachFromGoogleUrl(googleUrl, propertyLatitude || undefined, propertyLongitude || undefined)
       if (data) {
-        console.log("[BeachesEditForm] Datos obtenidos:", data)
         setGoogleBeachData(data)
       } else {
         setGoogleError("No se pudo obtener información de Google para esa URL. Por favor, verifica que la URL sea válida.")
@@ -100,6 +102,8 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
       address: googleBeachData.address || prev?.address || "",
       rating: googleBeachData.rating || prev?.rating || null,
       review_count: googleBeachData.review_count || prev?.review_count || null,
+      walking_time: googleBeachData.walking_time ?? prev?.walking_time ?? null,
+      driving_time: googleBeachData.driving_time ?? prev?.driving_time ?? null,
       price_range: googleBeachData.price_range || prev?.price_range || "",
       badge: googleBeachData.badge || prev?.badge || "",
       image_url: googleBeachData.image_url || prev?.image_url || "",
@@ -128,6 +132,8 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
           description: editingBeach.description,
           address: editingBeach.address,
           distance: editingBeach.distance,
+          walking_time: editingBeach.walking_time,
+          driving_time: editingBeach.driving_time,
           rating: editingBeach.rating,
           review_count: editingBeach.review_count,
           price_range: editingBeach.price_range,
@@ -147,6 +153,8 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
           description: editingBeach.description,
           address: editingBeach.address,
           distance: editingBeach.distance,
+          walking_time: editingBeach.walking_time,
+          driving_time: editingBeach.driving_time,
           rating: editingBeach.rating,
           review_count: editingBeach.review_count,
           price_range: editingBeach.price_range,
@@ -406,6 +414,37 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange }: BeachesEd
                     onChange={(e) => setEditingBeach({ ...editingBeach, badge: e.target.value })}
                     placeholder="Ej: Recomendada"
                   />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="beach-walking-time">Tiempo Caminando (minutos)</Label>
+                  <Input
+                    id="beach-walking-time"
+                    type="number"
+                    min="0"
+                    value={editingBeach.walking_time || ''}
+                    onChange={(e) => setEditingBeach({ ...editingBeach, walking_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                    placeholder="Ej: 15"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Tiempo en minutos caminando desde la propiedad
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="beach-driving-time">Tiempo en Coche (minutos)</Label>
+                  <Input
+                    id="beach-driving-time"
+                    type="number"
+                    min="0"
+                    value={editingBeach.driving_time || ''}
+                    onChange={(e) => setEditingBeach({ ...editingBeach, driving_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                    placeholder="Ej: 3"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Tiempo en minutos en coche desde la propiedad
+                  </p>
                 </div>
               </div>
 

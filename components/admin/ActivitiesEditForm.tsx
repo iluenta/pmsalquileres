@@ -18,9 +18,11 @@ interface ActivitiesEditFormProps {
   activities: Activity[]
   guideId: string
   onActivitiesChange: (activities: Activity[]) => void
+  propertyLatitude?: number | null
+  propertyLongitude?: number | null
 }
 
-export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: ActivitiesEditFormProps) {
+export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, propertyLatitude, propertyLongitude }: ActivitiesEditFormProps) {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -48,6 +50,8 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
       activity_type: "",
       duration: "",
       distance: null,
+      walking_time: null,
+      driving_time: null,
       price_info: "",
       price_range: "",
       rating: null,
@@ -76,10 +80,8 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
     setGoogleActivityData(null)
 
     try {
-      console.log("[ActivitiesEditForm] Iniciando búsqueda con URL:", googleUrl)
-      const data = await getActivityFromGoogleUrl(googleUrl)
+      const data = await getActivityFromGoogleUrl(googleUrl, propertyLatitude || undefined, propertyLongitude || undefined)
       if (data) {
-        console.log("[ActivitiesEditForm] Datos obtenidos:", data)
         setGoogleActivityData(data)
       } else {
         setGoogleError("No se pudo obtener información de Google para esa URL. Por favor, verifica que la URL sea válida.")
@@ -103,6 +105,8 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
       activity_type: googleActivityData.activity_type || prev?.activity_type || "",
       rating: googleActivityData.rating || prev?.rating || null,
       review_count: googleActivityData.review_count || prev?.review_count || null,
+      walking_time: googleActivityData.walking_time ?? prev?.walking_time ?? null,
+      driving_time: googleActivityData.driving_time ?? prev?.driving_time ?? null,
       price_range: googleActivityData.price_range || prev?.price_range || "",
       badge: googleActivityData.badge || prev?.badge || "",
       image_url: googleActivityData.image_url || prev?.image_url || "",
@@ -133,6 +137,8 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
           activity_type: editingActivity.activity_type,
           duration: editingActivity.duration,
           distance: editingActivity.distance,
+          walking_time: editingActivity.walking_time,
+          driving_time: editingActivity.driving_time,
           price_info: editingActivity.price_info,
           price_range: editingActivity.price_range,
           rating: editingActivity.rating,
@@ -155,6 +161,8 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
           activity_type: editingActivity.activity_type,
           duration: editingActivity.duration,
           distance: editingActivity.distance,
+          walking_time: editingActivity.walking_time,
+          driving_time: editingActivity.driving_time,
           price_info: editingActivity.price_info,
           price_range: editingActivity.price_range,
           rating: editingActivity.rating,
@@ -436,6 +444,37 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange }: 
                     value={editingActivity.order_index || ''}
                     onChange={(e) => setEditingActivity({ ...editingActivity, order_index: e.target.value ? Number.parseInt(e.target.value) : 0 })}
                   />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="activity-walking-time">Tiempo Caminando (minutos)</Label>
+                  <Input
+                    id="activity-walking-time"
+                    type="number"
+                    min="0"
+                    value={editingActivity.walking_time || ''}
+                    onChange={(e) => setEditingActivity({ ...editingActivity, walking_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                    placeholder="Ej: 15"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Tiempo en minutos caminando desde la propiedad
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="activity-driving-time">Tiempo en Coche (minutos)</Label>
+                  <Input
+                    id="activity-driving-time"
+                    type="number"
+                    min="0"
+                    value={editingActivity.driving_time || ''}
+                    onChange={(e) => setEditingActivity({ ...editingActivity, driving_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                    placeholder="Ej: 3"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Tiempo en minutos en coche desde la propiedad
+                  </p>
                 </div>
               </div>
 

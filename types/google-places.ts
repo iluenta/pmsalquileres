@@ -9,6 +9,12 @@ export interface PlaceSearchResult {
   price_level?: number
   photos?: PlacePhoto[]
   types?: string[]
+  geometry?: {
+    location: {
+      lat: number
+      lng: number
+    }
+  }
 }
 
 export interface PlaceDetails {

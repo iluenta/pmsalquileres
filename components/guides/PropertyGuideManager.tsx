@@ -75,7 +75,6 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
       })
     }
     if (data?.sections) {
-      console.log('Updating sections from data.sections:', data.sections)
       setSections(data.sections)
       if (isInitialLoad.current) {
         isInitialLoad.current = false
@@ -415,6 +414,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                 )}
                 <SelectItem value="beaches">Playas</SelectItem>
                 <SelectItem value="restaurants">Restaurantes</SelectItem>
+                <SelectItem value="shopping">Compras</SelectItem>
                 <SelectItem value="activities">Actividades</SelectItem>
               </SelectContent>
             </Select>
@@ -853,6 +853,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                 beaches={beaches} 
                 guideId={data.guide.id} 
                 onBeachesChange={setBeaches}
+                propertyLatitude={data.property?.latitude ?? data.guide.latitude ?? null}
+                propertyLongitude={data.property?.longitude ?? data.guide.longitude ?? null}
               />
             ) : (
               <Card>
@@ -870,6 +872,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                 restaurants={restaurants} 
                 guideId={data.guide.id} 
                 onRestaurantsChange={setRestaurants}
+                propertyLatitude={data.property?.latitude ?? data.guide.latitude ?? null}
+                propertyLongitude={data.property?.longitude ?? data.guide.longitude ?? null}
               />
             ) : (
               <Card>
@@ -887,6 +891,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                 shopping={shopping} 
                 guideId={data.guide.id} 
                 onShoppingChange={setShopping}
+                propertyLatitude={data.property?.latitude ?? data.guide.latitude ?? null}
+                propertyLongitude={data.property?.longitude ?? data.guide.longitude ?? null}
               />
             ) : (
               <Card>
@@ -904,6 +910,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                 activities={activities} 
                 guideId={data.guide.id} 
                 onActivitiesChange={setActivities}
+                propertyLatitude={data.property?.latitude ?? data.guide.latitude ?? null}
+                propertyLongitude={data.property?.longitude ?? data.guide.longitude ?? null}
               />
             ) : (
               <Card>

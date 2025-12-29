@@ -93,6 +93,8 @@ export interface Beach {
   description: string | null
   address: string | null // Dirección de la playa
   distance: number | null
+  walking_time: number | null // Tiempo en minutos caminando desde la propiedad
+  driving_time: number | null // Tiempo en minutos en coche desde la propiedad
   amenities: string[] | null
   image_url: string | null
   rating: number | null
@@ -115,6 +117,8 @@ export interface Restaurant {
   cuisine_type: string | null
   price_range: string | null
   distance: number | null
+  walking_time: number | null // Tiempo en minutos caminando desde la propiedad
+  driving_time: number | null // Tiempo en minutos en coche desde la propiedad
   image_url: string | null
   rating: number | null
   review_count: number | null
@@ -135,6 +139,8 @@ export interface Shopping {
   shopping_type: string | null // 'supermercado', 'centro_comercial', 'tienda', etc.
   price_range: string | null
   distance: number | null
+  walking_time: number | null // Tiempo en minutos caminando desde la propiedad
+  driving_time: number | null // Tiempo en minutos en coche desde la propiedad
   image_url: string | null
   rating: number | null
   review_count: number | null
@@ -155,6 +161,8 @@ export interface Activity {
   activity_type: string | null
   duration: string | null
   distance: number | null
+  walking_time: number | null // Tiempo en minutos caminando desde la propiedad
+  driving_time: number | null // Tiempo en minutos en coche desde la propiedad
   price_info: string | null
   price_range: string | null
   rating: number | null
@@ -334,6 +342,8 @@ export interface CreateBeachData {
   description?: string | null
   address?: string | null
   distance?: number | null
+  walking_time?: number | null
+  driving_time?: number | null
   amenities?: string[] | null
   image_url?: string | null
   rating?: number | null
@@ -349,6 +359,8 @@ export interface UpdateBeachData {
   description?: string | null
   address?: string | null
   distance?: number | null
+  walking_time?: number | null
+  driving_time?: number | null
   amenities?: string[] | null
   image_url?: string | null
   rating?: number | null
@@ -367,6 +379,8 @@ export interface CreateRestaurantData {
   cuisine_type?: string | null
   price_range?: string | null
   distance?: number | null
+  walking_time?: number | null
+  driving_time?: number | null
   image_url?: string | null
   rating?: number | null
   review_count?: number | null
@@ -382,6 +396,8 @@ export interface UpdateRestaurantData {
   cuisine_type?: string | null
   price_range?: string | null
   distance?: number | null
+  walking_time?: number | null
+  driving_time?: number | null
   image_url?: string | null
   rating?: number | null
   review_count?: number | null
@@ -398,6 +414,8 @@ export interface CreateShoppingData {
   shopping_type?: string | null
   price_range?: string | null
   distance?: number | null
+  walking_time?: number | null
+  driving_time?: number | null
   image_url?: string | null
   rating?: number | null
   review_count?: number | null
@@ -413,6 +431,8 @@ export interface UpdateShoppingData {
   shopping_type?: string | null
   price_range?: string | null
   distance?: number | null
+  walking_time?: number | null
+  driving_time?: number | null
   image_url?: string | null
   rating?: number | null
   review_count?: number | null
@@ -429,6 +449,8 @@ export interface CreateActivityData {
   activity_type?: string | null
   duration?: string | null
   distance?: number | null
+  walking_time?: number | null
+  driving_time?: number | null
   price_info?: string | null
   price_range?: string | null
   rating?: number | null
@@ -446,6 +468,8 @@ export interface UpdateActivityData {
   activity_type?: string | null
   duration?: string | null
   distance?: number | null
+  walking_time?: number | null
+  driving_time?: number | null
   price_info?: string | null
   price_range?: string | null
   rating?: number | null

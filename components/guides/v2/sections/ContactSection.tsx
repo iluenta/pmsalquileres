@@ -25,8 +25,11 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                 {(() => {
                     const Icon = getIconByName(introSection?.icon, Phone)
                     return (
-                        <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
-                            <Icon className="h-8 w-8 text-blue-600" />
+                        <div
+                            className="inline-flex items-center justify-center p-3 rounded-full mb-4"
+                            style={{ backgroundColor: 'var(--guide-secondary)' }}
+                        >
+                            <Icon className="h-8 w-8" style={{ color: 'var(--guide-primary)' }} />
                         </div>
                     )
                 })()}
@@ -43,7 +46,7 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <MessageSquare className="h-5 w-5 text-blue-600" />
+                                <MessageSquare className="h-5 w-5" style={{ color: 'var(--guide-primary)' }} />
                                 Tus Anfitriones
                             </CardTitle>
                         </CardHeader>
@@ -55,10 +58,14 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                             )}
 
                             {contactInfo.phone && (
-                                <a href={`tel:${contactInfo.phone}`} className="flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors">
+                                <a
+                                    href={`tel:${contactInfo.phone}`}
+                                    className="flex items-center gap-3 text-gray-700 transition-colors"
+                                    style={{ '--hover-color': 'var(--guide-primary)' } as any}
+                                >
                                     <Phone className="h-5 w-5 text-gray-500" />
                                     <span className="font-medium">Llamar</span>
-                                    <span>{contactInfo.phone}</span>
+                                    <span className="hover:text-[var(--hover-color)]">{contactInfo.phone}</span>
                                 </a>
                             )}
 
@@ -90,7 +97,11 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                                         {contactInfo.support_person_name} está disponible para cualquier duda o incidencia durante tu estancia.
                                     </p>
                                     <div className="space-y-2">
-                                        <a href={`tel:${contactInfo.support_person_phone}`} className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
+                                        <a
+                                            href={`tel:${contactInfo.support_person_phone}`}
+                                            className="flex items-center gap-2 transition-colors"
+                                            style={{ color: 'var(--guide-primary)' }}
+                                        >
                                             <Phone className="h-4 w-4" />
                                             <span className="text-sm">{contactInfo.support_person_phone}</span>
                                         </a>
@@ -99,7 +110,8 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                                                 href={`https://wa.me/${contactInfo.support_person_whatsapp.replace(/[^0-9]/g, '')}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+                                                className="flex items-center gap-2 transition-colors"
+                                                style={{ color: 'var(--guide-primary)' }}
                                             >
                                                 <MessageCircle className="h-4 w-4" />
                                                 <span className="text-sm">{contactInfo.support_person_whatsapp}</span>
@@ -121,7 +133,7 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Wrench className="h-5 w-5 text-blue-600" />
+                                <Wrench className="h-5 w-5" style={{ color: 'var(--guide-primary)' }} />
                                 Servicios del Apartamento
                             </CardTitle>
                         </CardHeader>
@@ -211,7 +223,7 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                                     // Colores para cada categoría
                                     const getIconColor = () => {
                                         if (isFarmacia) return "text-green-600"
-                                        if (isMedico) return "text-blue-600"
+                                        if (isMedico) return "text-[var(--guide-primary)]"
                                         if (isVeterinario) return "text-orange-600"
                                         if (isOtros) return "text-purple-600"
                                         return "text-gray-600"

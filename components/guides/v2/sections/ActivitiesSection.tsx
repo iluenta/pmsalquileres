@@ -26,13 +26,16 @@ function ActivityCard({ activity }: { activity: Activity }) {
                 {activity.image_url ? (
                     <img src={activity.image_url} alt={activity.name} className="w-full h-full object-cover" />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-green-50">
-                        <Mountain className="h-16 w-16 text-green-200" />
+                    <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ backgroundColor: 'var(--guide-secondary)' }}
+                    >
+                        <Mountain className="h-16 w-16" style={{ color: 'var(--guide-primary)', opacity: 0.3 }} />
                     </div>
                 )}
                 {(activity.badge || activity.activity_type) && (
                     <div className="absolute top-3 left-3">
-                        <Badge className="bg-green-600 hover:bg-green-700">
+                        <Badge style={{ backgroundColor: 'var(--guide-primary)' }}>
                             {activity.badge || activity.activity_type}
                         </Badge>
                     </div>
@@ -172,8 +175,11 @@ export function ActivitiesSection({ activities, introSection }: ActivitiesSectio
                 {(() => {
                     const Icon = getIconByName(introSection?.icon, Mountain)
                     return (
-                        <div className="inline-flex items-center justify-center p-3 bg-green-100 rounded-full mb-4">
-                            <Icon className="h-8 w-8 text-green-600" />
+                        <div
+                            className="inline-flex items-center justify-center p-3 rounded-full mb-4"
+                            style={{ backgroundColor: 'var(--guide-secondary)' }}
+                        >
+                            <Icon className="h-8 w-8" style={{ color: 'var(--guide-primary)' }} />
                         </div>
                     )
                 })()}

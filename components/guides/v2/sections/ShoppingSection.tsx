@@ -26,13 +26,16 @@ function ShoppingCard({ place }: { place: Shopping }) {
                 {place.image_url ? (
                     <img src={place.image_url} alt={place.name} className="w-full h-full object-cover" />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-blue-50">
-                        <ShoppingBag className="h-16 w-16 text-blue-200" />
+                    <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ backgroundColor: 'var(--guide-secondary)' }}
+                    >
+                        <ShoppingBag className="h-16 w-16" style={{ color: 'var(--guide-primary)', opacity: 0.3 }} />
                     </div>
                 )}
                 {place.badge && (
                     <div className="absolute top-3 left-3">
-                        <Badge className="bg-blue-600 hover:bg-blue-700">
+                        <Badge style={{ backgroundColor: 'var(--guide-primary)' }}>
                             {place.badge}
                         </Badge>
                     </div>
@@ -72,10 +75,11 @@ function ShoppingCard({ place }: { place: Shopping }) {
                         href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place.address)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-500 text-xs mt-2 mb-2 flex items-start hover:text-blue-600 transition-colors"
+                        className="text-gray-500 text-xs mt-2 mb-2 flex items-start transition-colors"
+                        style={{ '--hover-color': 'var(--guide-primary)' } as any}
                     >
                         <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
-                        <span className="line-clamp-2">{place.address}</span>
+                        <span className="line-clamp-2 hover:text-[var(--hover-color)]">{place.address}</span>
                     </a>
                 )}
 
@@ -173,8 +177,11 @@ export function ShoppingSection({ shopping, introSection }: ShoppingSectionProps
                 {(() => {
                     const Icon = getIconByName(introSection?.icon, ShoppingBag)
                     return (
-                        <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
-                            <Icon className="h-8 w-8 text-blue-600" />
+                        <div
+                            className="inline-flex items-center justify-center p-3 rounded-full mb-4"
+                            style={{ backgroundColor: 'var(--guide-secondary)' }}
+                        >
+                            <Icon className="h-8 w-8" style={{ color: 'var(--guide-primary)' }} />
                         </div>
                     )
                 })()}

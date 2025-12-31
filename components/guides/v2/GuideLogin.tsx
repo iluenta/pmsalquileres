@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Loader2, Lock, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getCookie, setCookie, deleteGuideCookies } from "@/lib/utils/cookies"
+import { getGuideThemePublic } from "@/lib/api/guides-public"
+import { themeConfigs, hexToRgb } from "@/lib/utils/themes"
 
 interface GuideLoginProps {
     propertyId: string
@@ -19,36 +21,55 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
     const [firstName, setFirstName] = useState("")
     const [lastName, setLastName] = useState("")
     const [loading, setLoading] = useState(false)
+    const [theme, setTheme] = useState<string>("default")
+    const [isThemeLoading, setIsThemeLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    // Leer cookies al montar el componente para pre-llenar los campos
+    // Leer cookies y cargar tema
     useEffect(() => {
-        console.log("=".repeat(80))
-        console.log("🔵🔵🔵 [GuideLogin] COMPONENT MOUNTED 🔵🔵🔵")
-        console.log("🔵 [GuideLogin] propertyId:", propertyId)
-        console.log("🔵 [GuideLogin] propertyName:", propertyName)
-        console.log("🔵 [GuideLogin] This component should be visible on screen")
-        console.log("=".repeat(80))
-        
-        if (!propertyId) {
-            console.error("🔴 [GuideLogin] No propertyId provided")
-            return
+        if (!propertyId) return
+
+        // Cargar tema de la guía
+        const loadTheme = async () => {
+            try {
+                const data = await getGuideThemePublic(propertyId)
+                if (data?.theme) {
+                    setTheme(data.theme)
+                }
+            } catch (err) {
+                console.error("Error loading theme for login:", err)
+            } finally {
+                setIsThemeLoading(false)
+            }
         }
+
+        loadTheme()
 
         // Leer cookies específicas para esta propiedad
         const savedFirstName = getCookie(`guide_guest_${propertyId}_firstName`)
         const savedLastName = getCookie(`guide_guest_${propertyId}_lastName`)
 
-        if (savedFirstName) {
-            console.log("🔵 [GuideLogin] Cookie encontrada para firstName:", savedFirstName)
-            setFirstName(savedFirstName)
-        }
+        if (savedFirstName) setFirstName(savedFirstName)
+        if (savedLastName) setLastName(savedLastName)
+    }, [propertyId])
 
-        if (savedLastName) {
-            console.log("🔵 [GuideLogin] Cookie encontrada para lastName:", savedLastName)
-            setLastName(savedLastName)
-        }
-    }, [propertyId, propertyName])
+    // Configuración de colores
+    const config = themeConfigs[theme] || themeConfigs.default
+
+    // Aplicar variables de tema al root para estilos globales (como el scrollbar)
+    useEffect(() => {
+        const root = document.documentElement;
+        root.style.setProperty('--guide-primary', config.primary);
+        root.style.setProperty('--guide-primary-rgb', hexToRgb(config.primary));
+        root.style.setProperty('--guide-secondary', config.secondary);
+
+        // Opcional: limpiar al desmontar
+        return () => {
+            root.style.removeProperty('--guide-primary');
+            root.style.removeProperty('--guide-primary-rgb');
+            root.style.removeProperty('--guide-secondary');
+        };
+    }, [theme])
 
     // Si no hay propertyId, mostrar error
     if (!propertyId) {
@@ -61,13 +82,22 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
         )
     }
 
+    // Mientras carga el tema, mostrar loader neutro para evitar el flash azul
+    if (isThemeLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <Loader2 className="h-10 w-10 animate-spin text-gray-300" />
+            </div>
+        )
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
+        // ... (handleSubmit content remains the same)
         e.preventDefault()
         setError(null)
         setLoading(true)
 
         try {
-            // Usar API route en lugar de Server Action para mejor compatibilidad
             const response = await fetch('/api/public/guides/validate-access', {
                 method: 'POST',
                 headers: {
@@ -83,21 +113,15 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
             const result = await response.json()
 
             if (result.success) {
-                // Guardar cookies después de login exitoso (15 días de caducidad)
                 setCookie(`guide_guest_${propertyId}_firstName`, firstName, 15)
                 setCookie(`guide_guest_${propertyId}_lastName`, lastName, 15)
-                console.log("🔵 [GuideLogin] Cookies guardadas para:", { firstName, lastName })
-                
                 onLoginSuccess(result.booking)
             } else {
-                // Si la validación falla, eliminar las cookies existentes
                 deleteGuideCookies(propertyId)
-                console.log("🔴 [GuideLogin] Validación fallida, cookies eliminadas")
                 setError(result.message || "No se pudo validar el acceso")
             }
         } catch (err) {
             console.error('[GuideLogin] Error:', err)
-            // En caso de error, también eliminar cookies por seguridad
             deleteGuideCookies(propertyId)
             setError("Error al conectar con el servidor")
         } finally {
@@ -106,15 +130,25 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <Card className="w-full max-w-md shadow-xl border-t-4 border-t-blue-600">
+        <div
+            className="min-h-screen flex items-center justify-center bg-gray-50 p-4 transition-colors duration-500"
+            style={{
+                ['--guide-primary' as any]: config.primary,
+                ['--guide-secondary' as any]: config.secondary,
+                ['--guide-primary-rgb' as any]: hexToRgb(config.primary)
+            }}
+        >
+            <Card className="w-full max-w-md shadow-xl border-t-4" style={{ borderTopColor: 'var(--guide-primary)' }}>
                 <CardHeader className="text-center pb-2">
-                    <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                        <Lock className="h-6 w-6 text-blue-600" />
+                    <div
+                        className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4"
+                        style={{ backgroundColor: 'var(--guide-secondary)' }}
+                    >
+                        <Lock className="h-6 w-6" style={{ color: 'var(--guide-primary)' }} />
                     </div>
                     <CardTitle className="text-2xl font-bold text-gray-900">Guía del Huésped</CardTitle>
                     {propertyName && (
-                        <CardDescription className="text-blue-600 font-medium">
+                        <CardDescription className="font-medium" style={{ color: 'var(--guide-primary)' }}>
                             {propertyName}
                         </CardDescription>
                     )}
@@ -133,7 +167,7 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
                                 required
-                                className="h-12"
+                                className="h-12 focus-visible:ring-[var(--guide-primary)]"
                             />
                         </div>
 
@@ -145,7 +179,7 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
                                 required
-                                className="h-12"
+                                className="h-12 focus-visible:ring-[var(--guide-primary)]"
                             />
                         </div>
 
@@ -158,8 +192,12 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
 
                         <Button
                             type="submit"
-                            className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-md transition-all active:scale-[0.98]"
+                            className="w-full h-12 text-white font-bold text-lg shadow-md transition-all active:scale-[0.98]"
                             disabled={loading}
+                            style={{
+                                backgroundColor: 'var(--guide-primary)',
+                                '--hover-bg': `rgba(var(--guide-primary-rgb), 0.9)`
+                            } as any}
                         >
                             {loading ? (
                                 <>

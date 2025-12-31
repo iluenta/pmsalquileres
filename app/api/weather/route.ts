@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     try {
         // Determinamos el endpoint correcto según el tipo
         const endpoint = type === 'forecast' ? 'forecast/days:lookup' : 'currentConditions:lookup'
-        const googleWeatherUrl = `https://weather.googleapis.com/v1/${endpoint}?location.latitude=${lat}&location.longitude=${lon}&key=${apiKey}`
+        const googleWeatherUrl = `https://weather.googleapis.com/v1/${endpoint}?location.latitude=${lat}&location.longitude=${lon}&key=${apiKey}&languageCode=${lang}`
 
         const response = await fetch(googleWeatherUrl)
         if (!response.ok) {

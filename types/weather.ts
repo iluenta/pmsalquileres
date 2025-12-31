@@ -33,6 +33,7 @@ export interface WeatherForecast {
   icon: string;
   humidity: number;
   windSpeed: number;
+  timestamp: number;
 }
 
 export interface WeatherData {

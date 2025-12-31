@@ -15,7 +15,18 @@ import { RestaurantsSection } from "./sections/RestaurantsSection"
 import { ActivitiesSection } from "./sections/ActivitiesSection"
 import { ContactSection } from "./sections/ContactSection"
 import { WeatherSection } from "./sections/WeatherSection"
-import { Loader2, AlertTriangle, Home, ClipboardList, Book, Lightbulb, Umbrella, Utensils, Mountain, Phone, Sparkles, CloudSun, ShoppingBag } from "lucide-react"
+import {
+    Loader2, AlertTriangle, Home, ClipboardList, Book, Lightbulb,
+    Umbrella, Utensils, Mountain, Phone, Sparkles, CloudSun, ShoppingBag
+} from "lucide-react"
+import { getIconByName } from "@/lib/utils/icon-registry"
+import { themeConfigs, hexToRgb } from "@/lib/utils/themes"
+import { Button } from "@/components/ui/button"
+import { getGuideThemePublic } from "@/lib/api/guides-public"
+import { LanguageSelector, Language } from "./LanguageSelector"
+import { CompleteGuideDataResponse } from "@/types/guides"
+
+import { uiTranslations } from "@/lib/utils/ui-translations"
 
 interface PropertyGuideV2Props {
     propertyId: string
@@ -32,7 +43,104 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
 
     const [activeTab, setActiveTab] = useState("bienvenida")
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-    const { data, loading, error } = useGuideData(propertyId)
+    const [theme, setTheme] = useState<string>("default")
+    const [isThemeLoading, setIsThemeLoading] = useState(true)
+    const { data: originalData, loading, error } = useGuideData(propertyId)
+
+    // Estado para multi-idioma
+    const [currentLanguage, setCurrentLanguage] = useState<Language>("es")
+    const [translatedData, setTranslatedData] = useState<CompleteGuideDataResponse | null>(null)
+    const [isTranslating, setIsTranslating] = useState(false)
+    const [translationCache, setTranslationCache] = useState<Record<string, CompleteGuideDataResponse>>({})
+
+    // Detectar idioma inicial desde el booking o navegador
+    useEffect(() => {
+        if (booking?.preferred_language) {
+            setCurrentLanguage(booking.preferred_language as Language)
+        } else if (typeof window !== "undefined") {
+            const browserLang = navigator.language.split("-")[0] as Language
+            if (["en", "fr", "de", "it"].includes(browserLang)) {
+                setCurrentLanguage(browserLang)
+            }
+        }
+    }, [booking])
+
+    // Efecto para manejar la traducción
+    useEffect(() => {
+        if (currentLanguage === "es") {
+            setTranslatedData(null)
+            return
+        }
+
+        if (translationCache[currentLanguage]) {
+            setTranslatedData(translationCache[currentLanguage])
+            return
+        }
+
+        if (originalData) {
+            const translateData = async () => {
+                setIsTranslating(true)
+                try {
+                    const response = await fetch("/api/public/guides/translate", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            data: originalData,
+                            targetLanguage: currentLanguage
+                        })
+                    })
+                    const result = await response.json()
+                    if (result.data) {
+                        setTranslationCache(prev => ({ ...prev, [currentLanguage]: result.data }))
+                        setTranslatedData(result.data)
+                    }
+                } catch (err) {
+                    console.error("Error translating guide:", err)
+                } finally {
+                    setIsTranslating(false)
+                }
+            }
+            translateData()
+        }
+    }, [currentLanguage, originalData])
+
+    const data = translatedData || originalData
+
+    // Cargar tema de forma independiente para el spinner
+    useEffect(() => {
+        if (!propertyId) return
+        const loadTheme = async () => {
+            try {
+                const themeData = await getGuideThemePublic(propertyId)
+                if (themeData?.theme) {
+                    setTheme(themeData.theme)
+                }
+            } catch (err) {
+                console.error("Error loading theme for spinner:", err)
+            } finally {
+                setIsThemeLoading(false)
+            }
+        }
+        loadTheme()
+    }, [propertyId])
+
+    const initialThemeConfig = themeConfigs[theme] || themeConfigs.default
+
+    // Aplicar variables de tema al root para estilos globales (como el scrollbar)
+    useEffect(() => {
+        const config = themeConfigs[theme] || themeConfigs.default;
+        const root = document.documentElement;
+        root.style.setProperty('--guide-primary', config.primary);
+        root.style.setProperty('--guide-primary-rgb', hexToRgb(config.primary));
+        root.style.setProperty('--guide-secondary', config.secondary);
+
+        // Opcional: limpiar al desmontar
+        return () => {
+            root.style.removeProperty('--guide-primary');
+            root.style.removeProperty('--guide-primary-rgb');
+            root.style.removeProperty('--guide-secondary');
+        };
+    }, [theme])
     const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({})
     const isScrollingProgrammatically = useRef(false)
     const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -121,17 +229,17 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
 
         // Calcular tabs dentro del effect
         const tabs = [
-            { id: "bienvenida", label: "Bienvenida", icon: Sparkles, show: !!data.guide.welcome_message },
-            { id: "apartamento", label: "Apartamento", icon: Home, show: data.apartment_sections?.length > 0 },
-            { id: "tiempo", label: "Tiempo actual", icon: CloudSun, show: !!(data.guide.latitude && data.guide.longitude) },
-            { id: "normas", label: "Normas", icon: ClipboardList, show: data.house_rules?.length > 0 },
-            { id: "guia-casa", label: "Guía Casa", icon: Book, show: data.house_guide_items?.length > 0 },
-            { id: "consejos", label: "Consejos", icon: Lightbulb, show: data.tips?.length > 0 },
-            { id: "compras", label: "Compras", icon: ShoppingBag, show: data.shopping?.length > 0 },
-            { id: "playas", label: "Playas", icon: Umbrella, show: data.beaches?.length > 0 },
-            { id: "restaurantes", label: "Restaurantes", icon: Utensils, show: data.restaurants?.length > 0 },
-            { id: "actividades", label: "Actividades", icon: Mountain, show: data.activities?.length > 0 },
-            { id: "contacto", label: "Contacto", icon: Phone, show: !!data.contact_info },
+            { id: "bienvenida", label: "Bienvenida", icon: getIconByName("Sparkles"), show: !!data.guide.welcome_message },
+            { id: "apartamento", label: "Apartamento", icon: getIconByName("Home"), show: data.apartment_sections?.length > 0 },
+            { id: "tiempo", label: "Tiempo actual", icon: getIconByName("CloudSun"), show: !!(data.guide.latitude && data.guide.longitude) },
+            { id: "normas", label: "Normas", icon: getIconByName("ClipboardList"), show: data.house_rules?.length > 0 },
+            { id: "guia-casa", label: "Guía Casa", icon: getIconByName("Book"), show: data.house_guide_items?.length > 0 },
+            { id: "consejos", label: "Consejos", icon: getIconByName("Lightbulb"), show: data.tips?.length > 0 },
+            { id: "compras", label: "Compras", icon: getIconByName("ShoppingBag"), show: data.shopping?.length > 0 },
+            { id: "playas", label: "Playas", icon: getIconByName("Umbrella"), show: data.beaches?.length > 0 },
+            { id: "restaurantes", label: "Restaurantes", icon: getIconByName("Utensils"), show: data.restaurants?.length > 0 },
+            { id: "actividades", label: "Actividades", icon: getIconByName("Mountain"), show: data.activities?.length > 0 },
+            { id: "contacto", label: "Contacto", icon: getIconByName("Phone"), show: !!data.contact_info },
         ].filter(tab => tab.show)
 
         if (tabs.length === 0) return
@@ -263,11 +371,14 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
         }
     }, [activeTab, scrollToSection, data])
 
-    if (loading) {
+    if (loading || isThemeLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+                    <Loader2
+                        className="h-12 w-12 animate-spin mx-auto mb-4"
+                        style={{ color: isThemeLoading ? '#d1d5db' : initialThemeConfig.primary }}
+                    />
                     <p className="text-gray-600">Cargando guía...</p>
                 </div>
             </div>
@@ -286,19 +397,26 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
         )
     }
 
+    const currentTheme = (data?.guide as any)?.theme || theme;
+
+    // La configuración de temas está ahora en @/lib/utils/themes
+    const themeConfig = themeConfigs[currentTheme] || themeConfigs.default;
+
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
+
     // Definición de tabs basada en disponibilidad de datos
     const tabs = [
-        { id: "bienvenida", label: "Bienvenida", icon: Sparkles, show: !!data.guide.welcome_message },
-        { id: "apartamento", label: "Apartamento", icon: Home, show: data.apartment_sections?.length > 0 },
-        { id: "tiempo", label: "Tiempo actual", icon: CloudSun, show: !!(data.guide.latitude && data.guide.longitude) },
-        { id: "normas", label: "Normas", icon: ClipboardList, show: data.house_rules?.length > 0 },
-        { id: "guia-casa", label: "Guía Casa", icon: Book, show: data.house_guide_items?.length > 0 },
-        { id: "consejos", label: "Consejos", icon: Lightbulb, show: data.tips?.length > 0 },
-        { id: "compras", label: "Compras", icon: ShoppingBag, show: data.shopping?.length > 0 && data.sections.some(s => s.section_type === 'shopping') },
-        { id: "playas", label: "Playas", icon: Umbrella, show: data.beaches?.length > 0 && data.sections.some(s => s.section_type === 'beaches') },
-        { id: "restaurantes", label: "Restaurantes", icon: Utensils, show: data.restaurants?.length > 0 && data.sections.some(s => s.section_type === 'restaurants') },
-        { id: "actividades", label: "Actividades", icon: Mountain, show: data.activities?.length > 0 && data.sections.some(s => s.section_type === 'activities') },
-        { id: "contacto", label: "Contacto", icon: Phone, show: !!data.contact_info },
+        { id: "bienvenida", label: t.welcome, icon: getIconByName("Sparkles"), show: !!data.guide.welcome_message },
+        { id: "apartamento", label: t.apartment, icon: getIconByName("Home"), show: data.apartment_sections?.length > 0 },
+        { id: "tiempo", label: t.today, icon: getIconByName("CloudSun"), show: !!(data.guide.latitude && data.guide.longitude) },
+        { id: "normas", label: t.house_rules, icon: getIconByName("ClipboardList"), show: data.house_rules?.length > 0 },
+        { id: "guia-casa", label: t.house_guide, icon: getIconByName("Book"), show: data.house_guide_items?.length > 0 },
+        { id: "consejos", label: t.tips, icon: getIconByName("Lightbulb"), show: data.tips?.length > 0 },
+        { id: "compras", label: t.shopping, icon: getIconByName("ShoppingBag"), show: data.shopping?.length > 0 && data.sections.some(s => s.section_type === 'shopping') },
+        { id: "playas", label: t.beaches, icon: getIconByName("Umbrella"), show: data.beaches?.length > 0 && data.sections.some(s => s.section_type === 'beaches') },
+        { id: "restaurantes", label: t.restaurants, icon: getIconByName("Utensils"), show: data.restaurants?.length > 0 && data.sections.some(s => s.section_type === 'restaurants') },
+        { id: "actividades", label: t.activities, icon: getIconByName("Mountain"), show: data.activities?.length > 0 && data.sections.some(s => s.section_type === 'activities') },
+        { id: "contacto", label: t.contact, icon: getIconByName("Phone"), show: !!data.contact_info },
     ].filter(tab => tab.show)
 
     // Función para renderizar todas las secciones con IDs únicos
@@ -319,6 +437,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
                         guide={data.guide}
                         images={collageImages}
                         property={data.property}
+                        currentLanguage={currentLanguage}
                     />
                 </section>
             )
@@ -333,6 +452,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
                         apartmentSections={data.apartment_sections}
                         property={data.property}
                         introSection={apartmentIntro}
+                        currentLanguage={currentLanguage}
                     />
                 </section>
             )
@@ -347,6 +467,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
                         longitude={data.guide.longitude}
                         propertyName={data.property.name}
                         locality={data.property.locality}
+                        currentLanguage={currentLanguage}
                     />
                 </section>
             )
@@ -357,7 +478,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             const rulesIntro = data.sections.find(s => s.section_type === "rules")
             sections.push(
                 <section key="normas" data-section-id="normas" ref={(el) => { sectionRefs.current["normas"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <HouseRulesSection rules={data.house_rules} introSection={rulesIntro} />
+                    <HouseRulesSection rules={data.house_rules} introSection={rulesIntro} currentLanguage={currentLanguage} />
                 </section>
             )
         }
@@ -436,7 +557,14 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div
+            className="min-h-screen bg-gray-50"
+            style={{
+                '--guide-primary': themeConfig.primary,
+                '--guide-primary-rgb': hexToRgb(themeConfig.primary),
+                '--guide-secondary': themeConfig.secondary
+            } as React.CSSProperties}
+        >
             {/* Header (no sticky, se desplaza con el scroll) */}
             <GuideHeader
                 guide={data.guide}
@@ -444,7 +572,13 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
                 guestName={booking?.persons ? `${booking.persons.first_name} ${booking.persons.last_name}`.trim() : null}
                 checkInDate={booking?.check_in_date || null}
                 checkOutDate={booking?.check_out_date || null}
-            />
+            >
+                <LanguageSelector
+                    currentLanguage={currentLanguage}
+                    onLanguageChange={setCurrentLanguage}
+                    isTranslating={isTranslating}
+                />
+            </GuideHeader>
 
             {/* Layout con sidebar y contenido */}
             <div className="flex relative">

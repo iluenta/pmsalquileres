@@ -16,8 +16,11 @@ export function HouseGuideSection({ items, introSection }: HouseGuideSectionProp
                 {(() => {
                     const Icon = getIconByName(introSection?.icon, Book)
                     return (
-                        <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
-                            <Icon className="h-8 w-8 text-blue-600" />
+                        <div
+                            className="inline-flex items-center justify-center p-3 rounded-full mb-4"
+                            style={{ backgroundColor: 'var(--guide-secondary)' }}
+                        >
+                            <Icon className="h-8 w-8" style={{ color: 'var(--guide-primary)' }} />
                         </div>
                     )
                 })()}
@@ -35,8 +38,11 @@ export function HouseGuideSection({ items, introSection }: HouseGuideSectionProp
                         <Card key={item.id} className="border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 bg-white group">
                             <CardContent className="p-8">
                                 <div className="flex items-start gap-6">
-                                    <div className="w-16 h-16 bg-blue-50 group-hover:bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 text-blue-600 transition-colors">
-                                        <IconComponent className="h-8 w-8" />
+                                    <div
+                                        className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 transition-colors"
+                                        style={{ backgroundColor: 'var(--guide-secondary)' }}
+                                    >
+                                        <IconComponent className="h-8 w-8" style={{ color: 'var(--guide-primary)' }} />
                                     </div>
                                     <div className="flex-1 space-y-3">
                                         <h3 className="text-xl font-bold text-gray-900 leading-tight">{item.title}</h3>
@@ -45,11 +51,16 @@ export function HouseGuideSection({ items, introSection }: HouseGuideSectionProp
                                             className="text-gray-600 leading-relaxed"
                                         />
                                         {item.details && (
-                                            <div className="pt-4 border-t border-gray-50 mt-4">
-                                                <FormattedText
-                                                    text={item.details}
-                                                    className="text-sm text-blue-700 bg-blue-50/50 px-4 py-3 rounded-lg border border-blue-100/50"
-                                                />
+                                            <div
+                                                className="text-sm px-4 py-3 rounded-lg border mt-4"
+                                                style={{
+                                                    color: 'var(--guide-primary)',
+                                                    backgroundColor: 'var(--guide-secondary)',
+                                                    borderColor: 'var(--guide-primary)',
+                                                    opacity: 0.8
+                                                }}
+                                            >
+                                                <FormattedText text={item.details} />
                                             </div>
                                         )}
                                     </div>

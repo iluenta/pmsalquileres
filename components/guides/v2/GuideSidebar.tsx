@@ -42,13 +42,17 @@ export function GuideSidebar({ tabs, activeTab, onTabChange, isMobileOpen, onMob
                                     key={tab.id}
                                     onClick={() => handleTabClick(tab.id)}
                                     className={cn(
-                                        "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-                                        isActive
-                                            ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
-                                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                                        "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50",
+                                        !isActive && "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
+                                        isActive && "border-l-4"
                                     )}
+                                    style={isActive ? {
+                                        backgroundColor: 'var(--guide-secondary)',
+                                        color: 'var(--guide-primary)',
+                                        borderLeftColor: 'var(--guide-primary)',
+                                    } : {}}
                                 >
-                                    <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-blue-600" : "text-gray-400")} />
+                                    <Icon className="h-5 w-5 flex-shrink-0" style={isActive ? { color: 'var(--guide-primary)' } : { color: '#9ca3af' }} />
                                     <span className="text-left">{tab.label}</span>
                                 </button>
                             )

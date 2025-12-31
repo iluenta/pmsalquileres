@@ -26,13 +26,16 @@ function RestaurantCard({ place }: { place: Restaurant }) {
                 {place.image_url ? (
                     <img src={place.image_url} alt={place.name} className="w-full h-full object-cover" />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-red-50">
-                        <Utensils className="h-16 w-16 text-red-200" />
+                    <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ backgroundColor: 'var(--guide-secondary)' }}
+                    >
+                        <Utensils className="h-16 w-16" style={{ color: 'var(--guide-primary)', opacity: 0.3 }} />
                     </div>
                 )}
                 {place.badge && (
                     <div className="absolute top-3 left-3">
-                        <Badge className="bg-red-600 hover:bg-red-700">
+                        <Badge style={{ backgroundColor: 'var(--guide-primary)' }}>
                             {place.badge}
                         </Badge>
                     </div>
@@ -165,8 +168,11 @@ export function RestaurantsSection({ restaurants, introSection }: RestaurantsSec
                 {(() => {
                     const Icon = getIconByName(introSection?.icon, Utensils)
                     return (
-                        <div className="inline-flex items-center justify-center p-3 bg-red-100 rounded-full mb-4">
-                            <Icon className="h-8 w-8 text-red-600" />
+                        <div
+                            className="inline-flex items-center justify-center p-3 rounded-full mb-4"
+                            style={{ backgroundColor: 'var(--guide-secondary)' }}
+                        >
+                            <Icon className="h-8 w-8" style={{ color: 'var(--guide-primary)' }} />
                         </div>
                     )
                 })()}

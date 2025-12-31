@@ -137,6 +137,7 @@ export async function createPropertyGuideClient(data: CreateGuideData): Promise<
       latitude: data.latitude,
       longitude: data.longitude,
       locality: inheritedLocality,
+      theme: data.theme,
     })
     .select()
     .single()
@@ -379,6 +380,10 @@ export async function updatePropertyGuideClient(
 
   if (error) {
     console.error("[v0] Error updating property guide:", error)
+    console.error("- Error message:", error.message)
+    console.error("- Error code:", error.code)
+    console.error("- Error details:", error.details)
+    console.error("- Payload:", data)
     return null
   }
 

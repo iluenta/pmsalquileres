@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { MapPin } from "lucide-react"
 import { getIconByName } from "@/lib/utils/icon-registry"
 
-// Importar lógica de iconos reutilizada o duplicar función simple
+import { uiTranslations } from "@/lib/utils/ui-translations"
 import { Home, UtensilsCrossed, Bath, Armchair, Bed, Sun, DoorOpen, Wind, Car, LucideIcon } from "lucide-react"
 
 const TYPE_ICONS: Record<string, LucideIcon> = {
@@ -25,21 +25,27 @@ interface ApartmentSectionProps {
         name: string
     } | undefined
     introSection?: GuideSection
+    currentLanguage?: string
 }
 
-export function ApartmentSection({ apartmentSections, property, introSection }: ApartmentSectionProps) {
+export function ApartmentSection({ apartmentSections, property, introSection, currentLanguage = "es" }: ApartmentSectionProps) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
+
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
             <div className="text-center mb-8">
                 {(() => {
                     const Icon = getIconByName(introSection?.icon, Home)
                     return (
-                        <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
-                            <Icon className="h-8 w-8 text-blue-600" />
+                        <div
+                            className="inline-flex items-center justify-center p-3 rounded-full mb-4"
+                            style={{ backgroundColor: 'var(--guide-secondary)' }}
+                        >
+                            <Icon className="h-8 w-8" style={{ color: 'var(--guide-primary)' }} />
                         </div>
                     )
                 })()}
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">{introSection?.title || "Tu Apartamento"}</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">{introSection?.title || t.apartment}</h2>
                 {introSection?.content && (
                     <p className="text-lg text-gray-700 max-w-3xl mx-auto">{introSection.content}</p>
                 )}
@@ -74,7 +80,7 @@ export function ApartmentSection({ apartmentSections, property, introSection }: 
                             </div>
                             <CardContent className="p-6">
                                 <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
-                                    <Icon className="h-5 w-5 text-blue-600" />
+                                    <Icon className="h-5 w-5" style={{ color: 'var(--guide-primary)' }} />
                                     {section.title}
                                 </h3>
                                 <p className="text-gray-600 mb-4">{section.description}</p>

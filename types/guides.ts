@@ -293,6 +293,7 @@ export interface CreateGuideData {
   latitude?: number
   longitude?: number
   locality?: string
+  theme?: string
 }
 
 export interface UpdateGuideData {
@@ -304,6 +305,7 @@ export interface UpdateGuideData {
   longitude?: number
   locality?: string
   is_active?: boolean
+  theme?: string
 }
 
 export interface CreateGuideSectionData {
@@ -694,6 +696,7 @@ export interface CompleteGuideDataResponse {
   tips: Tip[]
   contact_info: GuideContactInfo | null
   practical_info: PracticalInfo[]
+  theme?: string
 }
 
 export interface GuideData {
@@ -710,6 +713,7 @@ export interface GuideData {
   tips: Tip[]
   contact_info: GuideContactInfo | null
   practical_info: PracticalInfo[]
+  theme?: string
 }
 
 export interface PropertyGuide {
@@ -723,6 +727,7 @@ export interface PropertyGuide {
   longitude: number | null
   locality: string | null
   is_active: boolean
+  theme?: string
   created_at: string
   updated_at: string
 }

@@ -1,6 +1,7 @@
 import type { PropertyGuide } from "@/types/guides"
 import { Sparkles, MapPin } from "lucide-react"
 import { FormattedText } from "@/components/ui/formatted-text"
+import { uiTranslations } from "@/lib/utils/ui-translations"
 
 interface WelcomeSectionProps {
     guide: PropertyGuide
@@ -9,13 +10,16 @@ interface WelcomeSectionProps {
         address: string
         name: string
     }
+    currentLanguage?: string
 }
 
 export function WelcomeSection({
     guide,
     images = [],
-    property
+    property,
+    currentLanguage = "es"
 }: WelcomeSectionProps) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
     if (!guide.welcome_message) return null
 
     // Usar la primera imagen como principal, o un placeholder si no hay
@@ -27,7 +31,10 @@ export function WelcomeSection({
             <div className="max-w-7xl w-full mx-auto bg-white relative">
 
                 {/* Decoración superior turquesa más sutil */}
-                <div className="absolute top-0 right-0 w-24 h-24 md:w-48 md:h-48 bg-[#67E8F9] -z-10 opacity-10 rounded-bl-full" />
+                <div
+                    className="absolute top-0 right-0 w-24 h-24 md:w-48 md:h-48 -z-10 opacity-10 rounded-bl-full"
+                    style={{ backgroundColor: 'var(--guide-primary)' }}
+                />
 
                 <div className="grid md:grid-cols-2 gap-8 md:gap-16 items-start">
 
@@ -38,7 +45,7 @@ export function WelcomeSection({
                         <div className="mb-6 relative">
                             {/* Título ajustado para no romperse */}
                             <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-wide uppercase leading-tight text-balance">
-                                Bienvenid<span className="text-[#22d3ee]">o</span>s
+                                {t.welcome}
                             </h2>
                         </div>
 
@@ -53,7 +60,10 @@ export function WelcomeSection({
                         {/* Firma de los Anfitriones */}
                         {guide.host_signature && (
                             <div className="mt-6">
-                                <p className="text-gray-700 text-sm md:text-base italic font-medium text-center bg-gray-50 border-l-4 border-blue-500 pl-4 py-3 rounded-r">
+                                <p
+                                    className="text-gray-700 text-sm md:text-base italic font-medium text-center bg-gray-50 border-l-4 pl-4 py-3 rounded-r"
+                                    style={{ borderLeftColor: 'var(--guide-primary)' }}
+                                >
                                     "{guide.host_signature}"
                                 </p>
                             </div>
@@ -81,8 +91,11 @@ export function WelcomeSection({
                         {property?.address && (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 relative z-10">
                                 <div className="flex items-start gap-3">
-                                    <div className="bg-blue-50 p-2 rounded-full mt-1">
-                                        <MapPin className="h-5 w-5 text-blue-600" />
+                                    <div
+                                        className="p-2 rounded-full mt-1"
+                                        style={{ backgroundColor: 'var(--guide-secondary)' }}
+                                    >
+                                        <MapPin className="h-5 w-5" style={{ color: 'var(--guide-primary)' }} />
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide mb-1">Dirección</h3>
@@ -95,7 +108,10 @@ export function WelcomeSection({
                         )}
 
                         {/* Elemento decorativo detrás */}
-                        <div className="absolute -top-4 -right-4 w-full h-full border-2 border-[#67E8F9] rounded-2xl -z-10" />
+                        <div
+                            className="absolute -top-4 -right-4 w-full h-full border-2 rounded-2xl -z-10"
+                            style={{ borderColor: 'var(--guide-primary)', opacity: 0.3 }}
+                        />
                     </div>
 
                     {/* Fallback móvil para imagen */}

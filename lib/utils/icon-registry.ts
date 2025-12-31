@@ -60,6 +60,7 @@ export const ICON_REGISTRY: Record<string, IconDefinition[]> = {
         { name: "Gamepad", label: "Juegos", component: LucideIcons.Gamepad },
         { name: "Music", label: "Música", component: LucideIcons.Music },
         { name: "BookOpen", label: "Libro", component: LucideIcons.BookOpen },
+        { name: "PartyPopper", label: "Fiestas y Eventos", component: LucideIcons.PartyPopper },
     ],
     Servicios: [
         { name: "ShoppingBag", label: "Compras", component: LucideIcons.ShoppingBag },
@@ -76,6 +77,9 @@ export const ICON_REGISTRY: Record<string, IconDefinition[]> = {
         { name: "Info", label: "Información", component: LucideIcons.Info },
         { name: "AlertTriangle", label: "Advertencia", component: LucideIcons.AlertTriangle },
         { name: "HelpCircle", label: "Ayuda", component: LucideIcons.HelpCircle },
+        { name: "Smile", label: "Diversión", component: LucideIcons.Smile },
+        { name: "Users", label: "Zonas Comunes", component: LucideIcons.Users },
+        { name: "PawPrint", label: "Mascotas", component: LucideIcons.PawPrint },
     ],
     Normas: [
         { name: "CigaretteOff", label: "No Fumar", component: LucideIcons.CigaretteOff },
@@ -85,6 +89,7 @@ export const ICON_REGISTRY: Record<string, IconDefinition[]> = {
         { name: "ClipboardList", label: "Lista", component: LucideIcons.ClipboardList },
         { name: "Smartphone", label: "Teléfono", component: LucideIcons.Smartphone },
         { name: "Mail", label: "Email", component: LucideIcons.Mail },
+        { name: "WineOff", label: "Sin Fiestas/Eventos", component: LucideIcons.WineOff },
     ],
 }
 

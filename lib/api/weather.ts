@@ -144,7 +144,7 @@ function getWeatherDescription(weatherCode: string): { condition: string; descri
 }
 
 // Transformar respuesta de clima actual de Google
-function transformGoogleCurrentWeather(data: any): CurrentWeather {
+function transformGoogleCurrentWeather(data: any, lang: string = 'es'): CurrentWeather {
   console.log('Google Weather API Response:', JSON.stringify(data, null, 2));
 
   // Extraer datos según la estructura real de Google Weather API
@@ -158,6 +158,13 @@ function transformGoogleCurrentWeather(data: any): CurrentWeather {
 
   console.log('[Weather API] Código de clima extraído:', weatherCode);
   const weatherInfo = getWeatherDescription(weatherCode);
+
+  // Extraer descripción localizada si viene en la respuesta de Google
+  const localizedDescription =
+    data.weatherCondition?.description?.text ||
+    data.weatherCondition?.localizedDescription ||
+    '';
+
   console.log('[Weather API] Información del clima:', weatherInfo);
 
   const temperature = data.temperature?.value ?? data.temperature?.degrees ?? 20;
@@ -189,8 +196,8 @@ function transformGoogleCurrentWeather(data: any): CurrentWeather {
   return {
     temperature: Math.round(temperature),
     feelsLike: Math.round(feelsLike),
-    condition: weatherInfo.condition,
-    description: weatherInfo.description,
+    condition: localizedDescription || weatherInfo.condition,
+    description: localizedDescription || weatherInfo.description,
     humidity: Math.round(humidity),
     pressure: Math.round(pressure),
     windSpeed: Math.round(windSpeed),
@@ -204,7 +211,7 @@ function transformGoogleCurrentWeather(data: any): CurrentWeather {
 }
 
 // Transformar respuesta de pronóstico de Google
-function transformGoogleForecast(data: any): WeatherForecast[] {
+function transformGoogleForecast(data: any, lang: string = 'es'): WeatherForecast[] {
   console.log('Google Weather Forecast API Response:', JSON.stringify(data, null, 2));
 
   // Intentar detectar la colección de días en distintas variantes
@@ -223,16 +230,23 @@ function transformGoogleForecast(data: any): WeatherForecast[] {
   }
 
   return days.slice(0, 5).map((day: any) => {
-    // Preferir pronóstico diurno si está disponible
+    // Condición y Descripción Localizada
     const daytime = day?.daytimeForecast || day?.day || null;
-
-    // Código de condición
     const weatherCode =
       daytime?.weatherCondition?.type ||
       day?.weatherCondition?.type ||
       day?.weatherCode ||
-      day?.weather?.[0]?.main ||
+      day?.weather?.[0]?.main || // Keep this for broader compatibility if needed
       'CLEAR';
+
+    // Extraer descripción directamente de la respuesta de Google para este día
+    const localizedDescription =
+      daytime?.weatherCondition?.description?.text ||
+      day?.weatherCondition?.description?.text ||
+      daytime?.weatherCondition?.localizedDescription || // Original line
+      day?.weatherCondition?.localizedDescription || // Original line
+      '';
+
     const weatherInfo = getWeatherDescription(weatherCode);
 
     // Temperaturas máximas y mínimas (diferentes nombres según API)
@@ -286,24 +300,31 @@ function transformGoogleForecast(data: any): WeatherForecast[] {
       day?.dt ||
       new Date().toISOString();
 
+    const timestamp = typeof dateRaw === 'string'
+      ? Math.floor(new Date(dateRaw).getTime() / 1000)
+      : typeof dateRaw === 'object' && dateRaw?.year
+        ? Math.floor(new Date(`${dateRaw.year}-${String(dateRaw.month).padStart(2, '0')}-${String(dateRaw.day).padStart(2, '0')}`).getTime() / 1000)
+        : Math.floor(Date.now() / 1000);
+
     return {
       date: typeof dateRaw === 'object' && dateRaw?.year
         ? formatDate(`${dateRaw.year}-${String(dateRaw.month).padStart(2, '0')}-${String(dateRaw.day).padStart(2, '0')}`)
         : formatDate(String(dateRaw)),
       maxTemp: Math.round(Number(maxTempRaw)),
       minTemp: Math.round(Number(minTempRaw)),
-      condition: weatherInfo.condition,
-      description: weatherInfo.description,
+      condition: localizedDescription || weatherInfo.condition,
+      description: localizedDescription || weatherInfo.description,
       precipitation: Math.round(Number(precipitationRaw)),
       icon: weatherInfo.icon,
       humidity: Math.round(Number(humidityRaw)),
       windSpeed: Math.round(Number(windSpeedRaw)),
+      timestamp,
     };
   });
 }
 
 // Obtener clima actual usando Google Weather API
-export async function getCurrentWeather(lat: number, lon: number): Promise<CurrentWeather> {
+export async function getCurrentWeather(lat: number, lon: number, lang: string = 'es'): Promise<CurrentWeather> {
   if (!API_KEY) {
     throw new Error('API key de Google Weather no configurada');
   }
@@ -320,7 +341,7 @@ export async function getCurrentWeather(lat: number, lon: number): Promise<Curre
 
   try {
     const response = await fetch(
-      `/api/weather?lat=${lat}&lon=${lon}&type=current`
+      `/api/weather?lat=${lat}&lon=${lon}&type=current&lang=${lang}`
     );
 
     if (!response.ok) {
@@ -351,7 +372,7 @@ export async function getCurrentWeather(lat: number, lon: number): Promise<Curre
     }
 
     const data: GoogleWeatherCurrentResponse = await response.json();
-    return transformGoogleCurrentWeather(data);
+    return transformGoogleCurrentWeather(data, lang);
   } catch (error) {
     // Solo loggear si no es un error controlado
     if (!(error as any)?.isControlled) {
@@ -362,7 +383,7 @@ export async function getCurrentWeather(lat: number, lon: number): Promise<Curre
 }
 
 // Obtener pronóstico de 5 días usando Google Weather API
-export async function getWeatherForecast(lat: number, lon: number): Promise<WeatherForecast[]> {
+export async function getWeatherForecast(lat: number, lon: number, lang: string = 'es'): Promise<WeatherForecast[]> {
   if (!API_KEY) {
     throw new Error('API key de Google Weather no configurada');
   }
@@ -379,7 +400,7 @@ export async function getWeatherForecast(lat: number, lon: number): Promise<Weat
 
   try {
     const response = await fetch(
-      `/api/weather?lat=${lat}&lon=${lon}&type=forecast`
+      `/api/weather?lat=${lat}&lon=${lon}&type=forecast&lang=${lang}`
     );
 
     if (!response.ok) {
@@ -410,7 +431,7 @@ export async function getWeatherForecast(lat: number, lon: number): Promise<Weat
     }
 
     const data: GoogleWeatherForecastResponse = await response.json();
-    return transformGoogleForecast(data);
+    return transformGoogleForecast(data, lang);
   } catch (error) {
     // Solo loggear si no es un error controlado
     if (!(error as any)?.isControlled) {
@@ -421,7 +442,7 @@ export async function getWeatherForecast(lat: number, lon: number): Promise<Weat
 }
 
 // Obtener datos completos de clima (actual + pronóstico)
-export async function getWeatherData(lat: number, lon: number): Promise<WeatherData> {
+export async function getWeatherData(lat: number, lon: number, lang: string = 'es'): Promise<WeatherData> {
   // Validar coordenadas antes de hacer cualquier llamada
   if (!isValidCoordinates(lat, lon)) {
     throw new Error('Coordenadas no válidas. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.');
@@ -439,7 +460,7 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
     let hasLocationError = false;
 
     try {
-      current = await getCurrentWeather(lat, lon);
+      current = await getCurrentWeather(lat, lon, lang);
     } catch (error) {
       const err = error instanceof Error ? error.message : 'Error desconocido';
       const isControlled = (error as any)?.isControlled ||
@@ -465,7 +486,7 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
     }
 
     try {
-      forecast = await getWeatherForecast(lat, lon);
+      forecast = await getWeatherForecast(lat, lon, lang);
     } catch (error) {
       const err = error instanceof Error ? error.message : 'Error desconocido';
       const isControlled = (error as any)?.isControlled ||
@@ -523,14 +544,11 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
       };
     }
 
-    // Obtener el nombre de la ciudad usando Google Geocoding API
-    const cityName = await getCityName(lat, lon);
-
     return {
       current,
       forecast,
       location: {
-        name: cityName,
+        name: 'Ubicación seleccionada',
         country: 'ES', // Por defecto España
         lat,
         lon
@@ -544,42 +562,6 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
       console.error('[Weather API] Error obteniendo datos del clima:', error);
     }
     throw error;
-  }
-}
-
-// Función para obtener el nombre de la ciudad usando Google Geocoding API
-async function getCityName(lat: number, lon: number): Promise<string> {
-  if (!API_KEY) {
-    return 'Ubicación de la propiedad';
-  }
-
-  try {
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${API_KEY}&language=es`
-    );
-
-    if (!response.ok) {
-      console.warn('No se pudo obtener el nombre de la ciudad');
-      return 'Ubicación de la propiedad';
-    }
-
-    const data = await response.json();
-
-    if (data.results && data.results.length > 0) {
-      // Buscar el componente de ciudad en los resultados
-      const result = data.results[0];
-      const cityComponent = result.address_components.find((component: any) =>
-        component.types.includes('locality') ||
-        component.types.includes('administrative_area_level_2')
-      );
-
-      return cityComponent ? cityComponent.long_name : result.formatted_address.split(',')[0];
-    }
-
-    return 'Ubicación de la propiedad';
-  } catch (error) {
-    console.warn('Error obteniendo nombre de ciudad:', error);
-    return 'Ubicación de la propiedad';
   }
 }
 

@@ -9,7 +9,7 @@ interface UseWeatherReturn {
   refetch: () => void;
 }
 
-export function useWeather(latitude: number | null, longitude: number | null): UseWeatherReturn {
+export function useWeather(latitude: number | null, longitude: number | null, lang: string = 'es'): UseWeatherReturn {
   const [data, setData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<WeatherError | null>(null);
@@ -37,22 +37,22 @@ export function useWeather(latitude: number | null, longitude: number | null): U
     setError(null);
 
     try {
-      console.log('[v0] Fetching weather data for coordinates:', { latitude, longitude });
-      
-      const weatherData = await getWeatherData(latitude!, longitude!);
+      console.log('[v0] Fetching weather data for coordinates:', { latitude, longitude, lang });
+
+      const weatherData = await getWeatherData(latitude!, longitude!, lang);
       setData(weatherData);
-      
+
       console.log('[v0] Weather data fetched successfully:', weatherData);
     } catch (err) {
       // Capturar el error de forma controlada
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido al obtener datos del clima';
-      
+
       // Determinar si es un error controlado (ubicación no soportada, coordenadas inválidas, etc.)
-      const isControlledError = (err as any)?.isControlled || 
-                                errorMessage.includes('no está soportada') ||
-                                errorMessage.includes('no están configuradas') ||
-                                errorMessage.includes('Coordenadas no válidas');
-      
+      const isControlledError = (err as any)?.isControlled ||
+        errorMessage.includes('no está soportada') ||
+        errorMessage.includes('no están configuradas') ||
+        errorMessage.includes('Coordenadas no válidas');
+
       // Solo loggear como error si no es controlado, para evitar que Next.js lo trate como error no controlado
       if (isControlledError) {
         console.warn('[v0] Error controlado de clima:', {
@@ -66,12 +66,12 @@ export function useWeather(latitude: number | null, longitude: number | null): U
           coordinates: { latitude, longitude }
         });
       }
-      
+
       // Establecer el error en el estado para que el componente lo maneje
       setError({
         message: errorMessage
       });
-      
+
       // No re-lanzar el error, ya está manejado en el estado
     } finally {
       setLoading(false);
@@ -82,7 +82,7 @@ export function useWeather(latitude: number | null, longitude: number | null): U
     if (latitude !== null && longitude !== null) {
       fetchWeather();
     }
-  }, [latitude, longitude]);
+  }, [latitude, longitude, lang]);
 
   return {
     data,

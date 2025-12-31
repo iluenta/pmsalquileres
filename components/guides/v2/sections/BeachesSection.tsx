@@ -26,13 +26,16 @@ function BeachCard({ beach }: { beach: Beach }) {
                 {beach.image_url ? (
                     <img src={beach.image_url} alt={beach.name} className="w-full h-full object-cover" />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-cyan-50">
-                        <Umbrella className="h-16 w-16 text-cyan-200" />
+                    <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ backgroundColor: 'var(--guide-secondary)' }}
+                    >
+                        <Umbrella className="h-16 w-16" style={{ color: 'var(--guide-primary)', opacity: 0.3 }} />
                     </div>
                 )}
                 {beach.badge && (
                     <div className="absolute top-3 left-3">
-                        <Badge className="bg-cyan-500 hover:bg-cyan-600">{beach.badge}</Badge>
+                        <Badge style={{ backgroundColor: 'var(--guide-primary)' }}>{beach.badge}</Badge>
                     </div>
                 )}
                 {beach.price_range && (
@@ -178,8 +181,11 @@ export function BeachesSection({ beaches, introSection }: BeachesSectionProps) {
                 {(() => {
                     const Icon = getIconByName(introSection?.icon, Umbrella)
                     return (
-                        <div className="inline-flex items-center justify-center p-3 bg-cyan-100 rounded-full mb-4">
-                            <Icon className="h-8 w-8 text-cyan-600" />
+                        <div
+                            className="inline-flex items-center justify-center p-3 rounded-full mb-4"
+                            style={{ backgroundColor: 'var(--guide-secondary)' }}
+                        >
+                            <Icon className="h-8 w-8" style={{ color: 'var(--guide-primary)' }} />
                         </div>
                     )
                 })()}

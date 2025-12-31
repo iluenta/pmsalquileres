@@ -16,8 +16,11 @@ export function PracticalInfoSection({ info }: PracticalInfoSectionProps) {
     return (
         <div className="max-w-4xl mx-auto">
             <div className="text-center mb-10">
-                <div className="inline-flex items-center justify-center p-3 bg-violet-100 rounded-full mb-4">
-                    <Info className="h-8 w-8 text-violet-600" />
+                <div
+                    className="inline-flex items-center justify-center p-3 rounded-full mb-4"
+                    style={{ backgroundColor: 'var(--guide-secondary)' }}
+                >
+                    <Info className="h-8 w-8" style={{ color: 'var(--guide-primary)' }} />
                 </div>
                 <h2 className="text-3xl font-bold text-gray-900">Información Práctica</h2>
                 <p className="text-gray-600 mt-2">Detalles útiles para tu día a día</p>
@@ -28,10 +31,13 @@ export function PracticalInfoSection({ info }: PracticalInfoSectionProps) {
                     <Accordion type="single" collapsible className="w-full">
                         {info.map((item) => (
                             <AccordionItem key={item.id} value={item.id}>
-                                <AccordionTrigger className="text-lg font-medium hover:text-violet-600">
+                                <AccordionTrigger
+                                    className="text-lg font-medium transition-colors"
+                                    style={{ '--hover-color': 'var(--guide-primary)' } as any}
+                                >
                                     <div className="flex items-center gap-3">
-                                        <HelpCircle className="h-5 w-5 text-violet-500" />
-                                        {item.title}
+                                        <HelpCircle className="h-5 w-5" style={{ color: 'var(--guide-primary)' }} />
+                                        <span className="hover:text-[var(--hover-color)]">{item.title}</span>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="text-gray-600 prose prose-sm max-w-none">

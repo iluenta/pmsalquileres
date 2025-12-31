@@ -16,6 +16,7 @@ import { TipsManager } from "@/components/admin/TipsManager"
 import { ApartmentSectionsManager } from "@/components/admin/ApartmentSectionsManager"
 import { IconSelector } from "@/components/admin/IconSelector"
 import { getIconByName } from "@/lib/utils/icon-registry"
+import { GUIDE_THEMES } from "@/lib/utils/themes"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -42,6 +43,7 @@ interface PropertyGuideManagerProps {
   propertyId: string
 }
 
+
 export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) {
   const [activeTab, setActiveTab] = useState("overview")
   const [formData, setFormData] = useState({
@@ -52,6 +54,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
     locality: "",
     latitude: "",
     longitude: "",
+    theme: "default",
   })
   const [sections, setSections] = useState<GuideSection[]>([])
   const [beaches, setBeaches] = useState<any[]>([])
@@ -87,6 +90,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
         locality: (data.guide as any).locality || data.property?.locality || "",
         latitude: data.guide.latitude?.toString() || "",
         longitude: data.guide.longitude?.toString() || "",
+        theme: (data.guide as any).theme || "default",
       })
     }
     if (data?.sections) {
@@ -307,14 +311,21 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
       if (data?.guide?.id) {
         // Actualizar guía existente
+        const parseCoord = (val: string) => {
+          if (!val || val.trim() === '') return undefined;
+          const parsed = parseFloat(val.replace(',', '.'));
+          return isNaN(parsed) ? undefined : parsed;
+        };
+
         const updatedGuide = await updateGuide(data.guide.id, {
           title: formData.title,
           welcome_message: formData.welcome_message,
           host_names: formData.host_names,
           host_signature: formData.host_signature,
-          locality: formData.locality || undefined,
-          latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-          longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+          locality: formData.locality?.trim() || undefined,
+          latitude: parseCoord(formData.latitude),
+          longitude: parseCoord(formData.longitude),
+          theme: formData.theme,
         })
 
         if (updatedGuide) {
@@ -329,15 +340,22 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
         }
       } else {
         // Crear nueva guía
+        const parseCoord = (val: string) => {
+          if (!val || val.trim() === '') return undefined;
+          const parsed = parseFloat(val.replace(',', '.'));
+          return isNaN(parsed) ? undefined : parsed;
+        };
+
         const newGuide = await createGuide({
           property_id: propertyId,
           title: formData.title,
           welcome_message: formData.welcome_message,
           host_names: formData.host_names,
           host_signature: formData.host_signature,
-          locality: formData.locality || undefined,
-          latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-          longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+          locality: formData.locality?.trim() || undefined,
+          latitude: parseCoord(formData.latitude),
+          longitude: parseCoord(formData.longitude),
+          theme: formData.theme,
         })
 
         if (newGuide) {
@@ -563,7 +581,13 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <i className="fas fa-list text-2xl text-blue-600 mb-2"></i>
-                      <p className="font-semibold">{data.apartment_sections?.length || 0}</p>
+                      <p className="font-semibold">
+                        {(data.apartment_sections?.length || 0) +
+                          (data.house_rules?.length || 0) +
+                          (data.house_guide_items?.length || 0) +
+                          (data.tips?.length || 0) +
+                          (data.practical_info?.length || 0)}
+                      </p>
                       <p className="text-sm text-gray-600">Secciones</p>
                     </div>
                     <div className="text-center p-4 bg-green-50 rounded-lg">
@@ -717,6 +741,37 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                           <strong>Consejo:</strong> Puedes obtener las coordenadas exactas usando Google Maps.
                           Busca tu dirección y haz clic derecho → "¿Qué hay aquí?" para obtener las coordenadas.
                         </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t">
+                      <div className="flex items-center gap-2">
+                        <i className="fas fa-palette text-blue-600"></i>
+                        <h3 className="text-lg font-semibold">Tema Personalizado</h3>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Elige una paleta de colores para personalizar la apariencia de la guía pública.
+                      </p>
+
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {GUIDE_THEMES.map((theme) => (
+                          <div
+                            key={theme.id}
+                            onClick={() => setFormData({ ...formData, theme: theme.id })}
+                            className={`cursor-pointer rounded-lg border-2 p-2 transition-all ${formData.theme === theme.id
+                              ? 'border-blue-600 bg-blue-50 shadow-sm'
+                              : 'border-gray-200 hover:border-blue-300'
+                              }`}
+                          >
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="flex w-full h-8 rounded overflow-hidden">
+                                <div className="flex-1" style={{ backgroundColor: theme.primary }}></div>
+                                <div className="flex-1" style={{ backgroundColor: theme.secondary }}></div>
+                              </div>
+                              <span className="text-xs font-medium text-center">{theme.name}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -890,7 +945,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </TabsContent >
 
           <TabsContent value="apartment">
             <div className="space-y-6">
@@ -1017,8 +1072,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
               </Card>
             )}
           </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+        </Tabs >
+      </div >
+    </div >
   )
 }

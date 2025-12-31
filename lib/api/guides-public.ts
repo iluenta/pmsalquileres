@@ -12,30 +12,30 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
     console.log('[v0] Fetching complete guide data for property (public):', propertyIdOrSlug)
     console.log('[v0] Property ID/Slug type:', typeof propertyIdOrSlug)
     console.log('[v0] Property ID/Slug length:', propertyIdOrSlug?.length)
-    
+
     if (!supabasePublic) {
       console.error('[v0] No Supabase public client available')
       return null
     }
-    
+
     console.log('[v0] Supabase public client created successfully')
-    
+
     // Primero intentar buscar por slug (si no es un UUID)
     let propertyId = propertyIdOrSlug
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyIdOrSlug)
-    
+
     if (!isUUID) {
       // Usar la función optimizada de properties-public en lugar de hacer query directa
       const { getPropertyBySlugPublic } = await import('./properties-public')
       const property = await getPropertyBySlugPublic(propertyIdOrSlug)
-      
+
       if (property) {
         propertyId = property.id
       } else {
         return null
       }
     }
-    
+
     // Obtener la guía (que contiene la información básica de la propiedad)
     const { data: guide, error: guideError } = await supabasePublic
       .from('property_guides')
@@ -73,7 +73,7 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
           .select('id, name, description, street, city, province, country')
           .eq('id', propertyId)
           .maybeSingle()
-        
+
         if (!errorWithoutCoords) {
           propertyData = propertyWithoutCoords
           propertyData.latitude = null
@@ -126,21 +126,21 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
         .select('*')
         .eq('guide_id', guide.id)
         .order('order_index', { ascending: true }),
-      
+
       // Playas
       supabasePublic
         .from('guide_places')
         .select('*')
         .eq('guide_id', guide.id)
         .eq('place_type', 'beach'),
-      
+
       // Restaurantes
       supabasePublic
         .from('guide_places')
         .select('*')
         .eq('guide_id', guide.id)
         .eq('place_type', 'restaurant'),
-      
+
       // Compras
       supabasePublic
         .from('guide_places')
@@ -148,39 +148,39 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
         .eq('guide_id', guide.id)
         .eq('place_type', 'shopping')
         .order('order_index', { ascending: true }),
-      
+
       // Actividades
       supabasePublic
         .from('guide_places')
         .select('*')
         .eq('guide_id', guide.id)
         .eq('place_type', 'activity'),
-      
+
       // Normas de la casa
       supabasePublic
         .from('house_rules')
         .select('*')
         .eq('guide_id', guide.id),
-      
+
       // Elementos de la guía de la casa
       supabasePublic
         .from('house_guide_items')
         .select('*')
         .eq('guide_id', guide.id),
-      
+
       // Consejos
       supabasePublic
         .from('guide_sections')
         .select('*')
         .eq('guide_id', guide.id)
         .eq('section_type', 'tips'),
-      
+
       // Información de contacto
       supabasePublic
         .from('guide_contact_info')
         .select('*')
         .eq('guide_id', guide.id),
-      
+
       // Información práctica
       supabasePublic
         .from('practical_info')
@@ -260,5 +260,36 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
   } catch (error) {
     console.error('[v0] Error in getCompleteGuideDataPublic:', error)
     throw error
+  }
+}
+
+export async function getGuideThemePublic(propertyIdOrSlug: string): Promise<{ theme: string, title?: string } | null> {
+  try {
+    let propertyId = propertyIdOrSlug
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyIdOrSlug)
+
+    if (!isUUID) {
+      const { getPropertyBySlugPublic } = await import('./properties-public')
+      const property = await getPropertyBySlugPublic(propertyIdOrSlug)
+      if (property) propertyId = property.id
+      else return null
+    }
+
+    const { data, error } = await supabasePublic
+      .from('property_guides')
+      .select('theme, title')
+      .eq('property_id', propertyId)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) return null
+
+    return {
+      theme: (data as any).theme || 'default',
+      title: data.title
+    }
+  } catch (error) {
+    console.error('[v0] Error in getGuideThemePublic:', error)
+    return null
   }
 }

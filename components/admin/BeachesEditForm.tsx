@@ -12,6 +12,18 @@ import { Beach } from "@/types/guides"
 import { createBeach, updateBeach, deleteBeach } from "@/lib/api/guides-client"
 import { getBeachFromGoogleUrl } from "@/lib/api/google-places"
 import { GoogleRestaurantInfo } from "./GoogleRestaurantInfo"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Loader2, Search, AlertCircle } from "lucide-react"
 
 interface BeachesEditFormProps {
@@ -30,6 +42,7 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
   const [googleLoading, setGoogleLoading] = useState(false)
   const [googleBeachData, setGoogleBeachData] = useState<Partial<Beach> | null>(null)
   const [googleError, setGoogleError] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const handleEdit = (beach: Beach) => {
     setEditingBeach(beach)
@@ -57,6 +70,9 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
       badge: "",
       image_url: "",
       url: "",
+      phone: "",
+      website: "",
+      opening_hours: null,
       order_index: beaches.length + 1,
       created_at: "",
       updated_at: ""
@@ -108,6 +124,9 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
       badge: googleBeachData.badge || prev?.badge || "",
       image_url: googleBeachData.image_url || prev?.image_url || "",
       url: googleBeachData.url || googleUrl || prev?.url || "",
+      phone: googleBeachData.phone || prev?.phone || "",
+      website: googleBeachData.website || prev?.website || "",
+      opening_hours: googleBeachData.opening_hours || prev?.opening_hours || null,
     }))
 
     setGoogleBeachData(null)
@@ -123,7 +142,7 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
 
     try {
       setLoading(true)
-      
+
       if (isAddingNew) {
         // Crear nueva playa
         const newBeach = await createBeach({
@@ -140,11 +159,18 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
           badge: editingBeach.badge,
           image_url: editingBeach.image_url,
           url: editingBeach.url,
+          phone: editingBeach.phone,
+          website: editingBeach.website,
+          opening_hours: editingBeach.opening_hours,
           order_index: editingBeach.order_index
         })
-        
+
         if (newBeach) {
           onBeachesChange([...beaches, newBeach])
+          toast({
+            title: "Playa guardada",
+            description: "La playa ha sido creada correctamente.",
+          })
         }
       } else {
         // Actualizar playa existente
@@ -161,14 +187,21 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
           badge: editingBeach.badge,
           image_url: editingBeach.image_url,
           url: editingBeach.url,
+          phone: editingBeach.phone,
+          website: editingBeach.website,
+          opening_hours: editingBeach.opening_hours,
           order_index: editingBeach.order_index
         })
-        
+
         if (updatedBeach) {
           onBeachesChange(beaches.map(beach => beach.id === editingBeach.id ? updatedBeach : beach))
+          toast({
+            title: "Playa actualizada",
+            description: "La información ha sido actualizada correctamente.",
+          })
         }
       }
-      
+
       setEditingBeach(null)
       setIsAddingNew(false)
     } catch (error) {
@@ -179,18 +212,25 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
   }
 
   const handleDelete = async (beachId: string) => {
-    if (confirm("¿Estás seguro de que quieres eliminar esta playa?")) {
-      try {
-        setLoading(true)
-        const success = await deleteBeach(beachId)
-        if (success) {
-          onBeachesChange(beaches.filter(beach => beach.id !== beachId))
-        }
-      } catch (error) {
-        console.error('Error deleting beach:', error)
-      } finally {
-        setLoading(false)
+    try {
+      setLoading(true)
+      const success = await deleteBeach(beachId)
+      if (success) {
+        onBeachesChange(beaches.filter(beach => beach.id !== beachId))
+        toast({
+          title: "Playa eliminada",
+          description: "La playa ha sido eliminada correctamente.",
+        })
       }
+    } catch (error) {
+      console.error('Error deleting beach:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la playa.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -258,12 +298,6 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
                             <p className="text-sm text-gray-600 mb-2 break-words">{beach.description}</p>
                           )}
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                            {beach.distance && (
-                              <span className="flex items-center gap-1">
-                                <i className="fas fa-map-marker-alt"></i>
-                                {beach.distance}
-                              </span>
-                            )}
                             {beach.rating && beach.rating > 0 && (
                               <div className="flex items-center gap-1">
                                 {renderStars(beach.rating)}
@@ -283,22 +317,42 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
                         >
                           <i className="fas fa-edit"></i>
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(beach.id)}
-                          disabled={loading}
-                          className="text-red-600 hover:text-red-700 w-full sm:w-auto"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={loading}
+                              className="text-red-600 hover:text-red-700 w-full sm:w-auto"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará de forma permanente la playa "{beach.name}".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(beach.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </CardHeader>
                   {beach.image_url && (
                     <CardContent className="pt-0">
-                      <img 
-                        src={beach.image_url} 
+                      <img
+                        src={beach.image_url}
                         alt={beach.name}
                         className="w-full h-32 object-cover rounded-lg"
                       />
@@ -359,7 +413,7 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500">
-                  {isAddingNew 
+                  {isAddingNew
                     ? "Pega la URL completa de una búsqueda de Google de la playa para obtener automáticamente su información"
                     : "Actualiza la información de la playa pegando una nueva URL de búsqueda de Google"}
                 </p>
@@ -384,166 +438,187 @@ export function BeachesEditForm({ beaches, guideId, onBeachesChange, propertyLat
               {/* Formulario manual (solo si no hay datos de Google disponibles) */}
               {!googleBeachData && (
                 <>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="beach-name">Nombre</Label>
-                  <Input
-                    id="beach-name"
-                    value={editingBeach.name || ''}
-                    onChange={(e) => setEditingBeach({ ...editingBeach, name: e.target.value })}
-                    placeholder="Nombre de la playa"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="beach-distance">Distancia</Label>
-                  <Input
-                    id="beach-distance"
-                    value={editingBeach.distance || ''}
-                    onChange={(e) => setEditingBeach({ ...editingBeach, distance: e.target.value ? Number(e.target.value) : null })}
-                    placeholder="Ej: 5 minutos en coche"
-                  />
-                </div>
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="beach-name">Nombre</Label>
+                      <Input
+                        id="beach-name"
+                        value={editingBeach.name || ''}
+                        onChange={(e) => setEditingBeach({ ...editingBeach, name: e.target.value })}
+                        placeholder="Nombre de la playa"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="beach-badge">Badge</Label>
+                      <Input
+                        id="beach-badge"
+                        value={editingBeach.badge || ''}
+                        onChange={(e) => setEditingBeach({ ...editingBeach, badge: e.target.value })}
+                        placeholder="Ej: Recomendada"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="beach-badge">Badge</Label>
-                  <Input
-                    id="beach-badge"
-                    value={editingBeach.badge || ''}
-                    onChange={(e) => setEditingBeach({ ...editingBeach, badge: e.target.value })}
-                    placeholder="Ej: Recomendada"
-                  />
-                </div>
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="beach-walking-time">Tiempo Caminando (minutos)</Label>
+                      <Input
+                        id="beach-walking-time"
+                        type="number"
+                        min="0"
+                        value={editingBeach.walking_time || ''}
+                        onChange={(e) => setEditingBeach({ ...editingBeach, walking_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                        placeholder="Ej: 15"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Tiempo en minutos caminando desde la propiedad
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="beach-driving-time">Tiempo en Coche (minutos)</Label>
+                      <Input
+                        id="beach-driving-time"
+                        type="number"
+                        min="0"
+                        value={editingBeach.driving_time || ''}
+                        onChange={(e) => setEditingBeach({ ...editingBeach, driving_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                        placeholder="Ej: 3"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Tiempo en minutos en coche desde la propiedad
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="beach-walking-time">Tiempo Caminando (minutos)</Label>
-                  <Input
-                    id="beach-walking-time"
-                    type="number"
-                    min="0"
-                    value={editingBeach.walking_time || ''}
-                    onChange={(e) => setEditingBeach({ ...editingBeach, walking_time: e.target.value ? Number.parseInt(e.target.value) : null })}
-                    placeholder="Ej: 15"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Tiempo en minutos caminando desde la propiedad
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="beach-driving-time">Tiempo en Coche (minutos)</Label>
-                  <Input
-                    id="beach-driving-time"
-                    type="number"
-                    min="0"
-                    value={editingBeach.driving_time || ''}
-                    onChange={(e) => setEditingBeach({ ...editingBeach, driving_time: e.target.value ? Number.parseInt(e.target.value) : null })}
-                    placeholder="Ej: 3"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Tiempo en minutos en coche desde la propiedad
-                  </p>
-                </div>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="beach-description">Descripción</Label>
+                    <Textarea
+                      id="beach-description"
+                      value={editingBeach.description || ''}
+                      onChange={(e) => setEditingBeach({ ...editingBeach, description: e.target.value })}
+                      placeholder="Descripción de la playa"
+                      rows={3}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="beach-description">Descripción</Label>
-                <Textarea
-                  id="beach-description"
-                  value={editingBeach.description || ''}
-                  onChange={(e) => setEditingBeach({ ...editingBeach, description: e.target.value })}
-                  placeholder="Descripción de la playa"
-                  rows={3}
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="beach-address">Dirección</Label>
+                    <Input
+                      id="beach-address"
+                      value={editingBeach.address || ''}
+                      onChange={(e) => setEditingBeach({ ...editingBeach, address: e.target.value })}
+                      placeholder="Dirección de la playa"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="beach-address">Dirección</Label>
-                <Input
-                  id="beach-address"
-                  value={editingBeach.address || ''}
-                  onChange={(e) => setEditingBeach({ ...editingBeach, address: e.target.value })}
-                  placeholder="Dirección de la playa"
-                />
-              </div>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="beach-rating">Calificación (1-5)</Label>
+                      <Input
+                        id="beach-rating"
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        value={editingBeach.rating !== null ? editingBeach.rating : ''}
+                        onChange={(e) => setEditingBeach({ ...editingBeach, rating: e.target.value ? Number.parseFloat(e.target.value) : null })}
+                        placeholder="4.5"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="beach-reviews">Número de Reseñas</Label>
+                      <Input
+                        id="beach-reviews"
+                        type="number"
+                        min="0"
+                        value={editingBeach.review_count !== null ? editingBeach.review_count : ''}
+                        onChange={(e) => setEditingBeach({ ...editingBeach, review_count: e.target.value ? Number.parseInt(e.target.value) : null })}
+                        placeholder="150"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="beach-price">Rango de Precio</Label>
+                      <Input
+                        id="beach-price"
+                        value={editingBeach.price_range || ''}
+                        onChange={(e) => setEditingBeach({ ...editingBeach, price_range: e.target.value })}
+                        placeholder="€20-€40"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="beach-rating">Calificación (1-5)</Label>
-                  <Input
-                    id="beach-rating"
-                    type="number"
-                    min="0"
-                    max="5"
-                    step="0.1"
-                    value={editingBeach.rating !== null ? editingBeach.rating : ''}
-                    onChange={(e) => setEditingBeach({ ...editingBeach, rating: e.target.value ? Number.parseFloat(e.target.value) : null })}
-                    placeholder="4.5"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="beach-reviews">Número de Reseñas</Label>
-                  <Input
-                    id="beach-reviews"
-                    type="number"
-                    min="0"
-                    value={editingBeach.review_count !== null ? editingBeach.review_count : ''}
-                    onChange={(e) => setEditingBeach({ ...editingBeach, review_count: e.target.value ? Number.parseInt(e.target.value) : null })}
-                    placeholder="150"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="beach-price">Rango de Precio</Label>
-                  <Input
-                    id="beach-price"
-                    value={editingBeach.price_range || ''}
-                    onChange={(e) => setEditingBeach({ ...editingBeach, price_range: e.target.value })}
-                    placeholder="€20-€40"
-                  />
-                </div>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="beach-image">URL de Imagen</Label>
+                    <Input
+                      id="beach-image"
+                      value={editingBeach.image_url || ''}
+                      onChange={(e) => setEditingBeach({ ...editingBeach, image_url: e.target.value })}
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="beach-image">URL de Imagen</Label>
-                <Input
-                  id="beach-image"
-                  value={editingBeach.image_url || ''}
-                  onChange={(e) => setEditingBeach({ ...editingBeach, image_url: e.target.value })}
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="beach-url">URL del Lugar / Sitio Web</Label>
+                    <Input
+                      id="beach-url"
+                      value={editingBeach.url || ''}
+                      onChange={(e) => setEditingBeach({ ...editingBeach, url: e.target.value })}
+                      placeholder="https://maps.app.goo.gl/..."
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="beach-url">URL del Lugar (Google Maps, Web, etc.)</Label>
-                <Input
-                  id="beach-url"
-                  value={editingBeach.url || ''}
-                  onChange={(e) => setEditingBeach({ ...editingBeach, url: e.target.value })}
-                  placeholder="https://maps.app.goo.gl/..."
-                />
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="beach-phone">Teléfono</Label>
+                      <Input
+                        id="beach-phone"
+                        value={editingBeach.phone || ''}
+                        onChange={(e) => setEditingBeach({ ...editingBeach, phone: e.target.value })}
+                        placeholder="Ej: +34 912 345 678"
+                      />
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="beach-order">Orden</Label>
-                <Input
-                  id="beach-order"
-                  type="number"
-                  value={editingBeach.order_index || ''}
-                  onChange={(e) => setEditingBeach({ ...editingBeach, order_index: e.target.value ? Number.parseInt(e.target.value) : 0 })}
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="beach-opening-hours">Horarios (una línea por día)</Label>
+                    <Textarea
+                      id="beach-opening-hours"
+                      value={editingBeach.opening_hours?.weekday_text?.join('\n') || ''}
+                      onChange={(e) => {
+                        const lines = e.target.value.split('\n').filter(line => line.trim() !== '')
+                        setEditingBeach({
+                          ...editingBeach,
+                          opening_hours: {
+                            ...editingBeach.opening_hours,
+                            weekday_text: lines,
+                            open_now: editingBeach.opening_hours?.open_now ?? false
+                          }
+                        })
+                      }}
+                      placeholder={"Lunes: 9:00–18:00\nMartes: 9:00–18:00\n..."}
+                      rows={7}
+                    />
+                  </div>
 
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
-                  <i className="fas fa-save mr-2"></i>
-                  {loading ? 'Guardando...' : 'Guardar'}
-                </Button>
-                <Button variant="outline" onClick={handleCancel} disabled={loading} className="w-full sm:w-auto">
-                  Cancelar
-                </Button>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="beach-order">Orden</Label>
+                    <Input
+                      id="beach-order"
+                      type="number"
+                      value={editingBeach.order_index || ''}
+                      onChange={(e) => setEditingBeach({ ...editingBeach, order_index: e.target.value ? Number.parseInt(e.target.value) : 0 })}
+                    />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
+                      <i className="fas fa-save mr-2"></i>
+                      {loading ? 'Guardando...' : 'Guardar'}
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel} disabled={loading} className="w-full sm:w-auto">
+                      Cancelar
+                    </Button>
+                  </div>
                 </>
               )}
             </div>

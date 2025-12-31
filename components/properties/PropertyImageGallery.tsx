@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
-import { 
-  Upload, 
-  X, 
-  Star, 
-  Loader2, 
+import {
+  Upload,
+  X,
+  Star,
+  Loader2,
   GripVertical,
   Edit2,
   Trash2
@@ -31,6 +31,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface PropertyImageGalleryProps {
   propertyId: string
@@ -57,7 +68,7 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
     try {
       setLoading(true)
       const response = await fetch(`/api/properties/${propertyId}/images`)
-      
+
       if (!response.ok) {
         const errorText = await response.text()
         console.error("Error loading images:", response.status, errorText)
@@ -141,7 +152,7 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
 
       const newImage = await response.json()
       setImages([...images, newImage])
-      
+
       toast({
         title: "Imagen subida",
         description: "La imagen se ha subido correctamente",
@@ -175,13 +186,13 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
       }
 
       const updatedImage = await response.json()
-      
+
       // Actualizar estado local - desmarcar todas y marcar solo la nueva portada
       setImages(images.map(img => ({
         ...img,
         is_cover: img.id === imageId
       })))
-      
+
       // Recargar imágenes para asegurar sincronización
       await loadImages()
 
@@ -199,10 +210,6 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
   }
 
   const handleDelete = async (imageId: string) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar esta imagen?")) {
-      return
-    }
-
     try {
       const response = await fetch(
         `/api/properties/${propertyId}/images/${imageId}`,
@@ -216,7 +223,7 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
       }
 
       setImages(images.filter(img => img.id !== imageId))
-      
+
       toast({
         title: "Imagen eliminada",
         description: "La imagen se ha eliminado correctamente",
@@ -356,7 +363,7 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
                     className="object-cover"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
-                  
+
                   {/* Badge de portada */}
                   {image.is_cover && (
                     <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 z-10">
@@ -389,13 +396,34 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
                             Marcar como portada
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(image.id)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Eliminar
-                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem
+                              onSelect={(e) => e.preventDefault()}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará de forma permanente esta imagen.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(image.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -422,15 +450,35 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
                         Portada
                       </Button>
                     )}
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(image.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Eliminar
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Eliminar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción eliminará de forma permanente esta imagen.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(image.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
 

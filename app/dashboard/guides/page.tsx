@@ -13,6 +13,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import Link from "next/link"
 import { Trash2, Eye, Edit, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Guide, Property } from "@/types/guides"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface GuideWithProperty extends Guide {
   property: Property
@@ -34,6 +46,7 @@ export default function GuidesPage() {
     host_names: "",
     host_signature: "",
   })
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchGuides()
@@ -151,6 +164,10 @@ export default function GuidesPage() {
         setSelectedPropertyId("")
         setShowCreateDialog(false)
         setError(null)
+        toast({
+          title: "Guía creada",
+          description: "La guía del huésped ha sido creada correctamente.",
+        })
 
         // Refresh guides list
         await fetchGuides()
@@ -164,8 +181,6 @@ export default function GuidesPage() {
   }
 
   const handleDeleteGuide = async (guideId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta guía?')) return
-
     try {
       const supabase = getSupabaseBrowserClient()
       if (!supabase) return
@@ -177,9 +192,19 @@ export default function GuidesPage() {
 
       if (error) throw error
       await fetchGuides()
+      toast({
+        title: "Guía eliminada",
+        description: "La guía del huésped ha sido eliminada correctamente.",
+      })
     } catch (err) {
       console.error('Error deleting guide:', err)
-      setError(err instanceof Error ? err.message : 'Error deleting guide')
+      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar la guía'
+      setError(errorMessage)
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
     }
   }
 
@@ -375,14 +400,34 @@ export default function GuidesPage() {
                           Ver
                         </Link>
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteGuide(guide.id)}
-                        title="Eliminar guía"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            title="Eliminar guía"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción eliminará de forma permanente la guía de "{guide.property.name}".
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteGuide(guide.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </CardContent>
@@ -485,14 +530,34 @@ function GuidesGrid({ guides, currentPage, onPageChange, onDelete }: GuidesGridP
                       Ver
                     </Link>
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => onDelete(guide.id)}
-                    title="Eliminar guía"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        title="Eliminar guía"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción eliminará de forma permanente la guía de "{guide.property.name}".
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => onDelete(guide.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Eliminar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </CardContent>

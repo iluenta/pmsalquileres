@@ -19,7 +19,7 @@ const GOOGLE_PLACES_BASE_URL = 'https://maps.googleapis.com/maps/api/place'
 export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
   try {
     const urlObj = new URL(url)
-    
+
     // Formato 1: URL de búsqueda con parámetro 'q'
     const queryParam = urlObj.searchParams.get('q')
     if (queryParam) {
@@ -32,7 +32,7 @@ export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
         })
       }
     }
-    
+
     // Formato 2: URL directa de Google Maps con /place/ en la ruta
     // Ejemplo: https://www.google.com/maps/place/Playa+de+M%C3%B3nsul/@36.7307815,-2.1558116
     // Ejemplo: https://www.google.com/maps/place/El+Playazo/@37.2148849,-1.8061523
@@ -41,13 +41,13 @@ export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
     // Intentar primero con el pathname (puede estar decodificado)
     const pathname = urlObj.pathname
     const placeMatch = pathname.match(/\/place\/([^/@]+)/)
-    
+
     if (placeMatch && placeMatch[1]) {
       let encodedName = placeMatch[1]
-      
+
       // Reemplazar + por espacios
       encodedName = encodedName.replace(/\+/g, ' ')
-      
+
       // Si el nombre contiene caracteres codificados (%XX), decodificarlo
       if (encodedName.includes('%')) {
         try {
@@ -63,7 +63,7 @@ export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
         return encodedName
       }
     }
-    
+
     // Fallback: Intentar extraer directamente de la URL string original
     // Esto es útil si el navegador ha decodificado el pathname completamente
     const urlString = url.toString()
@@ -71,7 +71,7 @@ export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
     if (directMatch && directMatch[1]) {
       let directName = directMatch[1]
       directName = directName.replace(/\+/g, ' ')
-      
+
       if (directName.includes('%')) {
         try {
           return decodeURIComponent(directName)
@@ -83,11 +83,30 @@ export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
       }
       return directName
     }
-    
+
     return null
   } catch (error) {
     console.error('[Google Places] Error extracting name from URL:', error)
     return null
+  }
+}
+
+/**
+ * Resuelve una URL corta de Google Maps (maps.app.goo.gl) a la URL completa
+ */
+export async function resolveGoogleShortUrl(url: string): Promise<string> {
+  if (!url.includes('maps.app.goo.gl') && !url.includes('goo.gl/maps')) {
+    return url
+  }
+
+  try {
+    const response = await fetch(`/api/google-places/resolve-url?url=${encodeURIComponent(url)}`)
+    if (!response.ok) return url
+    const data = await response.json()
+    return data.url || url
+  } catch (error) {
+    console.error('[Google Places] Error resolving short URL:', error)
+    return url
   }
 }
 
@@ -98,7 +117,7 @@ export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
 function extractCoordinatesFromGoogleUrl(url: string): { lat: number; lng: number } | null {
   try {
     const urlObj = new URL(url)
-    
+
     // Buscar coordenadas en formato @lat,lng en el pathname
     const pathname = urlObj.pathname
     const coordMatch = pathname.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/)
@@ -109,7 +128,7 @@ function extractCoordinatesFromGoogleUrl(url: string): { lat: number; lng: numbe
         return { lat, lng }
       }
     }
-    
+
     // También buscar coordenadas en formato !8m2!3dlat!4dlng
     // Ejemplo: !8m2!3d37.2137302!4d-1.8313155
     const coordMatch2 = pathname.match(/[!]8m2[!]3d(-?\d+\.?\d*)[!]4d(-?\d+\.?\d*)/)
@@ -120,7 +139,7 @@ function extractCoordinatesFromGoogleUrl(url: string): { lat: number; lng: numbe
         return { lat, lng }
       }
     }
-    
+
     return null
   } catch (error) {
     console.error('[Google Places] Error extracting coordinates from URL:', error)
@@ -168,7 +187,9 @@ export async function searchRestaurantByName(
  */
 export async function getPlaceDetails(placeId: string): Promise<PlaceDetails | null> {
   try {
-    const url = `/api/google-places/details?place_id=${placeId}`
+    const isCid = /^\d+$/.test(placeId)
+    const identifierParam = isCid ? `cid=${placeId}` : `place_id=${placeId}`
+    const url = `/api/google-places/details?${identifierParam}`
 
     const response = await fetch(url)
     if (!response.ok) {
@@ -213,24 +234,24 @@ async function calculateDistanceFromProperty(
   try {
     const origin = `${propertyLat},${propertyLng}`
     const destination = `${placeLat},${placeLng}`
-    
+
     const response = await fetch(
       `/api/google-places/distance?origin=${origin}&destination=${destination}`
     )
-    
+
     if (!response.ok) {
       console.error('[calculateDistanceFromProperty] Error HTTP calculando distancia:', response.status)
       return { walking_time: null, driving_time: null }
     }
 
     const data = await response.json()
-    
+
     // Verificar si hay un error en la respuesta
     if (data.error) {
       console.error('[calculateDistanceFromProperty] Error en respuesta de API:', data.error)
       return { walking_time: null, driving_time: null }
     }
-    
+
     const walking_time = data.walking?.value ?? null
     const driving_time = data.driving?.value ?? null
 
@@ -323,18 +344,18 @@ export async function mapPlaceDetailsToRestaurant(
   // Calcular distancias si hay coordenadas de propiedad y del lugar
   let walking_time: number | null = null
   let driving_time: number | null = null
-  
+
   if (propertyLat && propertyLng && placeDetails.geometry?.location) {
     const placeLat = placeDetails.geometry.location.lat
     const placeLng = placeDetails.geometry.location.lng
-    
+
     const distances = await calculateDistanceFromProperty(
       propertyLat,
       propertyLng,
       placeLat,
       placeLng
     )
-    
+
     walking_time = distances.walking_time
     driving_time = distances.driving_time
   }
@@ -350,6 +371,9 @@ export async function mapPlaceDetailsToRestaurant(
     image_url: imageUrl,
     badge: generateBadge(placeDetails.rating, placeDetails.types),
     url: restaurantUrl,
+    phone: placeDetails.formatted_phone_number || null,
+    website: placeDetails.website || null,
+    opening_hours: placeDetails.opening_hours || null,
     walking_time,
     driving_time,
   }
@@ -375,11 +399,19 @@ async function getPlaceFromGoogleUrl<T>(
     throw new Error(`La URL proporcionada no es válida: ${url}`)
   }
 
-  // Estrategia 0: Intentar extraer Place ID directamente de la URL (más preciso)
-  const placeId = extractPlaceIdFromGoogleUrl(url)
-  if (placeId) {
+  // Resolver URL corta si es necesario
+  const resolvedUrl = await resolveGoogleShortUrl(url)
+  const workingUrl = resolvedUrl || url
+
+  // Estrategia 0: Intentar extraer Place ID o CID directamente de la URL (más preciso)
+  const placeId = extractPlaceIdFromGoogleUrl(workingUrl)
+  const cid = extractCidFromGoogleUrl(workingUrl)
+
+  const identifier = placeId || cid
+
+  if (identifier) {
     try {
-      const placeDetails = await getPlaceDetails(placeId)
+      const placeDetails = await getPlaceDetails(identifier)
       if (placeDetails) {
         return mapper(placeDetails, propertyLat, propertyLng)
       }
@@ -389,8 +421,8 @@ async function getPlaceFromGoogleUrl<T>(
   }
 
   // Extraer coordenadas y nombre de la URL
-  const coordinates = extractCoordinatesFromGoogleUrl(url)
-  const placeName = extractRestaurantNameFromGoogleUrl(url)
+  const coordinates = extractCoordinatesFromGoogleUrl(workingUrl)
+  const placeName = extractRestaurantNameFromGoogleUrl(workingUrl)
 
   // Si no hay nombre, no podemos continuar
   if (!placeName || placeName.trim() === '') {
@@ -496,7 +528,7 @@ export async function mapPlaceDetailsToShopping(
   // Extraer tipo de compras de los types
   const extractShoppingType = (types?: string[]): string | null => {
     if (!types) return null
-    
+
     // Mapear tipos de Google Places a tipos de compras
     const typeMapping: Record<string, string> = {
       'supermarket': 'supermercado',
@@ -509,7 +541,7 @@ export async function mapPlaceDetailsToShopping(
       'clothing_store': 'tienda',
       'convenience_store': 'tienda',
     }
-    
+
     // Buscar el primer tipo que coincida
     for (const type of types) {
       const baseType = type.split('_')[0] // Tomar la primera parte del tipo
@@ -520,7 +552,7 @@ export async function mapPlaceDetailsToShopping(
         return typeMapping[baseType]
       }
     }
-    
+
     // Si no hay coincidencia exacta, intentar inferir del nombre
     return null
   }
@@ -544,18 +576,18 @@ export async function mapPlaceDetailsToShopping(
   // Calcular distancias si hay coordenadas de propiedad y del lugar
   let walking_time: number | null = null
   let driving_time: number | null = null
-  
+
   if (propertyLat && propertyLng && placeDetails.geometry?.location) {
     const placeLat = placeDetails.geometry.location.lat
     const placeLng = placeDetails.geometry.location.lng
-    
+
     const distances = await calculateDistanceFromProperty(
       propertyLat,
       propertyLng,
       placeLat,
       placeLng
     )
-    
+
     walking_time = distances.walking_time
     driving_time = distances.driving_time
   }
@@ -571,6 +603,9 @@ export async function mapPlaceDetailsToShopping(
     image_url: imageUrl,
     badge: generateBadge(placeDetails.rating),
     url: shoppingUrl,
+    phone: placeDetails.formatted_phone_number || null,
+    website: placeDetails.website || null,
+    opening_hours: placeDetails.opening_hours || null,
     walking_time,
     driving_time,
   }
@@ -604,7 +639,7 @@ export async function searchPlaceByName(
   try {
     const encodedName = encodeURIComponent(name)
     const url = `/api/google-places/search?query=${encodedName}&type=${type}`
-    
+
     const response = await fetch(url)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -670,21 +705,21 @@ export async function mapPlaceDetailsToBeach(
   // Calcular distancias si hay coordenadas de propiedad y del lugar
   let walking_time: number | null = null
   let driving_time: number | null = null
-  
+
   if (propertyLat && propertyLng && placeDetails.geometry?.location) {
     const placeLat = placeDetails.geometry.location.lat
     const placeLng = placeDetails.geometry.location.lng
-    
+
     const distances = await calculateDistanceFromProperty(
       propertyLat,
       propertyLng,
       placeLat,
       placeLng
     )
-    
+
     walking_time = distances.walking_time
     driving_time = distances.driving_time
-    
+
     // Si walking_time > 15, asegurarse de calcular también driving_time
     if (walking_time && walking_time > 15 && !driving_time) {
       // Ya lo intentamos arriba, si no está disponible, dejamos null
@@ -764,21 +799,21 @@ export async function mapPlaceDetailsToActivity(
   // Calcular distancias si hay coordenadas de propiedad y del lugar
   let walking_time: number | null = null
   let driving_time: number | null = null
-  
+
   if (propertyLat && propertyLng && placeDetails.geometry?.location) {
     const placeLat = placeDetails.geometry.location.lat
     const placeLng = placeDetails.geometry.location.lng
-    
+
     const distances = await calculateDistanceFromProperty(
       propertyLat,
       propertyLng,
       placeLat,
       placeLng
     )
-    
+
     walking_time = distances.walking_time
     driving_time = distances.driving_time
-    
+
     // Si walking_time > 15, asegurarse de calcular también driving_time
     if (walking_time && walking_time > 15 && !driving_time) {
       // Ya lo intentamos arriba, si no está disponible, dejamos null
@@ -812,10 +847,47 @@ export async function mapPlaceDetailsToActivity(
  * pero solo retorna place_ids válidos para la API (formato ChIJ...).
  */
 function extractPlaceIdFromGoogleUrl(url: string): string | null {
-  // Los place_ids hexadecimales en las URLs no funcionan con la Places API
-  // Por lo tanto, esta función no los extrae y retorna null
-  // Las búsquedas se harán por nombre + coordenadas en su lugar
-  return null
+  try {
+    const urlObj = new URL(url)
+
+    // 1. Buscar en parámetro 'place_id' (si existe)
+    const placeIdParam = urlObj.searchParams.get('place_id')
+    if (placeIdParam && placeIdParam.startsWith('ChI')) return placeIdParam
+
+    // 2. Buscar en el pathname formato /place/Nombre+del+Lugar/ChIJ...
+    const pathname = urlObj.pathname
+    const placeIdMatch = pathname.match(/ChIJ[a-zA-Z0-9_-]{23}/)
+    if (placeIdMatch) return placeIdMatch[0]
+
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Extrae el CID (Customer ID) de una URL de Google Maps si está disponible.
+ * El CID es un identificador único que se puede usar con la Places API.
+ */
+export function extractCidFromGoogleUrl(url: string): string | null {
+  try {
+    // Buscar el patrón !1s0x...:0x[CID]
+    const match = url.match(/!1s0x[0-9a-f]+:(0x[0-9a-f]+)/i)
+    if (match && match[1]) {
+      // El CID es el segundo valor hexadecimal. 
+      // La Places API lo acepta como un string decimal.
+      return BigInt(match[1]).toString()
+    }
+
+    // También buscar en el parámetro cid= si existe (en algunas URLs)
+    const urlObj = new URL(url)
+    const cidParam = urlObj.searchParams.get('cid')
+    if (cidParam) return cidParam
+
+    return null
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -835,11 +907,11 @@ async function searchPlaceByCoordinates(
     // Text Search con location bias es más efectivo cuando tenemos un nombre específico
     const location = `${lat},${lng}`
     const encodedName = encodeURIComponent(name)
-    
+
     // Usar Text Search con locationbias (prioriza resultados cerca de las coordenadas)
     // Formato: locationbias=circle:radius@lat,lng
     let url = `/api/google-places/search?query=${encodedName}&location=${location}`
-    
+
     const response = await fetch(url)
     if (!response.ok) {
       const errorText = await response.text()
@@ -855,17 +927,28 @@ async function searchPlaceByCoordinates(
     }
 
     if (data.results && data.results.length > 0) {
-      
-      // Si tenemos múltiples resultados, intentar encontrar el más cercano a las coordenadas dadas
+      // 1. Intentar encontrar una coincidencia exacta de nombre (ignorando mayúsculas/minúsculas)
+      const exactMatch = data.results.find(
+        r => r.name.toLowerCase() === name.toLowerCase()
+      )
+      if (exactMatch) return exactMatch
+
+      // 2. Intentar coincidencia parcial (el nombre buscado está en el resultado o viceversa)
+      const partialMatch = data.results.find(
+        r => r.name.toLowerCase().includes(name.toLowerCase()) ||
+          name.toLowerCase().includes(r.name.toLowerCase())
+      )
+      if (partialMatch) return partialMatch
+
+      // 3. Si no hay coincidencia clara de nombre, elegir el más cercano geográficamente
       if (data.results.length > 1) {
         let closestResult = data.results[0]
         let closestDistance = Infinity
-        
+
         for (const result of data.results) {
           if (result.geometry?.location) {
             const resultLat = result.geometry.location.lat
             const resultLng = result.geometry.location.lng
-            // Calcular distancia simple (no es la fórmula de Haversine, pero es suficiente para comparar)
             const distance = Math.abs(resultLat - lat) + Math.abs(resultLng - lng)
             if (distance < closestDistance) {
               closestDistance = distance
@@ -873,10 +956,9 @@ async function searchPlaceByCoordinates(
             }
           }
         }
-        
         return closestResult
       }
-      
+
       return data.results[0]
     }
 

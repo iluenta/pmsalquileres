@@ -29,7 +29,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
     console.log("🔴 [PropertyGuideV2] propertyId:", propertyId)
     console.log("🔴 [PropertyGuideV2] This component should ONLY render after authentication")
     console.log("=".repeat(80))
-    
+
     const [activeTab, setActiveTab] = useState("bienvenida")
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const { data, loading, error } = useGuideData(propertyId)
@@ -42,27 +42,27 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
         const section = sectionRefs.current[sectionId]
         if (section) {
             isScrollingProgrammatically.current = true
-            
+
             // Esperar un momento para que el DOM se actualice
             requestAnimationFrame(() => {
                 // Calcular la altura del header según el tamaño de pantalla
                 const isMobile = window.innerWidth < 768
                 const headerHeight = isMobile ? 120 : 150
                 const extraSpacing = 20 // Espacio adicional para que se vea bien el inicio
-                
+
                 // Obtener la posición relativa al documento usando getBoundingClientRect
                 const rect = section.getBoundingClientRect()
                 const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop
                 const sectionTop = rect.top + currentScrollTop
-                
+
                 // Calcular la posición final considerando el header sticky
                 const offsetPosition = sectionTop - headerHeight - extraSpacing
-                
+
                 window.scrollTo({
                     top: Math.max(0, offsetPosition), // Asegurar que no sea negativo
                     behavior: 'smooth'
                 })
-                
+
                 // Resetear la bandera después de un tiempo
                 if (scrollTimeoutRef.current) {
                     clearTimeout(scrollTimeoutRef.current)
@@ -95,12 +95,12 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
     // Scroll inicial a la sección de bienvenida cuando se carga la página
     useEffect(() => {
         if (!data) return
-        
+
         // Esperar a que las secciones se rendericen
         const timeoutId = setTimeout(() => {
             // Primero, hacer scroll al inicio para asegurar que estamos en la parte superior
             window.scrollTo({ top: 0, behavior: 'auto' })
-            
+
             // Luego, después de un pequeño delay, verificar si hay sección de bienvenida
             setTimeout(() => {
                 const bienvenidaSection = sectionRefs.current["bienvenida"]
@@ -111,7 +111,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
                 }
             }, 100)
         }, 300)
-        
+
         return () => clearTimeout(timeoutId)
     }, [data])
 
@@ -122,7 +122,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
         // Calcular tabs dentro del effect
         const tabs = [
             { id: "bienvenida", label: "Bienvenida", icon: Sparkles, show: !!data.guide.welcome_message },
-            { id: "apartamento", label: "Apartamento", icon: Home, show: true },
+            { id: "apartamento", label: "Apartamento", icon: Home, show: data.apartment_sections?.length > 0 },
             { id: "tiempo", label: "Tiempo actual", icon: CloudSun, show: !!(data.guide.latitude && data.guide.longitude) },
             { id: "normas", label: "Normas", icon: ClipboardList, show: data.house_rules?.length > 0 },
             { id: "guia-casa", label: "Guía Casa", icon: Book, show: data.house_guide_items?.length > 0 },
@@ -143,7 +143,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             // Calcular el rootMargin según el tamaño de pantalla
             const isMobile = window.innerWidth < 768
             const headerHeight = isMobile ? 120 : 150
-            
+
             observer = new IntersectionObserver(
                 (entries) => {
                     // Solo actualizar si no estamos haciendo scroll programático
@@ -157,13 +157,13 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
                     if (visibleSections.length > 0) {
                         const mostVisible = visibleSections[0]
                         const sectionId = mostVisible.target.getAttribute('data-section-id')
-                        
+
                         if (sectionId && sectionId !== activeTab) {
                             setActiveTab(sectionId)
                         }
                     }
                 },
-                { 
+                {
                     threshold: [0.1, 0.3, 0.5, 0.7],
                     rootMargin: `-${headerHeight}px 0px -50% 0px` // Considerar el header sticky (responsivo)
                 }
@@ -192,15 +192,15 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
         // Calcular tabs dentro del effect
         const tabs = [
             { id: "bienvenida", label: "Bienvenida", icon: Sparkles, show: !!data.guide.welcome_message },
-            { id: "apartamento", label: "Apartamento", icon: Home, show: true },
+            { id: "apartamento", label: "Apartamento", icon: Home, show: data.apartment_sections?.length > 0 },
             { id: "tiempo", label: "Tiempo actual", icon: CloudSun, show: !!(data.guide.latitude && data.guide.longitude) },
             { id: "normas", label: "Normas", icon: ClipboardList, show: data.house_rules?.length > 0 },
             { id: "guia-casa", label: "Guía Casa", icon: Book, show: data.house_guide_items?.length > 0 },
             { id: "consejos", label: "Consejos", icon: Lightbulb, show: data.tips?.length > 0 },
-            { id: "compras", label: "Compras", icon: ShoppingBag, show: data.shopping?.length > 0 },
-            { id: "playas", label: "Playas", icon: Umbrella, show: data.beaches?.length > 0 },
-            { id: "restaurantes", label: "Restaurantes", icon: Utensils, show: data.restaurants?.length > 0 },
-            { id: "actividades", label: "Actividades", icon: Mountain, show: data.activities?.length > 0 },
+            { id: "compras", label: "Compras", icon: ShoppingBag, show: data.shopping?.length > 0 && data.sections.some(s => s.section_type === 'shopping') },
+            { id: "playas", label: "Playas", icon: Umbrella, show: data.beaches?.length > 0 && data.sections.some(s => s.section_type === 'beaches') },
+            { id: "restaurantes", label: "Restaurantes", icon: Utensils, show: data.restaurants?.length > 0 && data.sections.some(s => s.section_type === 'restaurants') },
+            { id: "actividades", label: "Actividades", icon: Mountain, show: data.activities?.length > 0 && data.sections.some(s => s.section_type === 'activities') },
             { id: "contacto", label: "Contacto", icon: Phone, show: !!data.contact_info },
         ].filter(tab => tab.show)
 
@@ -229,7 +229,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
 
             const rect = currentSection.getBoundingClientRect()
             const windowHeight = window.innerHeight
-            
+
             // Solo activar si el usuario está muy cerca del final (últimos 50px) y haciendo scroll hacia abajo
             // Esto evita que se active automáticamente cuando simplemente está viendo la sección
             if (rect.bottom <= windowHeight + 50 && rect.bottom >= windowHeight - 20 && scrollDirection === 'down') {
@@ -237,7 +237,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
                 if (nextTab && !scrollTimeout) {
                     // Activar cooldown para evitar múltiples activaciones
                     autoScrollCooldown = true
-                    
+
                     // Pequeño delay para evitar scrolls múltiples
                     scrollTimeout = setTimeout(() => {
                         if (!isScrollingProgrammatically.current && scrollDirection === 'down') {
@@ -289,22 +289,22 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
     // Definición de tabs basada en disponibilidad de datos
     const tabs = [
         { id: "bienvenida", label: "Bienvenida", icon: Sparkles, show: !!data.guide.welcome_message },
-        { id: "apartamento", label: "Apartamento", icon: Home, show: true },
+        { id: "apartamento", label: "Apartamento", icon: Home, show: data.apartment_sections?.length > 0 },
         { id: "tiempo", label: "Tiempo actual", icon: CloudSun, show: !!(data.guide.latitude && data.guide.longitude) },
         { id: "normas", label: "Normas", icon: ClipboardList, show: data.house_rules?.length > 0 },
         { id: "guia-casa", label: "Guía Casa", icon: Book, show: data.house_guide_items?.length > 0 },
         { id: "consejos", label: "Consejos", icon: Lightbulb, show: data.tips?.length > 0 },
-        { id: "compras", label: "Compras", icon: ShoppingBag, show: data.shopping?.length > 0 },
-        { id: "playas", label: "Playas", icon: Umbrella, show: data.beaches?.length > 0 },
-        { id: "restaurantes", label: "Restaurantes", icon: Utensils, show: data.restaurants?.length > 0 },
-        { id: "actividades", label: "Actividades", icon: Mountain, show: data.activities?.length > 0 },
+        { id: "compras", label: "Compras", icon: ShoppingBag, show: data.shopping?.length > 0 && data.sections.some(s => s.section_type === 'shopping') },
+        { id: "playas", label: "Playas", icon: Umbrella, show: data.beaches?.length > 0 && data.sections.some(s => s.section_type === 'beaches') },
+        { id: "restaurantes", label: "Restaurantes", icon: Utensils, show: data.restaurants?.length > 0 && data.sections.some(s => s.section_type === 'restaurants') },
+        { id: "actividades", label: "Actividades", icon: Mountain, show: data.activities?.length > 0 && data.sections.some(s => s.section_type === 'activities') },
         { id: "contacto", label: "Contacto", icon: Phone, show: !!data.contact_info },
     ].filter(tab => tab.show)
 
     // Función para renderizar todas las secciones con IDs únicos
     const renderAllSections = () => {
         const sections: React.ReactElement[] = []
-        
+
         // Recopilar imágenes para el collage
         const collageImages = data.apartment_sections
             .filter(s => s.image_url)
@@ -354,18 +354,20 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
 
         // Normas
         if (tabs.find(t => t.id === "normas")) {
+            const rulesIntro = data.sections.find(s => s.section_type === "rules")
             sections.push(
                 <section key="normas" data-section-id="normas" ref={(el) => { sectionRefs.current["normas"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <HouseRulesSection rules={data.house_rules} />
+                    <HouseRulesSection rules={data.house_rules} introSection={rulesIntro} />
                 </section>
             )
         }
 
         // Guía Casa
         if (tabs.find(t => t.id === "guia-casa")) {
+            const houseGuideIntro = data.sections.find(s => s.section_type === "house_guide")
             sections.push(
                 <section key="guia-casa" data-section-id="guia-casa" ref={(el) => { sectionRefs.current["guia-casa"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <HouseGuideSection items={data.house_guide_items} />
+                    <HouseGuideSection items={data.house_guide_items} introSection={houseGuideIntro} />
                 </section>
             )
         }
@@ -382,45 +384,50 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
 
         // Compras
         if (tabs.find(t => t.id === "compras")) {
+            const shoppingIntro = data.sections.find(s => s.section_type === "shopping")
             sections.push(
                 <section key="compras" data-section-id="compras" ref={(el) => { sectionRefs.current["compras"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <ShoppingSection shopping={data.shopping} />
+                    <ShoppingSection shopping={data.shopping} introSection={shoppingIntro} />
                 </section>
             )
         }
 
         // Playas
         if (tabs.find(t => t.id === "playas")) {
+            const beachesIntro = data.sections.find(s => s.section_type === "beaches")
             sections.push(
                 <section key="playas" data-section-id="playas" ref={(el) => { sectionRefs.current["playas"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <BeachesSection beaches={data.beaches} />
+                    <BeachesSection beaches={data.beaches} introSection={beachesIntro} />
                 </section>
             )
         }
 
         // Restaurantes
         if (tabs.find(t => t.id === "restaurantes")) {
+            const restaurantsIntro = data.sections.find(s => s.section_type === "restaurants")
             sections.push(
                 <section key="restaurantes" data-section-id="restaurantes" ref={(el) => { sectionRefs.current["restaurantes"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <RestaurantsSection restaurants={data.restaurants} />
+                    <RestaurantsSection restaurants={data.restaurants} introSection={restaurantsIntro} />
                 </section>
             )
         }
 
         // Actividades
         if (tabs.find(t => t.id === "actividades")) {
+            const activitiesIntro = data.sections.find(s => s.section_type === "activities")
             sections.push(
                 <section key="actividades" data-section-id="actividades" ref={(el) => { sectionRefs.current["actividades"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <ActivitiesSection activities={data.activities} />
+                    <ActivitiesSection activities={data.activities} introSection={activitiesIntro} />
                 </section>
             )
         }
 
         // Contacto
         if (tabs.find(t => t.id === "contacto") && data.contact_info) {
+            const contactIntro = data.sections.find(s => s.section_type === "contact")
             sections.push(
                 <section key="contacto" data-section-id="contacto" ref={(el) => { sectionRefs.current["contacto"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <ContactSection contactInfo={data.contact_info} />
+                    <ContactSection contactInfo={data.contact_info} introSection={contactIntro} />
                 </section>
             )
         }
@@ -431,8 +438,8 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header (no sticky, se desplaza con el scroll) */}
-            <GuideHeader 
-                guide={data.guide} 
+            <GuideHeader
+                guide={data.guide}
                 onMenuClick={() => setIsMobileMenuOpen(true)}
                 guestName={booking?.persons ? `${booking.persons.first_name} ${booking.persons.last_name}`.trim() : null}
                 checkInDate={booking?.check_in_date || null}

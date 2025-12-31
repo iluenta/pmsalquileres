@@ -23,6 +23,17 @@ import Image from "next/image"
 import type { SalesChannelWithDetails } from "@/types/sales-channels"
 import { useToast } from "@/hooks/use-toast"
 import { SalesChannelCard } from "./SalesChannelCard"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface SalesChannelsTableProps {
   channels: SalesChannelWithDetails[]
@@ -37,10 +48,6 @@ export function SalesChannelsTable({ channels }: SalesChannelsTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar este canal de venta?")) {
-      return
-    }
-
     setDeletingId(id)
     try {
       const response = await fetch(`/api/sales-channels/${id}`, {
@@ -166,11 +173,10 @@ export function SalesChannelsTable({ channels }: SalesChannelsTableProps) {
                   </TableCell>
                   <TableCell>
                     <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        channel.is_active
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${channel.is_active
                           ? "bg-green-100 text-green-800"
                           : "bg-gray-100 text-gray-800"
-                      }`}
+                        }`}
                     >
                       {channel.is_active ? "Activo" : "Inactivo"}
                     </span>
@@ -189,14 +195,34 @@ export function SalesChannelsTable({ channels }: SalesChannelsTableProps) {
                             Editar
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(channel.id)}
-                          disabled={deletingId === channel.id}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          {deletingId === channel.id ? "Eliminando..." : "Eliminar"}
-                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem
+                              onSelect={(e) => e.preventDefault()}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará de forma permanente el canal de venta "{channel.person.full_name}".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(channel.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                {deletingId === channel.id ? "Eliminando..." : "Eliminar"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

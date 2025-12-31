@@ -198,6 +198,12 @@ export async function getCompleteGuideData(propertyId: string) {
     console.log('[v0] Property ID type:', typeof propertyId)
     console.log('[v0] Property ID length:', propertyId?.length)
 
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(propertyId)
+    if (!isUUID) {
+      console.log('[v0] Property ID is not a UUID, likely a slug. Skipping private fetch.')
+      return null
+    }
+
     const supabase = getSupabaseBrowserClient()
     if (!supabase) {
       console.error('[v0] No Supabase client available')
@@ -218,9 +224,15 @@ export async function getCompleteGuideData(propertyId: string) {
       .maybeSingle()
 
     if (errorWithAll) {
-      // Si el error es por columnas que no existen, intentar sin ellas
-      if (errorWithAll.message?.includes('slug') || errorWithAll.message?.includes('latitude') || errorWithAll.message?.includes('longitude') || errorWithAll.code === '42703') {
-        console.log('[v0] Some columns not found, trying with basic fields')
+      // Si el error es por columnas que no existen o error de sintaxis de UUID (aunque ya lo validamos), intentar sin ellas
+      // Códigos: 42703 (undefined_column), 22P02 (invalid_text_representation)
+      if (errorWithAll.message?.includes('slug') ||
+        errorWithAll.message?.includes('latitude') ||
+        errorWithAll.message?.includes('longitude') ||
+        errorWithAll.code === '42703' ||
+        errorWithAll.code === '22P02') {
+
+        console.log('[v0] Expected issue during initial fetch, trying with basic fields. Code:', errorWithAll.code)
 
         // Intentar sin slug ni coordenadas
         const { data: propertyBasic, error: errorBasic } = await supabase
@@ -230,15 +242,21 @@ export async function getCompleteGuideData(propertyId: string) {
           .maybeSingle()
 
         if (errorBasic) {
-          propertyError = errorBasic
+          // Si falla incluso el básico, solo entonces marcamos propertyError si no es un 42501 (RLS)
+          if (errorBasic.code !== '42501') {
+            propertyError = errorBasic
+          }
         } else {
           property = propertyBasic
-          // Añadir campos opcionales como null si no existen
-          property.slug = property.slug || null
-          property.latitude = property.latitude || null
-          property.longitude = property.longitude || null
+          if (property) {
+            // Añadir campos opcionales como null si no existen
+            property.slug = property.slug || null
+            property.latitude = property.latitude || null
+            property.longitude = property.longitude || null
+          }
         }
-      } else {
+      } else if (errorWithAll.code !== '42501') {
+        // Ignorar errores de RLS (42501) ya que son esperados para guests
         propertyError = errorWithAll
       }
     } else {
@@ -495,9 +513,15 @@ export async function getGuidePlacesClient(guideId: string): Promise<GuidePlace[
 export async function createGuidePlaceClient(data: CreateGuidePlaceData): Promise<GuidePlace | null> {
   const supabase = getSupabaseBrowserClient()
 
+  const tenantId = await getCurrentUserTenantId()
+  if (!tenantId) {
+    return null
+  }
+
   const { data: result, error } = await supabase
     .from("guide_places")
     .insert({
+      tenant_id: tenantId,
       guide_id: data.guide_id,
       name: data.name,
       description: data.description,
@@ -730,7 +754,7 @@ export async function getGuideContactInfoClient(guideId: string): Promise<GuideC
     .from("guide_contact_info")
     .select("*")
     .eq("guide_id", guideId)
-    .single()
+    .maybeSingle()
 
   if (error) {
     console.error("[v0] Error fetching guide contact info:", error)
@@ -743,9 +767,15 @@ export async function getGuideContactInfoClient(guideId: string): Promise<GuideC
 export async function createGuideContactInfoClient(data: CreateContactInfoData): Promise<GuideContactInfo | null> {
   const supabase = getSupabaseBrowserClient()
 
+  const tenantId = await getCurrentUserTenantId()
+  if (!tenantId) {
+    return null
+  }
+
   const { data: result, error } = await supabase
     .from("guide_contact_info")
     .insert({
+      tenant_id: tenantId,
       guide_id: data.guide_id,
       host_names: data.host_names,
       phone: data.phone,
@@ -815,9 +845,15 @@ export async function getPracticalInfoClient(guideId: string): Promise<Practical
 export async function createPracticalInfoClient(data: CreatePracticalInfoData): Promise<PracticalInfo | null> {
   const supabase = getSupabaseBrowserClient()
 
+  const tenantId = await getCurrentUserTenantId()
+  if (!tenantId) {
+    return null
+  }
+
   const { data: result, error } = await supabase
     .from("practical_info")
     .insert({
+      tenant_id: tenantId,
       guide_id: data.guide_id,
       category: data.category,
       title: data.title,

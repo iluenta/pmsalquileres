@@ -1,21 +1,24 @@
 "use client"
 
 import { useState } from "react"
-import type { Activity } from "@/types/guides"
+import type { Activity, GuideSection } from "@/types/guides"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Mountain, Clock, MapPin, Star, ExternalLink, ChevronDown, ChevronUp } from "lucide-react"
+import { Mountain, Clock, MapPin, Star, ExternalLink, ChevronDown, ChevronUp, Phone } from "lucide-react"
 import { DistanceDisplay } from "./DistanceDisplay"
+import { getIconByName } from "@/lib/utils/icon-registry"
 
 interface ActivitiesSectionProps {
     activities: Activity[]
+    introSection?: GuideSection
 }
 
 function ActivityCard({ activity }: { activity: Activity }) {
-    const [isExpanded, setIsExpanded] = useState(false)
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
+    const [isScheduleExpanded, setIsScheduleExpanded] = useState(false)
     const description = activity.description || ""
-    const shouldShowToggle = description.length > 150
+    const shouldShowToggle = description.length > 100
 
     return (
         <Card className="overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col h-full">
@@ -27,10 +30,17 @@ function ActivityCard({ activity }: { activity: Activity }) {
                         <Mountain className="h-16 w-16 text-green-200" />
                     </div>
                 )}
-                {activity.activity_type && (
+                {(activity.badge || activity.activity_type) && (
                     <div className="absolute top-3 left-3">
                         <Badge className="bg-green-600 hover:bg-green-700">
-                            {activity.activity_type}
+                            {activity.badge || activity.activity_type}
+                        </Badge>
+                    </div>
+                )}
+                {activity.price_range && (
+                    <div className="absolute top-3 right-3">
+                        <Badge variant="secondary" className="bg-white/90 text-green-700 border-green-100 backdrop-blur-sm">
+                            {activity.price_range}
                         </Badge>
                     </div>
                 )}
@@ -49,39 +59,65 @@ function ActivityCard({ activity }: { activity: Activity }) {
 
                 <DistanceDisplay walkingTime={activity.walking_time} drivingTime={activity.driving_time} />
 
-                <div className="flex items-center justify-end text-sm text-gray-500 mb-3">
-                    {activity.price_range && (
-                        <div className="flex items-center text-green-600 font-medium">
-                            <span className="text-xs bg-green-50 px-2 py-0.5 rounded border border-green-100">
-                                {activity.price_range}
-                            </span>
-                        </div>
-                    )}
-                </div>
-
                 {activity.address && (
                     <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.address)}`}
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(activity.address)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-gray-500 text-xs mb-2 flex items-start hover:text-blue-600 transition-colors"
+                        className="text-gray-500 text-xs mt-2 mb-2 flex items-start hover:text-blue-600 transition-colors"
                     >
                         <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
                         <span className="line-clamp-2">{activity.address}</span>
                     </a>
                 )}
 
+                {activity.phone && (
+                    <a
+                        href={`tel:${activity.phone.replace(/\s+/g, '')}`}
+                        className="text-gray-500 text-xs mb-2 flex items-center hover:text-blue-600 transition-colors"
+                    >
+                        <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span>{activity.phone}</span>
+                    </a>
+                )}
+
+                {activity.opening_hours?.weekday_text && (
+                    <div className="text-gray-500 text-xs mb-3 flex items-start gap-1">
+                        <Clock className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setIsScheduleExpanded(!isScheduleExpanded);
+                                }}
+                                className="hover:text-blue-600 transition-colors text-left flex items-center gap-1"
+                            >
+                                <span>Ver horarios</span>
+                                {isScheduleExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            </button>
+                            {isScheduleExpanded && (
+                                <div className="mt-1 space-y-0.5 border-l border-gray-100 pl-2 py-1">
+                                    {activity.opening_hours.weekday_text.map((text: string, i: number) => (
+                                        <p key={i} className="text-[10px] whitespace-nowrap">{text}</p>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {description && (
                     <div className="mb-4 flex-grow">
-                        <p className={`text-gray-600 text-sm ${isExpanded ? '' : 'line-clamp-3'}`}>
+                        <p className={`text-gray-600 text-sm ${isDescriptionExpanded ? '' : 'line-clamp-3'}`}>
                             {description}
                         </p>
                         {shouldShowToggle && (
                             <button
-                                onClick={() => setIsExpanded(!isExpanded)}
+                                onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
                                 className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
                             >
-                                {isExpanded ? (
+                                {isDescriptionExpanded ? (
                                     <>
                                         <ChevronUp className="h-3 w-3" />
                                         Ver menos
@@ -129,15 +165,22 @@ function ActivityCard({ activity }: { activity: Activity }) {
     )
 }
 
-export function ActivitiesSection({ activities }: ActivitiesSectionProps) {
+export function ActivitiesSection({ activities, introSection }: ActivitiesSectionProps) {
     return (
         <div className="max-w-6xl mx-auto">
             <div className="text-center mb-10">
-                <div className="inline-flex items-center justify-center p-3 bg-green-100 rounded-full mb-4">
-                    <Mountain className="h-8 w-8 text-green-600" />
-                </div>
-                <h2 className="text-3xl font-bold text-gray-900">Actividades</h2>
-                <p className="text-gray-600 mt-2">Experiencias inolvidables cerca de ti</p>
+                {(() => {
+                    const Icon = getIconByName(introSection?.icon, Mountain)
+                    return (
+                        <div className="inline-flex items-center justify-center p-3 bg-green-100 rounded-full mb-4">
+                            <Icon className="h-8 w-8 text-green-600" />
+                        </div>
+                    )
+                })()}
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Actividades"}</h2>
+                <p className="text-gray-600 mt-2">
+                    {introSection?.content || "Experiencias inolvidables cerca de ti"}
+                </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

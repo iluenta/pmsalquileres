@@ -10,6 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Star, Check, X } from "lucide-react"
 import type { PropertyReview } from "@/types/property-reviews"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface ReviewsManagerProps {
   propertyId: string
@@ -33,6 +45,7 @@ export function ReviewsManager({ propertyId }: ReviewsManagerProps) {
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [filterApproved, setFilterApproved] = useState<boolean | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     loadReviews()
@@ -105,6 +118,10 @@ export function ReviewsManager({ propertyId }: ReviewsManagerProps) {
         if (response.ok) {
           const newReview = await response.json()
           setReviews([...reviews, newReview])
+          toast({
+            title: "Reseña guardada",
+            description: "La reseña ha sido creada correctamente.",
+          })
         }
       } else {
         const response = await fetch(`/api/properties/${propertyId}/reviews/${editingReview.id}`, {
@@ -115,6 +132,10 @@ export function ReviewsManager({ propertyId }: ReviewsManagerProps) {
         if (response.ok) {
           const updatedReview = await response.json()
           setReviews(reviews.map(r => r.id === editingReview.id ? updatedReview : r))
+          toast({
+            title: "Reseña actualizada",
+            description: "La reseña ha sido actualizada correctamente.",
+          })
         }
       }
       setEditingReview(null)
@@ -125,17 +146,26 @@ export function ReviewsManager({ propertyId }: ReviewsManagerProps) {
   }
 
   const handleDelete = async (reviewId: string) => {
-    if (confirm("¿Estás seguro de que quieres eliminar esta reseña?")) {
-      try {
-        const response = await fetch(`/api/properties/${propertyId}/reviews/${reviewId}`, {
-          method: 'DELETE',
+    try {
+      const response = await fetch(`/api/properties/${propertyId}/reviews/${reviewId}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        setReviews(reviews.filter(r => r.id !== reviewId))
+        toast({
+          title: "Reseña eliminada",
+          description: "La reseña ha sido eliminada correctamente.",
         })
-        if (response.ok) {
-          setReviews(reviews.filter(r => r.id !== reviewId))
-        }
-      } catch (error) {
-        console.error('Error deleting review:', error)
+      } else {
+        throw new Error("Failed to delete review")
       }
+    } catch (error) {
+      console.error('Error deleting review:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la reseña.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -149,6 +179,10 @@ export function ReviewsManager({ propertyId }: ReviewsManagerProps) {
       if (response.ok) {
         const updatedReview = await response.json()
         setReviews(reviews.map(r => r.id === reviewId ? updatedReview : r))
+        toast({
+          title: "Reseña aprobada",
+          description: "La reseña ahora es visible públicamente.",
+        })
       }
     } catch (error) {
       console.error('Error approving review:', error)
@@ -165,14 +199,18 @@ export function ReviewsManager({ propertyId }: ReviewsManagerProps) {
       if (response.ok) {
         const updatedReview = await response.json()
         setReviews(reviews.map(r => r.id === reviewId ? updatedReview : r))
+        toast({
+          title: "Reseña rechazada",
+          description: "La reseña ya no será visible públicamente.",
+        })
       }
     } catch (error) {
       console.error('Error rejecting review:', error)
     }
   }
 
-  const filteredReviews = filterApproved === null 
-    ? reviews 
+  const filteredReviews = filterApproved === null
+    ? reviews
     : reviews.filter(r => filterApproved ? r.is_approved : !r.is_approved)
 
   const averageRating = reviews.filter(r => r.is_approved).length > 0
@@ -204,7 +242,7 @@ export function ReviewsManager({ propertyId }: ReviewsManagerProps) {
               )}
             </CardTitle>
             <div className="flex gap-2">
-              <Select value={filterApproved === null ? "all" : filterApproved ? "approved" : "pending"} 
+              <Select value={filterApproved === null ? "all" : filterApproved ? "approved" : "pending"}
                 onValueChange={(v) => setFilterApproved(v === "all" ? null : v === "approved")}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue />
@@ -238,11 +276,10 @@ export function ReviewsManager({ propertyId }: ReviewsManagerProps) {
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`w-4 h-4 ${
-                                i < review.rating
-                                  ? "fill-yellow-400 text-yellow-400"
-                                  : "text-gray-300"
-                              }`}
+                              className={`w-4 h-4 ${i < review.rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-gray-300"
+                                }`}
                             />
                           ))}
                         </div>
@@ -280,9 +317,30 @@ export function ReviewsManager({ propertyId }: ReviewsManagerProps) {
                       <Button size="sm" variant="outline" onClick={() => handleEdit(review)}>
                         Editar
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(review.id)}>
-                        Eliminar
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="destructive">
+                            Eliminar
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción eliminará de forma permanente esta reseña.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(review.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>

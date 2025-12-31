@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import Link from "next/link"
 import { useGuideData } from "@/hooks/useGuideData"
 import { BeachesEditForm } from "@/components/admin/BeachesEditForm"
 import { RestaurantsEditForm } from "@/components/admin/RestaurantsEditForm"
@@ -13,6 +14,8 @@ import { HouseRulesManager } from "@/components/admin/HouseRulesManager"
 import { HouseGuideManager } from "@/components/admin/HouseGuideManager"
 import { TipsManager } from "@/components/admin/TipsManager"
 import { ApartmentSectionsManager } from "@/components/admin/ApartmentSectionsManager"
+import { IconSelector } from "@/components/admin/IconSelector"
+import { getIconByName } from "@/lib/utils/icon-registry"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -21,7 +24,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import type { Guide, GuideSection } from "@/types/guides"
 
 interface PropertyGuideManagerProps {
@@ -47,7 +61,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
   const [showAddSection, setShowAddSection] = useState(false)
   const [editingSection, setEditingSection] = useState<GuideSection | null>(null)
   const [newSection, setNewSection] = useState<{
-    section_type: "apartment" | "rules" | "house_guide" | "tips" | "contact"
+    section_type: "apartment" | "rules" | "house_guide" | "tips" | "contact" | "beaches" | "restaurants" | "shopping" | "activities"
     title: string
     content: string
     icon: string
@@ -55,8 +69,9 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
     section_type: "apartment",
     title: "",
     content: "",
-    icon: "fas fa-home"
+    icon: "Home"
   })
+  const { toast } = useToast()
   const isInitialLoad = useRef(true)
 
   const { data, loading, error, refetch } = useGuideData(propertyId)
@@ -96,10 +111,32 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
   // Funciones para verificar si existe una sección de cada tipo
   const hasSectionType = (type: string) => {
-    if (type === 'apartment') {
-      return data?.apartment_sections && data.apartment_sections.length > 0
+    // Si existe la sección general, la pestaña debe estar activa
+    if (sections.some(section => section.section_type === type)) {
+      return true
     }
-    return sections.some(section => section.section_type === type)
+
+    // Si no hay sección general, verificar si hay datos específicos en las tablas vinculadas
+    switch (type) {
+      case 'apartment':
+        return !!(data?.apartment_sections && data.apartment_sections.length > 0)
+      case 'rules':
+        return !!(data?.house_rules && data.house_rules.length > 0)
+      case 'house_guide':
+        return !!(data?.house_guide_items && data.house_guide_items.length > 0)
+      case 'tips':
+        return !!(data?.tips && data.tips.length > 0)
+      case 'contact':
+        return !!data?.contact_info
+      case 'beaches':
+      case 'restaurants':
+      case 'shopping':
+      case 'activities':
+        // Estas secciones solo se activan si se ha creado la sección correspondiente
+        return sections.some(section => section.section_type === type)
+      default:
+        return false
+    }
   }
 
   const getSectionByType = (type: string): GuideSection | null => {
@@ -108,7 +145,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
   const handleSectionChange = async (updatedSection: GuideSection) => {
     if (!data?.guide?.id) return
-    
+
     try {
       if (updatedSection.id) {
         // Actualizar sección existente
@@ -117,10 +154,10 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
           content: updatedSection.content,
           icon: updatedSection.icon
         })
-        
+
         if (result) {
-          setSections(prevSections => 
-            prevSections.map(section => 
+          setSections(prevSections =>
+            prevSections.map(section =>
               section.id === updatedSection.id ? { ...section, ...updatedSection } : section
             )
           )
@@ -135,7 +172,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
           icon: updatedSection.icon,
           order_index: sections.length + 1
         })
-        
+
         if (result) {
           setSections(prevSections => [...prevSections, result])
         }
@@ -147,43 +184,43 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
   const handleAddSection = async () => {
     if (!data?.guide?.id) return
-    
+
     // Si estamos editando, usar la función de actualización
     if (editingSection) {
       await handleUpdateSection()
       return
     }
-    
+
     try {
       console.log('Creating new section:', newSection)
-      
+
       const sectionData = {
         guide_id: data.guide.id,
         section_type: newSection.section_type,
         title: newSection.title,
         content: newSection.content,
-        icon: newSection.icon || "fas fa-home",
+        icon: newSection.icon || "Home",
         order_index: sections.length,
         is_active: true,
       }
-      
+
       const createdSection = await createGuideSection(sectionData)
-      
+
       if (createdSection) {
         console.log('Section created successfully:', createdSection)
-        
+
         setSections(prevSections => {
           const newSections = [...prevSections, createdSection]
           console.log('Previous sections:', prevSections)
           console.log('New sections after adding:', newSections)
           return newSections
         })
-        
+
         setNewSection({
           section_type: "apartment",
           title: "",
           content: "",
-          icon: "",
+          icon: "Home",
         })
         setShowAddSection(false)
       }
@@ -198,38 +235,39 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
       section_type: section.section_type,
       title: section.title || "",
       content: section.content || "",
-      icon: section.icon || "fas fa-home"
+      icon: section.icon || "Info"
     })
     setShowAddSection(true)
   }
 
   const handleUpdateSection = async () => {
     if (!editingSection) return
-    
+
     try {
       console.log('Updating section:', editingSection.id, newSection)
-      
+
       const updatedSection = await updateGuideSection(editingSection.id, {
         section_type: newSection.section_type,
         title: newSection.title,
         content: newSection.content,
+        icon: newSection.icon,
       })
-      
+
       if (updatedSection) {
         console.log('Section updated successfully:', updatedSection)
-        
-        setSections(prevSections => 
-          prevSections.map(section => 
+
+        setSections(prevSections =>
+          prevSections.map(section =>
             section.id === editingSection.id ? updatedSection : section
           )
         )
-        
+
         setEditingSection(null)
         setNewSection({
           section_type: "apartment",
           title: "",
           content: "",
-          icon: "",
+          icon: "Home",
         })
         setShowAddSection(false)
       }
@@ -239,27 +277,34 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
   }
 
   const handleDeleteSection = async (sectionId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta sección?')) return
-    
     try {
       console.log('Deleting section:', sectionId)
-      
+
       await deleteGuideSection(sectionId)
-      
-      setSections(prevSections => 
+
+      setSections(prevSections =>
         prevSections.filter(section => section.id !== sectionId)
       )
+      toast({
+        title: "Sección eliminada",
+        description: "La sección ha sido eliminada correctamente.",
+      })
     } catch (error) {
       console.error('Error deleting section:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la sección.",
+        variant: "destructive",
+      })
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
       console.log("Saving guide:", formData)
-      
+
       if (data?.guide?.id) {
         // Actualizar guía existente
         const updatedGuide = await updateGuide(data.guide.id, {
@@ -271,10 +316,13 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
           latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
           longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
         })
-        
+
         if (updatedGuide) {
           console.log("Guide updated successfully:", updatedGuide)
-          alert("Guía actualizada correctamente")
+          toast({
+            title: "Guía actualizada",
+            description: "La guía ha sido actualizada correctamente.",
+          })
           refetch()
         } else {
           throw new Error("No se pudo actualizar la guía")
@@ -291,10 +339,13 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
           latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
           longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
         })
-        
+
         if (newGuide) {
           console.log("Guide created successfully:", newGuide)
-          alert("Guía creada correctamente")
+          toast({
+            title: "Guía creada",
+            description: "La guía ha sido creada correctamente.",
+          })
           refetch()
         } else {
           throw new Error("No se pudo crear la guía")
@@ -302,7 +353,11 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
       }
     } catch (error) {
       console.error("Error saving guide:", error)
-      alert("Error al guardar la guía: " + (error instanceof Error ? error.message : 'Error desconocido'))
+      toast({
+        title: "Error al guardar",
+        description: error instanceof Error ? error.message : 'Error desconocido al guardar la guía.',
+        variant: "destructive",
+      })
     }
   }
 
@@ -429,51 +484,67 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
               <TabsTrigger value="guide" className="text-xs">
                 Guía
               </TabsTrigger>
-              <TabsTrigger 
-                value="apartment" 
+              <TabsTrigger
+                value="apartment"
                 className="text-xs"
                 disabled={!hasSectionType('apartment')}
               >
                 Apartamento
               </TabsTrigger>
-              <TabsTrigger 
-                value="rules" 
+              <TabsTrigger
+                value="rules"
                 className="text-xs"
                 disabled={!hasSectionType('rules')}
               >
                 Normas
               </TabsTrigger>
-              <TabsTrigger 
-                value="house_guide" 
+              <TabsTrigger
+                value="house_guide"
                 className="text-xs"
                 disabled={!hasSectionType('house_guide')}
               >
                 Guía Casa
               </TabsTrigger>
-              <TabsTrigger 
-                value="tips" 
+              <TabsTrigger
+                value="tips"
                 className="text-xs"
                 disabled={!hasSectionType('tips')}
               >
                 Consejos
               </TabsTrigger>
-              <TabsTrigger 
-                value="contact" 
+              <TabsTrigger
+                value="contact"
                 className="text-xs"
                 disabled={!hasSectionType('contact')}
               >
                 Contacto
               </TabsTrigger>
-              <TabsTrigger value="beaches" className="text-xs">
+              <TabsTrigger
+                value="beaches"
+                className="text-xs"
+                disabled={!hasSectionType('beaches')}
+              >
                 Playas
               </TabsTrigger>
-              <TabsTrigger value="restaurants" className="text-xs">
+              <TabsTrigger
+                value="restaurants"
+                className="text-xs"
+                disabled={!hasSectionType('restaurants')}
+              >
                 Restaurantes
               </TabsTrigger>
-              <TabsTrigger value="shopping" className="text-xs">
+              <TabsTrigger
+                value="shopping"
+                className="text-xs"
+                disabled={!hasSectionType('shopping')}
+              >
                 Compras
               </TabsTrigger>
-              <TabsTrigger value="activities" className="text-xs">
+              <TabsTrigger
+                value="activities"
+                className="text-xs"
+                disabled={!hasSectionType('activities')}
+              >
                 Actividades
               </TabsTrigger>
             </TabsList>
@@ -607,7 +678,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                       <p className="text-sm text-gray-600">
                         Agrega las coordenadas de la propiedad para mostrar información meteorológica en la guía pública.
                       </p>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="latitude">Latitud</Label>
@@ -643,7 +714,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                       <div className="bg-blue-50 p-3 rounded-lg">
                         <p className="text-sm text-blue-700">
                           <i className="fas fa-info-circle mr-2"></i>
-                          <strong>Consejo:</strong> Puedes obtener las coordenadas exactas usando Google Maps. 
+                          <strong>Consejo:</strong> Puedes obtener las coordenadas exactas usando Google Maps.
                           Busca tu dirección y haz clic derecho → "¿Qué hay aquí?" para obtener las coordenadas.
                         </p>
                       </div>
@@ -677,7 +748,10 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <i className={`${section.icon || 'fas fa-info-circle'} text-blue-600`}></i>
+                              {(() => {
+                                const Icon = getIconByName(section.icon)
+                                return <Icon className="h-5 w-5 text-blue-600" />
+                              })()}
                             </div>
                             <div className="flex-1 min-w-0">
                               <h4 className="font-medium truncate">{section.title}</h4>
@@ -685,8 +759,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                             </div>
                           </div>
                           <div className="flex gap-2 flex-shrink-0">
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               variant="outline"
                               onClick={() => handleEditSection(section)}
                               className="flex-1 md:flex-initial"
@@ -694,28 +768,48 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                               <i className="fas fa-edit mr-2"></i>
                               Editar
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => handleDeleteSection(section.id)}
-                              className="flex-shrink-0"
-                            >
-                              <i className="fas fa-trash"></i>
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="flex-shrink-0"
+                                >
+                                  <i className="fas fa-trash"></i>
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta acción eliminará de forma permanente la sección "{section.title}".
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteSection(section.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Eliminar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                         <p className="text-sm text-gray-600 break-words">{section.content}</p>
                       </div>
                     ))}
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full bg-transparent"
                       onClick={() => setShowAddSection(true)}
                     >
                       <i className="fas fa-plus mr-2"></i>
                       Agregar Nueva Sección
                     </Button>
-                    
+
                     {showAddSection && (
                       <div className="mt-4 p-4 border rounded-lg bg-gray-50">
                         <h4 className="font-semibold mb-3">
@@ -734,20 +828,21 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                               <option value="rules">Normas</option>
                               <option value="house_guide">Guía de la Casa</option>
                               <option value="tips">Consejos</option>
+                              <option value="beaches">Playas</option>
+                              <option value="restaurants">Restaurantes</option>
+                              <option value="shopping">Compras</option>
+                              <option value="activities">Actividades</option>
                               <option value="contact">Contacto</option>
                             </select>
                           </div>
-                          
+
                           <div>
-                            <Label htmlFor="section_icon">Icono (Font Awesome)</Label>
-                            <Input
-                              id="section_icon"
+                            <IconSelector
                               value={newSection.icon}
-                              onChange={(e) => setNewSection({ ...newSection, icon: e.target.value })}
-                              placeholder="fas fa-home"
+                              onChange={(icon) => setNewSection({ ...newSection, icon })}
                             />
                           </div>
-                          
+
                           <div>
                             <Label htmlFor="section_title">Título</Label>
                             <Input
@@ -757,7 +852,7 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                               placeholder="Título de la sección"
                             />
                           </div>
-                          
+
                           <div>
                             <Label htmlFor="section_content">Contenido</Label>
                             <Textarea
@@ -768,19 +863,19 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
                               rows={4}
                             />
                           </div>
-                          
+
                           <div className="flex flex-col md:flex-row gap-2">
                             <Button onClick={handleAddSection} size="sm" className="w-full md:w-auto">
                               <i className="fas fa-save mr-2"></i>
                               {editingSection ? 'Actualizar Sección' : 'Guardar Sección'}
                             </Button>
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => {
                                 setShowAddSection(false)
                                 setEditingSection(null)
-                                setNewSection({ section_type: "apartment", title: "", content: "", icon: "fas fa-home" })
+                                setNewSection({ section_type: "apartment", title: "", content: "", icon: "Home" })
                               }}
                               className="w-full md:w-auto"
                             >
@@ -800,11 +895,11 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
           <TabsContent value="apartment">
             <div className="space-y-6">
               {data?.guide?.id && (
-                <ApartmentSectionsManager 
+                <ApartmentSectionsManager
                   guideId={data.guide.id}
                   propertyId={propertyId}
                   apartmentSections={data.apartment_sections || []}
-                  onDataChange={refetch} 
+                  onDataChange={refetch}
                 />
               )}
             </div>
@@ -849,9 +944,9 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
           <TabsContent value="beaches">
             {data?.guide?.id ? (
-              <BeachesEditForm 
-                beaches={beaches} 
-                guideId={data.guide.id} 
+              <BeachesEditForm
+                beaches={beaches}
+                guideId={data.guide.id}
                 onBeachesChange={setBeaches}
                 propertyLatitude={data.property?.latitude ?? data.guide.latitude ?? null}
                 propertyLongitude={data.property?.longitude ?? data.guide.longitude ?? null}
@@ -868,9 +963,9 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
           <TabsContent value="restaurants">
             {data?.guide?.id ? (
-              <RestaurantsEditForm 
-                restaurants={restaurants} 
-                guideId={data.guide.id} 
+              <RestaurantsEditForm
+                restaurants={restaurants}
+                guideId={data.guide.id}
                 onRestaurantsChange={setRestaurants}
                 propertyLatitude={data.property?.latitude ?? data.guide.latitude ?? null}
                 propertyLongitude={data.property?.longitude ?? data.guide.longitude ?? null}
@@ -887,9 +982,9 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
           <TabsContent value="shopping">
             {data?.guide?.id ? (
-              <ShoppingEditForm 
-                shopping={shopping} 
-                guideId={data.guide.id} 
+              <ShoppingEditForm
+                shopping={shopping}
+                guideId={data.guide.id}
                 onShoppingChange={setShopping}
                 propertyLatitude={data.property?.latitude ?? data.guide.latitude ?? null}
                 propertyLongitude={data.property?.longitude ?? data.guide.longitude ?? null}
@@ -906,9 +1001,9 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
           <TabsContent value="activities">
             {data?.guide?.id ? (
-              <ActivitiesEditForm 
-                activities={activities} 
-                guideId={data.guide.id} 
+              <ActivitiesEditForm
+                activities={activities}
+                guideId={data.guide.id}
                 onActivitiesChange={setActivities}
                 propertyLatitude={data.property?.latitude ?? data.guide.latitude ?? null}
                 propertyLongitude={data.property?.longitude ?? data.guide.longitude ?? null}

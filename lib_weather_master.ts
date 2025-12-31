@@ -1,20 +1,20 @@
-import {
-  WeatherData,
-  CurrentWeather,
-  WeatherForecast,
-  GoogleWeatherCurrentResponse,
+﻿import { 
+  WeatherData, 
+  CurrentWeather, 
+  WeatherForecast, 
+  GoogleWeatherCurrentResponse, 
   GoogleWeatherForecastResponse,
-  WeatherError
+  WeatherError 
 } from '@/types/weather';
 
 const GOOGLE_WEATHER_BASE_URL = 'https://weather.googleapis.com/v1';
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_WEATHER_API_KEY;
 
 if (!API_KEY) {
-  console.error('NEXT_PUBLIC_GOOGLE_WEATHER_API_KEY no está configurada en .env.local');
+  console.error('NEXT_PUBLIC_GOOGLE_WEATHER_API_KEY no est├í configurada en .env.local');
 }
 
-// Función para convertir timestamp a hora legible
+// Funci├│n para convertir timestamp a hora legible
 function formatTime(timestamp: string): string {
   try {
     const date = new Date(timestamp);
@@ -29,7 +29,7 @@ function formatTime(timestamp: string): string {
   }
 }
 
-// Función para convertir timestamp a fecha legible
+// Funci├│n para convertir timestamp a fecha legible
 function formatDate(timestamp: string): string {
   try {
     const date = new Date(timestamp);
@@ -40,22 +40,22 @@ function formatDate(timestamp: string): string {
     });
   } catch (error) {
     console.error('[Google Weather] Error formatting date:', error);
-    return 'Fecha inválida';
+    return 'Fecha inv├ílida';
   }
 }
 
-// Función para obtener dirección del viento
+// Funci├│n para obtener direcci├│n del viento
 function getWindDirection(degrees: number): string {
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO'];
   const index = Math.round(degrees / 22.5) % 16;
   return directions[index];
 }
 
-// Función para convertir código de clima de Google a descripción legible
+// Funci├│n para convertir c├│digo de clima de Google a descripci├│n legible
 function getWeatherDescription(weatherCode: string): { condition: string; description: string; icon: string } {
-  // Normalizar el código a mayúsculas y limpiar espacios
+  // Normalizar el c├│digo a may├║sculas y limpiar espacios
   const normalizedCode = (weatherCode || '').toUpperCase().trim();
-
+  
   const weatherMap: { [key: string]: { condition: string; description: string; icon: string } } = {
     'CLEAR': { condition: 'Despejado', description: 'Cielo despejado', icon: '01d' },
     'MOSTLY_CLEAR': { condition: 'Mayormente despejado', description: 'Mayormente despejado', icon: '02d' },
@@ -77,9 +77,9 @@ function getWeatherDescription(weatherCode: string): { condition: string; descri
     'LIGHT_HAIL': { condition: 'Granizo ligero', description: 'Granizo ligero', icon: '13d' },
     'HAIL': { condition: 'Granizo', description: 'Granizo', icon: '13d' },
     'HEAVY_HAIL': { condition: 'Granizo intenso', description: 'Granizo intenso', icon: '13d' },
-    'THUNDERSTORM': { condition: 'Tormenta', description: 'Tormenta eléctrica', icon: '11d' },
-    'LIGHT_THUNDERSTORM': { condition: 'Tormenta ligera', description: 'Tormenta eléctrica ligera', icon: '11d' },
-    'HEAVY_THUNDERSTORM': { condition: 'Tormenta intensa', description: 'Tormenta eléctrica intensa', icon: '11d' }
+    'THUNDERSTORM': { condition: 'Tormenta', description: 'Tormenta el├®ctrica', icon: '11d' },
+    'LIGHT_THUNDERSTORM': { condition: 'Tormenta ligera', description: 'Tormenta el├®ctrica ligera', icon: '11d' },
+    'HEAVY_THUNDERSTORM': { condition: 'Tormenta intensa', description: 'Tormenta el├®ctrica intensa', icon: '11d' }
   };
 
   // Buscar coincidencia exacta primero
@@ -138,43 +138,43 @@ function getWeatherDescription(weatherCode: string): { condition: string; descri
     return weatherMap['FOG'];
   }
 
-  // Si no se encuentra ninguna coincidencia, usar un fallback más descriptivo
-  console.warn(`[Weather API] Código de clima no reconocido: "${weatherCode}" (normalizado: "${normalizedCode}")`);
-  return { condition: 'Despejado', description: 'Condición del tiempo', icon: '01d' };
+  // Si no se encuentra ninguna coincidencia, usar un fallback m├ís descriptivo
+  console.warn(`[Weather API] C├│digo de clima no reconocido: "${weatherCode}" (normalizado: "${normalizedCode}")`);
+  return { condition: 'Despejado', description: 'Condici├│n del tiempo', icon: '01d' };
 }
 
 // Transformar respuesta de clima actual de Google
 function transformGoogleCurrentWeather(data: any): CurrentWeather {
   console.log('Google Weather API Response:', JSON.stringify(data, null, 2));
 
-  // Extraer datos según la estructura real de Google Weather API
-  // Intentar múltiples rutas posibles para el código del clima
-  const weatherCode =
-    data.weatherCondition?.type ||
+  // Extraer datos seg├║n la estructura real de Google Weather API
+  // Intentar m├║ltiples rutas posibles para el c├│digo del clima
+  const weatherCode = 
+    data.weatherCondition?.type || 
     data.condition?.type ||
     data.weatherCode ||
     data.condition ||
     'CLEAR';
-
-  console.log('[Weather API] Código de clima extraído:', weatherCode);
+  
+  console.log('[Weather API] C├│digo de clima extra├¡do:', weatherCode);
   const weatherInfo = getWeatherDescription(weatherCode);
-  console.log('[Weather API] Información del clima:', weatherInfo);
+  console.log('[Weather API] Informaci├│n del clima:', weatherInfo);
 
-  const temperature = data.temperature?.value ?? data.temperature?.degrees ?? 20;
-  const feelsLike = data.apparentTemperature?.value ?? data.feelsLikeTemperature?.degrees ?? temperature;
-  const humidity = data.humidity?.value ?? data.relativeHumidity ?? 50;
-  const pressure = data.pressure?.value ?? data.airPressure?.meanSeaLevelMillibars ?? 1013;
-  const windSpeed = data.windSpeed?.value ?? data.wind?.speed?.value ?? 0;
-  const windDirection = data.windDirection?.value ?? data.wind?.direction?.degrees ?? 0;
-  const uvIndex = data.uvIndex?.value ?? data.uvIndex ?? 0;
-  const currentTime = data.updateTime || data.currentTime;
+  const temperature = data.temperature?.degrees || 20;
+  const feelsLike = data.feelsLikeTemperature?.degrees || temperature;
+  const humidity = data.relativeHumidity || 50;
+  const pressure = data.airPressure?.meanSeaLevelMillibars || 1013;
+  const windSpeed = data.wind?.speed?.value || 0;
+  const windDirection = data.wind?.direction?.degrees || 0;
+  const uvIndex = data.uvIndex || 0;
+  const currentTime = data.currentTime;
 
   // Google Weather API v1 currentConditions:lookup no proporciona sunrise/sunset directamente
   // Usaremos placeholders por ahora
-  const sunrise = '--:--';
-  const sunset = '--:--';
+  const sunrise = '--:--'; 
+  const sunset = '--:--'; 
 
-  // Ajustar icono basado en si es de día o de noche
+  // Ajustar icono basado en si es de d├¡a o de noche
   let finalIcon = weatherInfo.icon;
   if (data.isDaytime !== undefined) {
     if (weatherInfo.icon.endsWith('d') && !data.isDaytime) {
@@ -203,11 +203,11 @@ function transformGoogleCurrentWeather(data: any): CurrentWeather {
   };
 }
 
-// Transformar respuesta de pronóstico de Google
+// Transformar respuesta de pron├│stico de Google
 function transformGoogleForecast(data: any): WeatherForecast[] {
   console.log('Google Weather Forecast API Response:', JSON.stringify(data, null, 2));
 
-  // Intentar detectar la colección de días en distintas variantes
+  // Intentar detectar la colecci├│n de d├¡as en distintas variantes
   const days: any[] =
     data?.forecastDays ||
     data?.dailyForecasts ||
@@ -223,10 +223,10 @@ function transformGoogleForecast(data: any): WeatherForecast[] {
   }
 
   return days.slice(0, 5).map((day: any) => {
-    // Preferir pronóstico diurno si está disponible
+    // Preferir pron├│stico diurno si est├í disponible
     const daytime = day?.daytimeForecast || day?.day || null;
 
-    // Código de condición
+    // C├│digo de condici├│n
     const weatherCode =
       daytime?.weatherCondition?.type ||
       day?.weatherCondition?.type ||
@@ -235,7 +235,7 @@ function transformGoogleForecast(data: any): WeatherForecast[] {
       'CLEAR';
     const weatherInfo = getWeatherDescription(weatherCode);
 
-    // Temperaturas máximas y mínimas (diferentes nombres según API)
+    // Temperaturas m├íximas y m├¡nimas (diferentes nombres seg├║n API)
     const maxTempRaw =
       day?.temperatureMax?.degrees ??
       day?.maxTemperature?.degrees ??
@@ -288,7 +288,7 @@ function transformGoogleForecast(data: any): WeatherForecast[] {
 
     return {
       date: typeof dateRaw === 'object' && dateRaw?.year
-        ? formatDate(`${dateRaw.year}-${String(dateRaw.month).padStart(2, '0')}-${String(dateRaw.day).padStart(2, '0')}`)
+        ? formatDate(`${dateRaw.year}-${String(dateRaw.month).padStart(2,'0')}-${String(dateRaw.day).padStart(2,'0')}`)
         : formatDate(String(dateRaw)),
       maxTemp: Math.round(Number(maxTempRaw)),
       minTemp: Math.round(Number(minTempRaw)),
@@ -310,23 +310,23 @@ export async function getCurrentWeather(lat: number, lon: number): Promise<Curre
 
   // Validar coordenadas antes de hacer la llamada
   if (!isValidCoordinates(lat, lon)) {
-    throw new Error('Coordenadas no válidas. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.');
+    throw new Error('Coordenadas no v├ílidas. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.');
   }
 
   // Verificar que no sean coordenadas por defecto (0,0)
   if (lat === 0 && lon === 0) {
-    throw new Error('Las coordenadas de la propiedad no están configuradas. Por favor, configura la ubicación de la propiedad.');
+    throw new Error('Las coordenadas de la propiedad no est├ín configuradas. Por favor, configura la ubicaci├│n de la propiedad.');
   }
 
   try {
     const response = await fetch(
-      `/api/weather?lat=${lat}&lon=${lon}&type=current`
+      `${GOOGLE_WEATHER_BASE_URL}/currentConditions:lookup?key=${API_KEY}&location.latitude=${lat}&location.longitude=${lon}`
     );
 
     if (!response.ok) {
       let errorData: any;
       let errorMessage: string;
-
+      
       try {
         errorData = await response.json();
         errorMessage = errorData.error?.message || errorData.message || response.statusText;
@@ -334,17 +334,17 @@ export async function getCurrentWeather(lat: number, lon: number): Promise<Curre
         // Si no se puede parsear el JSON, usar el status text
         errorMessage = response.statusText || 'Error desconocido de la API';
       }
-
-      // Manejar error específico de ubicación no soportada
-      if (errorMessage.includes('not supported for this location') ||
-        errorMessage.includes('Information is not supported') ||
-        errorMessage.includes('not supported')) {
-        const customError = new Error('La ubicación de la propiedad no está soportada por el servicio de clima. Por favor, verifica las coordenadas de la propiedad.');
+      
+      // Manejar error espec├¡fico de ubicaci├│n no soportada
+      if (errorMessage.includes('not supported for this location') || 
+          errorMessage.includes('Information is not supported') ||
+          errorMessage.includes('not supported')) {
+        const customError = new Error('La ubicaci├│n de la propiedad no est├í soportada por el servicio de clima. Por favor, verifica las coordenadas de la propiedad.');
         // Marcar el error como controlado para evitar stack traces innecesarios
         (customError as any).isControlled = true;
         throw customError;
       }
-
+      
       const apiError = new Error(`Error de Google Weather API: ${errorMessage}`);
       (apiError as any).isControlled = true;
       throw apiError;
@@ -361,7 +361,7 @@ export async function getCurrentWeather(lat: number, lon: number): Promise<Curre
   }
 }
 
-// Obtener pronóstico de 5 días usando Google Weather API
+// Obtener pron├│stico de 5 d├¡as usando Google Weather API
 export async function getWeatherForecast(lat: number, lon: number): Promise<WeatherForecast[]> {
   if (!API_KEY) {
     throw new Error('API key de Google Weather no configurada');
@@ -369,23 +369,23 @@ export async function getWeatherForecast(lat: number, lon: number): Promise<Weat
 
   // Validar coordenadas antes de hacer la llamada
   if (!isValidCoordinates(lat, lon)) {
-    throw new Error('Coordenadas no válidas. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.');
+    throw new Error('Coordenadas no v├ílidas. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.');
   }
 
   // Verificar que no sean coordenadas por defecto (0,0)
   if (lat === 0 && lon === 0) {
-    throw new Error('Las coordenadas de la propiedad no están configuradas. Por favor, configura la ubicación de la propiedad.');
+    throw new Error('Las coordenadas de la propiedad no est├ín configuradas. Por favor, configura la ubicaci├│n de la propiedad.');
   }
 
   try {
     const response = await fetch(
-      `/api/weather?lat=${lat}&lon=${lon}&type=forecast`
+      `${GOOGLE_WEATHER_BASE_URL}/forecast/days:lookup?key=${API_KEY}&location.latitude=${lat}&location.longitude=${lon}&days=5`
     );
 
     if (!response.ok) {
       let errorData: any;
       let errorMessage: string;
-
+      
       try {
         errorData = await response.json();
         errorMessage = errorData.error?.message || errorData.message || response.statusText;
@@ -393,17 +393,17 @@ export async function getWeatherForecast(lat: number, lon: number): Promise<Weat
         // Si no se puede parsear el JSON, usar el status text
         errorMessage = response.statusText || 'Error desconocido de la API';
       }
-
-      // Manejar error específico de ubicación no soportada
-      if (errorMessage.includes('not supported for this location') ||
-        errorMessage.includes('Information is not supported') ||
-        errorMessage.includes('not supported')) {
-        const customError = new Error('La ubicación de la propiedad no está soportada por el servicio de clima. Por favor, verifica las coordenadas de la propiedad.');
+      
+      // Manejar error espec├¡fico de ubicaci├│n no soportada
+      if (errorMessage.includes('not supported for this location') || 
+          errorMessage.includes('Information is not supported') ||
+          errorMessage.includes('not supported')) {
+        const customError = new Error('La ubicaci├│n de la propiedad no est├í soportada por el servicio de clima. Por favor, verifica las coordenadas de la propiedad.');
         // Marcar el error como controlado para evitar stack traces innecesarios
         (customError as any).isControlled = true;
         throw customError;
       }
-
+      
       const apiError = new Error(`Error de Google Weather API: ${errorMessage}`);
       (apiError as any).isControlled = true;
       throw apiError;
@@ -414,103 +414,103 @@ export async function getWeatherForecast(lat: number, lon: number): Promise<Weat
   } catch (error) {
     // Solo loggear si no es un error controlado
     if (!(error as any)?.isControlled) {
-      console.error('[Weather API] Error obteniendo pronóstico:', error);
+      console.error('[Weather API] Error obteniendo pron├│stico:', error);
     }
     throw error;
   }
 }
 
-// Obtener datos completos de clima (actual + pronóstico)
+// Obtener datos completos de clima (actual + pron├│stico)
 export async function getWeatherData(lat: number, lon: number): Promise<WeatherData> {
   // Validar coordenadas antes de hacer cualquier llamada
   if (!isValidCoordinates(lat, lon)) {
-    throw new Error('Coordenadas no válidas. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.');
+    throw new Error('Coordenadas no v├ílidas. La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.');
   }
 
   if (lat === 0 && lon === 0) {
-    throw new Error('Las coordenadas de la propiedad no están configuradas. Por favor, configura la ubicación de la propiedad.');
+    throw new Error('Las coordenadas de la propiedad no est├ín configuradas. Por favor, configura la ubicaci├│n de la propiedad.');
   }
 
-  try {
-    // Intentar obtener ambos datos, pero manejar errores de forma independiente
-    let current: CurrentWeather | null = null;
-    let forecast: WeatherForecast[] = [];
-    let errorMessage: string | null = null;
-    let hasLocationError = false;
-
     try {
-      current = await getCurrentWeather(lat, lon);
-    } catch (error) {
-      const err = error instanceof Error ? error.message : 'Error desconocido';
-      const isControlled = (error as any)?.isControlled ||
-        err.includes('no está soportada') ||
-        err.includes('not supported') ||
-        err.includes('no están configuradas') ||
-        err.includes('Coordenadas no válidas');
+      // Intentar obtener ambos datos, pero manejar errores de forma independiente
+      let current: CurrentWeather | null = null;
+      let forecast: WeatherForecast[] = [];
+      let errorMessage: string | null = null;
+      let hasLocationError = false;
 
-      // Solo loggear como warning si es un error controlado, para evitar que Next.js lo trate como error no controlado
-      if (isControlled) {
-        console.warn('[Weather API] Ubicación no soportada para clima actual:', err);
-      } else {
-        console.error('[Weather API] Error obteniendo clima actual:', err);
-      }
-
-      // Detectar si es un error de ubicación no soportada
-      if (err.includes('no está soportada') || err.includes('not supported')) {
-        hasLocationError = true;
-      }
-
-      errorMessage = err;
-      // Si falla el clima actual, intentamos con el pronóstico de todas formas
-    }
-
-    try {
-      forecast = await getWeatherForecast(lat, lon);
-    } catch (error) {
-      const err = error instanceof Error ? error.message : 'Error desconocido';
-      const isControlled = (error as any)?.isControlled ||
-        err.includes('no está soportada') ||
-        err.includes('not supported') ||
-        err.includes('no están configuradas') ||
-        err.includes('Coordenadas no válidas');
-
-      // Solo loggear como warning si es un error controlado, para evitar que Next.js lo trate como error no controlado
-      if (isControlled) {
-        console.warn('[Weather API] Ubicación no soportada para pronóstico:', err);
-      } else {
-        console.error('[Weather API] Error obteniendo pronóstico:', err);
-      }
-
-      // Detectar si es un error de ubicación no soportada
-      if (err.includes('no está soportada') || err.includes('not supported')) {
-        hasLocationError = true;
-      }
-
-      // Si no hay error previo, usar este
-      if (!errorMessage) {
+      try {
+        current = await getCurrentWeather(lat, lon);
+      } catch (error) {
+        const err = error instanceof Error ? error.message : 'Error desconocido';
+        const isControlled = (error as any)?.isControlled || 
+                           err.includes('no est├í soportada') || 
+                           err.includes('not supported') ||
+                           err.includes('no est├ín configuradas') ||
+                           err.includes('Coordenadas no v├ílidas');
+        
+        // Solo loggear como warning si es un error controlado, para evitar que Next.js lo trate como error no controlado
+        if (isControlled) {
+          console.warn('[Weather API] Ubicaci├│n no soportada para clima actual:', err);
+        } else {
+          console.error('[Weather API] Error obteniendo clima actual:', err);
+        }
+        
+        // Detectar si es un error de ubicaci├│n no soportada
+        if (err.includes('no est├í soportada') || err.includes('not supported')) {
+          hasLocationError = true;
+        }
+        
         errorMessage = err;
+        // Si falla el clima actual, intentamos con el pron├│stico de todas formas
       }
-    }
 
-    // Si ambas llamadas fallaron, lanzar el error con mensaje específico
-    if (!current && forecast.length === 0) {
-      const finalMessage = hasLocationError
-        ? 'La ubicación de la propiedad no está soportada por el servicio de clima. Por favor, verifica las coordenadas de la propiedad.'
-        : (errorMessage || 'No se pudo obtener información del clima para esta ubicación.');
+      try {
+        forecast = await getWeatherForecast(lat, lon);
+      } catch (error) {
+        const err = error instanceof Error ? error.message : 'Error desconocido';
+        const isControlled = (error as any)?.isControlled || 
+                           err.includes('no est├í soportada') || 
+                           err.includes('not supported') ||
+                           err.includes('no est├ín configuradas') ||
+                           err.includes('Coordenadas no v├ílidas');
+        
+        // Solo loggear como warning si es un error controlado, para evitar que Next.js lo trate como error no controlado
+        if (isControlled) {
+          console.warn('[Weather API] Ubicaci├│n no soportada para pron├│stico:', err);
+        } else {
+          console.error('[Weather API] Error obteniendo pron├│stico:', err);
+        }
+        
+        // Detectar si es un error de ubicaci├│n no soportada
+        if (err.includes('no est├í soportada') || err.includes('not supported')) {
+          hasLocationError = true;
+        }
+        
+        // Si no hay error previo, usar este
+        if (!errorMessage) {
+          errorMessage = err;
+        }
+      }
 
-      const finalError = new Error(finalMessage);
-      (finalError as any).isControlled = true;
-      throw finalError;
-    }
+      // Si ambas llamadas fallaron, lanzar el error con mensaje espec├¡fico
+      if (!current && forecast.length === 0) {
+        const finalMessage = hasLocationError 
+          ? 'La ubicaci├│n de la propiedad no est├í soportada por el servicio de clima. Por favor, verifica las coordenadas de la propiedad.'
+          : (errorMessage || 'No se pudo obtener informaci├│n del clima para esta ubicaci├│n.');
+        
+        const finalError = new Error(finalMessage);
+        (finalError as any).isControlled = true;
+        throw finalError;
+      }
 
-    // Si al menos una llamada tuvo éxito, continuar
-    // Si falta el clima actual, crear uno básico
+    // Si al menos una llamada tuvo ├®xito, continuar
+    // Si falta el clima actual, crear uno b├ísico
     if (!current) {
       current = {
         temperature: 20,
         feelsLike: 20,
         condition: 'Despejado',
-        description: 'Información no disponible',
+        description: 'Informaci├│n no disponible',
         humidity: 50,
         pressure: 1013,
         windSpeed: 0,
@@ -531,7 +531,7 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
       forecast,
       location: {
         name: cityName,
-        country: 'ES', // Por defecto España
+        country: 'ES', // Por defecto Espa├▒a
         lat,
         lon
       }
@@ -547,10 +547,10 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherD
   }
 }
 
-// Función para obtener el nombre de la ciudad usando Google Geocoding API
+// Funci├│n para obtener el nombre de la ciudad usando Google Geocoding API
 async function getCityName(lat: number, lon: number): Promise<string> {
   if (!API_KEY) {
-    return 'Ubicación de la propiedad';
+    return 'Ubicaci├│n de la propiedad';
   }
 
   try {
@@ -560,30 +560,30 @@ async function getCityName(lat: number, lon: number): Promise<string> {
 
     if (!response.ok) {
       console.warn('No se pudo obtener el nombre de la ciudad');
-      return 'Ubicación de la propiedad';
+      return 'Ubicaci├│n de la propiedad';
     }
 
     const data = await response.json();
-
+    
     if (data.results && data.results.length > 0) {
       // Buscar el componente de ciudad en los resultados
       const result = data.results[0];
-      const cityComponent = result.address_components.find((component: any) =>
-        component.types.includes('locality') ||
+      const cityComponent = result.address_components.find((component: any) => 
+        component.types.includes('locality') || 
         component.types.includes('administrative_area_level_2')
       );
-
+      
       return cityComponent ? cityComponent.long_name : result.formatted_address.split(',')[0];
     }
 
-    return 'Ubicación de la propiedad';
+    return 'Ubicaci├│n de la propiedad';
   } catch (error) {
     console.warn('Error obteniendo nombre de ciudad:', error);
-    return 'Ubicación de la propiedad';
+    return 'Ubicaci├│n de la propiedad';
   }
 }
 
-// Función de utilidad para verificar si las coordenadas son válidas
+// Funci├│n de utilidad para verificar si las coordenadas son v├ílidas
 export function isValidCoordinates(lat: number | null, lon: number | null): boolean {
   if (lat === null || lon === null) return false;
   return lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;

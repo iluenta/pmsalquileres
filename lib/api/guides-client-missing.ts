@@ -208,6 +208,15 @@ export async function createBeach(data: CreateBeachData): Promise<Beach | null> 
   if (data.url !== undefined && data.url !== null && data.url !== '') {
     insertData.url = data.url
   }
+  if (data.phone !== undefined && data.phone !== null) {
+    insertData.phone = data.phone
+  }
+  if (data.website !== undefined && data.website !== null) {
+    insertData.website = data.website
+  }
+  if (data.opening_hours !== undefined && data.opening_hours !== null) {
+    insertData.opening_hours = data.opening_hours
+  }
   if (data.amenities !== undefined && data.amenities !== null && data.amenities.length > 0) {
     insertData.amenities = data.amenities
   }
@@ -320,10 +329,17 @@ export async function createRestaurant(data: CreateRestaurantData): Promise<Rest
   if (data.image_url !== undefined && data.image_url !== null && data.image_url !== '') {
     insertData.image_url = data.image_url
   }
-  // Solo agregar url si el campo existe en la tabla (puede no existir si no se ejecutó el script SQL)
-  // Intentar agregarlo, si falla el error será más claro
   if (data.url !== undefined && data.url !== null && data.url !== '') {
     insertData.url = data.url
+  }
+  if (data.phone !== undefined && data.phone !== null) {
+    insertData.phone = data.phone
+  }
+  if (data.website !== undefined && data.website !== null) {
+    insertData.website = data.website
+  }
+  if (data.opening_hours !== undefined && data.opening_hours !== null) {
+    insertData.opening_hours = data.opening_hours
   }
 
   console.log("[v0] Creating restaurant with data:", insertData)
@@ -466,6 +482,15 @@ export async function createShopping(data: CreateShoppingData): Promise<Shopping
   if (data.url !== undefined && data.url !== null && data.url !== '') {
     insertData.url = data.url
   }
+  if (data.phone !== undefined && data.phone !== null) {
+    insertData.phone = data.phone
+  }
+  if (data.website !== undefined && data.website !== null) {
+    insertData.website = data.website
+  }
+  if (data.opening_hours !== undefined && data.opening_hours !== null) {
+    insertData.opening_hours = data.opening_hours
+  }
 
   console.log("[v0] Creating shopping with data:", insertData)
 
@@ -483,14 +508,14 @@ export async function createShopping(data: CreateShoppingData): Promise<Shopping
     console.error("- Error hint:", error.hint)
     console.error("- Error code:", error.code)
     console.error("- Insert data:", insertData)
-    
+
     // Si el error es sobre columna no encontrada, dar instrucciones claras
     if (error.message?.includes('shopping_type') || error.message?.includes('column') || error.code === '42703') {
       console.error("[v0] ⚠️ IMPORTANTE: La columna 'shopping_type' no existe en la tabla 'guide_places'.")
       console.error("[v0] Por favor, ejecuta el script SQL: scripts/079_add_shopping_type_to_guide_places.sql")
       console.error("[v0] Este script agregará la columna necesaria para lugares de compras.")
     }
-    
+
     return null
   }
 
@@ -624,6 +649,15 @@ export async function createActivity(data: CreateActivityData): Promise<Activity
   if (data.url !== undefined && data.url !== null && data.url !== '') {
     insertData.url = data.url
   }
+  if (data.phone !== undefined && data.phone !== null) {
+    insertData.phone = data.phone
+  }
+  if (data.website !== undefined && data.website !== null) {
+    insertData.website = data.website
+  }
+  if (data.opening_hours !== undefined && data.opening_hours !== null) {
+    insertData.opening_hours = data.opening_hours
+  }
 
   console.log("[v0] Creating activity with data:", insertData)
   console.log("[v0] Data validation:")
@@ -655,9 +689,14 @@ export async function createActivity(data: CreateActivityData): Promise<Activity
 export async function updateActivity(id: string, data: UpdateActivityData): Promise<Activity | null> {
   const supabase = getSupabaseBrowserClient()
 
+  // Filtrar campos undefined para evitar errores
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([_, value]) => value !== undefined)
+  ) as UpdateActivityData
+
   const { data: result, error } = await supabase
     .from("guide_places")
-    .update(data)
+    .update(cleanData)
     .eq("id", id)
     .select()
     .single()

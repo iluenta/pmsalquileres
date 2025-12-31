@@ -153,6 +153,45 @@ export function GoogleRestaurantInfo({
           </div>
         )}
 
+        {/* Teléfono y Web */}
+        {(restaurantData.phone || restaurantData.website) && (
+          <div className="flex flex-col gap-2 text-sm text-gray-600">
+            {restaurantData.phone && (
+              <div className="flex items-center gap-2">
+                <i className="fas fa-phone text-blue-500 w-4"></i>
+                <span>{restaurantData.phone}</span>
+              </div>
+            )}
+            {restaurantData.website && (
+              <div className="flex items-center gap-2">
+                <i className="fas fa-globe text-blue-500 w-4"></i>
+                <a
+                  href={restaurantData.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline truncate"
+                >
+                  {restaurantData.website.replace(/^https?:\/\/(www\.)?/, '')}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Horarios */}
+        {restaurantData.opening_hours?.weekday_text && (
+          <div className="text-xs text-gray-500 bg-white/50 p-3 rounded-md border border-gray-100">
+            <h4 className="font-semibold mb-1 flex items-center gap-1">
+              <i className="fas fa-clock text-blue-400"></i> Horarios:
+            </h4>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+              {restaurantData.opening_hours.weekday_text.map((day: string, idx: number) => (
+                <li key={idx}>{day}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Botones de acción */}
         <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-gray-200">
           <Button

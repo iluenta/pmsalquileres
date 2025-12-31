@@ -13,6 +13,18 @@ import { getApartmentSections, createApartmentSection, updateApartmentSection, d
 import { getIconByName } from "@/lib/utils/icon-registry"
 import { IconSelector } from "@/components/admin/IconSelector"
 import { ImageSelector } from "@/components/admin/ImageSelector"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface ApartmentSectionsManagerProps {
   guideId: string
@@ -27,6 +39,7 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
   const [editingSection, setEditingSection] = useState<ApartmentSection | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [newAmenity, setNewAmenity] = useState("")
+  const { toast } = useToast()
 
   // Amenities predefinidos por tipo de sección
   const predefinedAmenities = {
@@ -128,6 +141,10 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
         if (newSection) {
           setSections([...sections, newSection])
           onDataChange?.()
+          toast({
+            title: "Sección creada",
+            description: "La sección del apartamento ha sido creada correctamente.",
+          })
         }
       } else {
         // Actualizar sección existente
@@ -146,6 +163,10 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
         if (updatedSection) {
           setSections(sections.map(section => section.id === editingSection.id ? updatedSection : section))
           onDataChange?.()
+          toast({
+            title: "Sección actualizada",
+            description: "La sección ha sido actualizada correctamente.",
+          })
         }
       }
 
@@ -157,16 +178,23 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
   }
 
   const handleDelete = async (sectionId: string) => {
-    if (confirm("¿Estás seguro de que quieres eliminar esta sección?")) {
-      try {
-        const success = await deleteApartmentSection(sectionId)
-        if (success) {
-          setSections(sections.filter(section => section.id !== sectionId))
-          onDataChange?.()
-        }
-      } catch (error) {
-        console.error('Error deleting apartment section:', error)
+    try {
+      const success = await deleteApartmentSection(sectionId)
+      if (success) {
+        setSections(sections.filter(section => section.id !== sectionId))
+        onDataChange?.()
+        toast({
+          title: "Sección eliminada",
+          description: "La sección ha sido eliminada correctamente.",
+        })
       }
+    } catch (error) {
+      console.error('Error deleting apartment section:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la sección.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -280,14 +308,34 @@ export function ApartmentSectionsManager({ guideId, propertyId, apartmentSection
                           >
                             <i className="fas fa-edit"></i>
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(section.id)}
-                            className="text-red-600 hover:text-red-700 flex-shrink-0"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 flex-shrink-0"
+                              >
+                                <i className="fas fa-trash"></i>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción eliminará de forma permanente la sección "{section.title}".
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(section.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     </CardHeader>

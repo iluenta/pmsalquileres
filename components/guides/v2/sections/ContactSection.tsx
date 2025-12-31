@@ -1,12 +1,14 @@
-import type { GuideContactInfo, InterestPhoneCategory } from "@/types/guides"
+import type { GuideContactInfo, InterestPhoneCategory, GuideSection } from "@/types/guides"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Phone, Mail, MessageCircle, AlertTriangle, Wrench, CheckCircle2, MapPin, MessageSquare, Stethoscope, Pill } from "lucide-react"
+import { getIconByName } from "@/lib/utils/icon-registry"
 
 interface ContactSectionProps {
     contactInfo: GuideContactInfo
+    introSection?: GuideSection
 }
 
-export function ContactSection({ contactInfo }: ContactSectionProps) {
+export function ContactSection({ contactInfo, introSection }: ContactSectionProps) {
     // Parse emergency_numbers
     const emergencyNumbers = contactInfo.emergency_numbers && typeof contactInfo.emergency_numbers === 'object'
         ? contactInfo.emergency_numbers
@@ -18,7 +20,21 @@ export function ContactSection({ contactInfo }: ContactSectionProps) {
     const bomberos = emergencyNumbers?.bomberos || contactInfo.fire_contact || "080"
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto space-y-8">
+            <div className="text-center mb-10">
+                {(() => {
+                    const Icon = getIconByName(introSection?.icon, Phone)
+                    return (
+                        <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
+                            <Icon className="h-8 w-8 text-blue-600" />
+                        </div>
+                    )
+                })()}
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Contacto y Emergencias"}</h2>
+                {introSection?.content && (
+                    <p className="text-gray-600 mt-2 max-w-2xl mx-auto">{introSection.content}</p>
+                )}
+            </div>
             {/* Grid de 2 columnas: Anfitriones + Servicios (izq) y Teléfonos (der) */}
             <div className="grid md:grid-cols-2 gap-6">
                 {/* Columna Izquierda */}
@@ -143,29 +159,29 @@ export function ContactSection({ contactInfo }: ContactSectionProps) {
                     <CardContent className="space-y-6">
                         {/* Grid de números básicos de emergencia */}
                         <div className="grid grid-cols-2 gap-3">
-                            <a 
-                                href={`tel:${emergencias}`} 
+                            <a
+                                href={`tel:${emergencias}`}
                                 className="bg-red-50 border-2 border-red-500 p-3 rounded-lg text-center hover:bg-red-100 transition-colors"
                             >
                                 <div className="font-bold text-sm mb-1 text-red-500">EMERGENCIAS</div>
                                 <div className="text-lg font-semibold text-red-700">{emergencias}</div>
                             </a>
-                            <a 
-                                href={`tel:${policiaLocal}`} 
+                            <a
+                                href={`tel:${policiaLocal}`}
                                 className="bg-white border-2 border-gray-200 p-3 rounded-lg text-center hover:border-gray-300 transition-colors"
                             >
                                 <div className="font-bold text-sm mb-1 text-gray-800">POLICÍA LOCAL</div>
                                 <div className="text-lg font-semibold text-gray-900">{policiaLocal}</div>
                             </a>
-                            <a 
-                                href={`tel:${guardiaCivil}`} 
+                            <a
+                                href={`tel:${guardiaCivil}`}
                                 className="bg-white border-2 border-gray-200 p-3 rounded-lg text-center hover:border-gray-300 transition-colors"
                             >
                                 <div className="font-bold text-sm mb-1 text-gray-800">GUARDIA CIVIL</div>
                                 <div className="text-lg font-semibold text-gray-900">{guardiaCivil}</div>
                             </a>
-                            <a 
-                                href={`tel:${bomberos}`} 
+                            <a
+                                href={`tel:${bomberos}`}
                                 className="bg-white border-2 border-gray-200 p-3 rounded-lg text-center hover:border-gray-300 transition-colors"
                             >
                                 <div className="font-bold text-sm mb-1 text-gray-800">BOMBEROS</div>
@@ -218,15 +234,15 @@ export function ContactSection({ contactInfo }: ContactSectionProps) {
                                                     <div key={contactIndex} className="space-y-1">
                                                         <div className="flex items-center gap-2">
                                                             <Phone className="h-4 w-4 text-gray-400" />
-                                                            <a 
-                                                                href={`tel:${contact.phone}`} 
+                                                            <a
+                                                                href={`tel:${contact.phone}`}
                                                                 className="text-sm font-semibold text-gray-900 hover:text-blue-600 transition-colors"
                                                             >
                                                                 {contact.name}
                                                             </a>
                                                         </div>
-                                                        <a 
-                                                            href={`tel:${contact.phone}`} 
+                                                        <a
+                                                            href={`tel:${contact.phone}`}
                                                             className="text-sm text-gray-700 hover:text-blue-600 transition-colors block pl-6"
                                                         >
                                                             {contact.phone}

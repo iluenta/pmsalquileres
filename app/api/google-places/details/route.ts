@@ -7,10 +7,11 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const placeId = searchParams.get('place_id')
+    const cid = searchParams.get('cid')
 
-    if (!placeId) {
+    if (!placeId && !cid) {
       return NextResponse.json(
-        { error: 'place_id parameter is required' },
+        { error: 'Either place_id or cid parameter is required' },
         { status: 400 }
       )
     }
@@ -33,14 +34,16 @@ export async function GET(request: Request) {
       'types',
       'formatted_phone_number',
       'website',
+      'opening_hours',
       'url', // URL de Google Maps
       'geometry', // Coordenadas del lugar para calcular distancias
     ].join(',')
 
-    const url = `${GOOGLE_PLACES_BASE_URL}/details/json?place_id=${placeId}&fields=${fields}&language=es&key=${API_KEY}`
+    const identifier = placeId ? `place_id=${placeId}` : `cid=${cid}`
+    const url = `${GOOGLE_PLACES_BASE_URL}/details/json?${identifier}&fields=${fields}&language=es&key=${API_KEY}`
 
     const response = await fetch(url)
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
@@ -49,12 +52,12 @@ export async function GET(request: Request) {
 
     // Log completo de la respuesta para debugging
     console.log('[API Google Places Details] Respuesta completa:', JSON.stringify(data, null, 2))
-    
+
     // Verificar si hay campos adicionales relacionados con precios
     if (data.result) {
       console.log('[API Google Places Details] Campos disponibles:', Object.keys(data.result))
       console.log('[API Google Places Details] price_level:', data.result.price_level)
-      console.log('[API Google Places Details] Todos los campos numéricos:', 
+      console.log('[API Google Places Details] Todos los campos numéricos:',
         Object.entries(data.result).filter(([_, v]) => typeof v === 'number').map(([k, v]) => `${k}: ${v}`)
       )
     }

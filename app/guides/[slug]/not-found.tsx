@@ -14,7 +14,7 @@ export default function NotFound() {
                     No se pudo encontrar la guía solicitada. Verifica que la URL sea correcta.
                 </p>
                 <Button asChild>
-                    <Link href="/">Volver al inicio</Link>
+                    <Link href="/dashboard">Volver al Panel</Link>
                 </Button>
             </div>
         </div>

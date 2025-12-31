@@ -10,6 +10,18 @@ import { ApartmentSection, HouseGuideItem } from "@/types/guides"
 import { getHouseGuideItems, createHouseGuideItem, updateHouseGuideItem, deleteHouseGuideItem } from "@/lib/api/guides-client"
 import { getIconByName } from "@/lib/utils/icon-registry"
 import { IconSelector } from "@/components/admin/IconSelector"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface HouseGuideManagerProps {
   guideId: string
@@ -20,6 +32,7 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
   const [loading, setLoading] = useState(true)
   const [editingItem, setEditingItem] = useState<HouseGuideItem | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
+  const { toast } = useToast()
 
   // Cargar elementos de guía al montar el componente
   useEffect(() => {
@@ -75,6 +88,10 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
 
         if (newItem) {
           setItems([...items, newItem])
+          toast({
+            title: "Elemento creado",
+            description: "El elemento de la guía ha sido creado correctamente.",
+          })
         }
       } else {
         const updatedItem = await updateHouseGuideItem(editingItem.id, {
@@ -89,6 +106,10 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
           setItems(items.map(item =>
             item.id === editingItem.id ? updatedItem : item
           ))
+          toast({
+            title: "Elemento actualizado",
+            description: "El elemento ha sido actualizado correctamente.",
+          })
         }
       }
 
@@ -100,15 +121,22 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
   }
 
   const handleDelete = async (itemId: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este elemento de la guía?')) return
-
     try {
       const success = await deleteHouseGuideItem(itemId)
       if (success) {
         setItems(items.filter(item => item.id !== itemId))
+        toast({
+          title: "Elemento eliminado",
+          description: "El elemento de la guía ha sido eliminado correctamente.",
+        })
       }
     } catch (error) {
       console.error('Error deleting house guide item:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el elemento.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -167,14 +195,34 @@ export function HouseGuideManager({ guideId }: HouseGuideManagerProps) {
                     >
                       <i className="fas fa-edit"></i>
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(item.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <i className="fas fa-trash"></i>
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción eliminará de forma permanente este elemento de la guía.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(item.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardHeader>

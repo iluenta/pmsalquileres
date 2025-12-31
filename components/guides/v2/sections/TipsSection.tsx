@@ -13,12 +13,17 @@ export function TipsSection({ tips, introSection }: TipsSectionProps) {
     return (
         <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
-                <div className="inline-flex items-center justify-center p-3 bg-yellow-100 rounded-full mb-4">
-                    <Lightbulb className="h-8 w-8 text-yellow-600" />
-                </div>
-                <h2 className="text-3xl font-bold text-gray-900">Consejos y Recomendaciones</h2>
+                {(() => {
+                    const Icon = getIconByName(introSection?.icon, Lightbulb)
+                    return (
+                        <div className="inline-flex items-center justify-center p-3 bg-yellow-100 rounded-full mb-4">
+                            <Icon className="h-8 w-8 text-yellow-600" />
+                        </div>
+                    )
+                })()}
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Consejos y Recomendaciones"}</h2>
                 <p className="text-gray-600 mt-2 max-w-2xl mx-auto">
-                    Pequeños detalles y sugerencias útiles para que tu estancia sea perfecta y no te falte nada.
+                    {introSection?.content || "Pequeños detalles y sugerencias útiles para que tu estancia sea perfecta y no te falte nada."}
                 </p>
             </div>
 

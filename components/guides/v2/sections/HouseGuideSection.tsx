@@ -1,4 +1,4 @@
-import type { HouseGuideItem } from "@/types/guides"
+import type { HouseGuideItem, GuideSection } from "@/types/guides"
 import { Card, CardContent } from "@/components/ui/card"
 import { Book } from "lucide-react"
 import { getIconByName } from "@/lib/utils/icon-registry"
@@ -6,18 +6,24 @@ import { FormattedText } from "@/components/ui/formatted-text"
 
 interface HouseGuideSectionProps {
     items: HouseGuideItem[]
+    introSection?: GuideSection
 }
 
-export function HouseGuideSection({ items }: HouseGuideSectionProps) {
+export function HouseGuideSection({ items, introSection }: HouseGuideSectionProps) {
     return (
         <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
-                <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
-                    <Book className="h-8 w-8 text-blue-600" />
-                </div>
-                <h2 className="text-3xl font-bold text-gray-900">Guía de la Casa</h2>
+                {(() => {
+                    const Icon = getIconByName(introSection?.icon, Book)
+                    return (
+                        <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
+                            <Icon className="h-8 w-8 text-blue-600" />
+                        </div>
+                    )
+                })()}
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Guía de la Casa"}</h2>
                 <p className="text-gray-600 mt-2 max-w-2xl mx-auto">
-                    Todo lo que necesitas saber sobre el funcionamiento del apartamento y sus equipos.
+                    {introSection?.content || "Todo lo que necesitas saber sobre el funcionamiento del apartamento y sus equipos."}
                 </p>
             </div>
 

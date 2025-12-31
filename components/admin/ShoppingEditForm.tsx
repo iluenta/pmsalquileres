@@ -13,6 +13,18 @@ import { Shopping } from "@/types/guides"
 import { createShopping, updateShopping, deleteShopping } from "@/lib/api/guides-client"
 import { getShoppingFromGoogleUrl } from "@/lib/api/google-places"
 import { GoogleShoppingInfo } from "./GoogleShoppingInfo"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Loader2, AlertCircle, Search } from "lucide-react"
 
 interface ShoppingEditFormProps {
@@ -24,7 +36,7 @@ interface ShoppingEditFormProps {
 }
 
 export function ShoppingEditForm({ shopping, guideId, onShoppingChange, propertyLatitude, propertyLongitude }: ShoppingEditFormProps) {
-  
+
   const [editingShopping, setEditingShopping] = useState<Shopping | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -32,6 +44,7 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
   const [googleShoppingData, setGoogleShoppingData] = useState<Partial<Shopping> | null>(null)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [googleError, setGoogleError] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const handleEdit = (place: Shopping) => {
     setEditingShopping(place)
@@ -59,11 +72,17 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
       badge: "",
       image_url: "",
       url: "",
+      phone: "",
+      website: "",
+      opening_hours: null,
       order_index: shopping.length + 1,
       created_at: "",
       updated_at: ""
     })
     setIsAddingNew(true)
+    setGoogleUrl("")
+    setGoogleShoppingData(null)
+    setGoogleError(null)
   }
 
   const handleSave = async () => {
@@ -71,7 +90,7 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
 
     try {
       setLoading(true)
-      
+
       if (isAddingNew) {
         // Crear nuevo lugar de compras
         const newShopping = await createShopping({
@@ -88,11 +107,18 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
           badge: editingShopping.badge,
           image_url: editingShopping.image_url,
           url: editingShopping.url,
+          phone: editingShopping.phone,
+          website: editingShopping.website,
+          opening_hours: editingShopping.opening_hours,
           order_index: editingShopping.order_index
         })
-        
+
         if (newShopping) {
           onShoppingChange([...shopping, newShopping])
+          toast({
+            title: "Lugar guardado",
+            description: "El lugar de compras ha sido creado correctamente.",
+          })
         }
       } else {
         // Actualizar lugar de compras existente
@@ -109,14 +135,21 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
           badge: editingShopping.badge,
           image_url: editingShopping.image_url,
           url: editingShopping.url,
+          phone: editingShopping.phone,
+          website: editingShopping.website,
+          opening_hours: editingShopping.opening_hours,
           order_index: editingShopping.order_index
         })
-        
+
         if (updatedShopping) {
           onShoppingChange(shopping.map(place => place.id === editingShopping.id ? updatedShopping : place))
+          toast({
+            title: "Lugar actualizado",
+            description: "La información ha sido actualizada correctamente.",
+          })
         }
       }
-      
+
       setEditingShopping(null)
       setIsAddingNew(false)
     } catch (error) {
@@ -127,18 +160,25 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
   }
 
   const handleDelete = async (placeId: string) => {
-    if (confirm("¿Estás seguro de que quieres eliminar este lugar de compras?")) {
-      try {
-        setLoading(true)
-        const success = await deleteShopping(placeId)
-        if (success) {
-          onShoppingChange(shopping.filter(place => place.id !== placeId))
-        }
-      } catch (error) {
-        console.error('Error deleting shopping:', error)
-      } finally {
-        setLoading(false)
+    try {
+      setLoading(true)
+      const success = await deleteShopping(placeId)
+      if (success) {
+        onShoppingChange(shopping.filter(place => place.id !== placeId))
+        toast({
+          title: "Lugar eliminado",
+          description: "El lugar de compras ha sido eliminado correctamente.",
+        })
       }
+    } catch (error) {
+      console.error('Error deleting shopping:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el lugar de compras.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -159,9 +199,10 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
     // Validar que sea una URL de Google Maps o Google Search
     const isGoogleMapsUrl = googleUrl.includes("google.com/maps") || googleUrl.includes("maps.google.com")
     const isGoogleSearchUrl = googleUrl.includes("google.com/search") || googleUrl.includes("google.es/search")
-    
-    if (!isGoogleMapsUrl && !isGoogleSearchUrl) {
-      setGoogleError("Por favor, ingresa una URL válida de Google Maps (ej: https://www.google.com/maps/place/...)")
+    const isGoogleShortUrl = googleUrl.includes("maps.app.goo.gl")
+
+    if (!isGoogleMapsUrl && !isGoogleSearchUrl && !isGoogleShortUrl) {
+      setGoogleError("Por favor, ingresa una URL válida de Google Maps.")
       return
     }
 
@@ -203,6 +244,9 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
       badge: googleShoppingData.badge || prev?.badge || "",
       image_url: googleShoppingData.image_url || prev?.image_url || "",
       url: googleShoppingData.url || googleUrl || prev?.url || "",
+      phone: googleShoppingData.phone || prev?.phone || "",
+      website: googleShoppingData.website || prev?.website || "",
+      opening_hours: googleShoppingData.opening_hours || prev?.opening_hours || null,
     }))
 
     // Limpiar datos de Google para mostrar el formulario
@@ -301,22 +345,42 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
                         >
                           <i className="fas fa-edit"></i>
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(place.id)}
-                          disabled={loading}
-                          className="text-red-600 hover:text-red-700 w-full sm:w-auto"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={loading}
+                              className="text-red-600 hover:text-red-700 w-full sm:w-auto"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará de forma permanente el lugar de compras "{place.name}".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(place.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </CardHeader>
                   {place.image_url && (
                     <CardContent className="pt-0">
-                      <img 
-                        src={place.image_url} 
+                      <img
+                        src={place.image_url}
                         alt={place.name}
                         className="w-full h-32 object-cover rounded-lg"
                       />
@@ -377,7 +441,7 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500">
-                  {isAddingNew 
+                  {isAddingNew
                     ? "Pega la URL completa de una búsqueda de Google del lugar de compras para obtener automáticamente su información"
                     : "Actualiza la información del lugar de compras pegando una nueva URL de búsqueda de Google"}
                 </p>
@@ -402,184 +466,217 @@ export function ShoppingEditForm({ shopping, guideId, onShoppingChange, property
               {/* Formulario manual (solo si no hay datos de Google disponibles) */}
               {!googleShoppingData && (
                 <>
-              <div className="space-y-2">
-                <Label htmlFor="shopping-name">Nombre</Label>
-                <Input
-                  id="shopping-name"
-                  value={editingShopping.name || ''}
-                  onChange={(e) => setEditingShopping({ ...editingShopping, name: e.target.value })}
-                  placeholder="Nombre del supermercado o centro comercial"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shopping-name">Nombre</Label>
+                    <Input
+                      id="shopping-name"
+                      value={editingShopping.name || ''}
+                      onChange={(e) => setEditingShopping({ ...editingShopping, name: e.target.value })}
+                      placeholder="Nombre del supermercado o centro comercial"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="shopping-type">Tipo</Label>
-                <Select
-                  value={editingShopping.shopping_type || ''}
-                  onValueChange={(value) => setEditingShopping({ ...editingShopping, shopping_type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="supermercado">Supermercado</SelectItem>
-                    <SelectItem value="centro_comercial">Centro Comercial</SelectItem>
-                    <SelectItem value="tienda">Tienda</SelectItem>
-                    <SelectItem value="farmacia">Farmacia</SelectItem>
-                    <SelectItem value="mercado">Mercado</SelectItem>
-                    <SelectItem value="otros">Otros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shopping-type">Tipo</Label>
+                    <Select
+                      value={editingShopping.shopping_type || ''}
+                      onValueChange={(value) => setEditingShopping({ ...editingShopping, shopping_type: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="supermercado">Supermercado</SelectItem>
+                        <SelectItem value="centro_comercial">Centro Comercial</SelectItem>
+                        <SelectItem value="tienda">Tienda</SelectItem>
+                        <SelectItem value="farmacia">Farmacia</SelectItem>
+                        <SelectItem value="mercado">Mercado</SelectItem>
+                        <SelectItem value="otros">Otros</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="shopping-description">Descripción</Label>
-                <Textarea
-                  id="shopping-description"
-                  value={editingShopping.description || ''}
-                  onChange={(e) => setEditingShopping({ ...editingShopping, description: e.target.value })}
-                  placeholder="Descripción del lugar"
-                  rows={3}
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shopping-description">Descripción</Label>
+                    <Textarea
+                      id="shopping-description"
+                      value={editingShopping.description || ''}
+                      onChange={(e) => setEditingShopping({ ...editingShopping, description: e.target.value })}
+                      placeholder="Descripción del lugar"
+                      rows={3}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="shopping-address">Dirección</Label>
-                <Input
-                  id="shopping-address"
-                  value={editingShopping.address || ''}
-                  onChange={(e) => setEditingShopping({ ...editingShopping, address: e.target.value })}
-                  placeholder="Dirección del lugar"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shopping-address">Dirección</Label>
+                    <Input
+                      id="shopping-address"
+                      value={editingShopping.address || ''}
+                      onChange={(e) => setEditingShopping({ ...editingShopping, address: e.target.value })}
+                      placeholder="Dirección del lugar"
+                    />
+                  </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="shopping-rating">Calificación (1-5)</Label>
-                  <Input
-                    id="shopping-rating"
-                    type="number"
-                    min="1"
-                    max="5"
-                    step="0.1"
-                    value={editingShopping.rating || ''}
-                    onChange={(e) => setEditingShopping({ ...editingShopping, rating: e.target.value ? Number.parseFloat(e.target.value) : 0 })}
-                    placeholder="4.5"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="shopping-reviews">Número de Reseñas</Label>
-                  <Input
-                    id="shopping-reviews"
-                    type="number"
-                    min="0"
-                    value={editingShopping.review_count || ''}
-                    onChange={(e) => setEditingShopping({ ...editingShopping, review_count: e.target.value ? Number.parseInt(e.target.value) : 0 })}
-                    placeholder="150"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="shopping-price">Rango de Precio</Label>
-                  <Input
-                    id="shopping-price"
-                    value={editingShopping.price_range || ''}
-                    onChange={(e) => setEditingShopping({ ...editingShopping, price_range: e.target.value })}
-                    placeholder="€, €€, €€€"
-                  />
-                </div>
-              </div>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="shopping-rating">Calificación (1-5)</Label>
+                      <Input
+                        id="shopping-rating"
+                        type="number"
+                        min="1"
+                        max="5"
+                        step="0.1"
+                        value={editingShopping.rating || ''}
+                        onChange={(e) => setEditingShopping({ ...editingShopping, rating: e.target.value ? Number.parseFloat(e.target.value) : 0 })}
+                        placeholder="4.5"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="shopping-reviews">Número de Reseñas</Label>
+                      <Input
+                        id="shopping-reviews"
+                        type="number"
+                        min="0"
+                        value={editingShopping.review_count || ''}
+                        onChange={(e) => setEditingShopping({ ...editingShopping, review_count: e.target.value ? Number.parseInt(e.target.value) : 0 })}
+                        placeholder="150"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="shopping-price">Rango de Precio</Label>
+                      <Input
+                        id="shopping-price"
+                        value={editingShopping.price_range || ''}
+                        onChange={(e) => setEditingShopping({ ...editingShopping, price_range: e.target.value })}
+                        placeholder="€, €€, €€€"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="shopping-walking-time">Tiempo caminando (minutos)</Label>
-                  <Input
-                    id="shopping-walking-time"
-                    type="number"
-                    min="0"
-                    value={editingShopping.walking_time || ''}
-                    onChange={(e) => setEditingShopping({ ...editingShopping, walking_time: e.target.value ? Number.parseInt(e.target.value) : null })}
-                    placeholder="Ej: 15"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Tiempo en minutos caminando desde la propiedad
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="shopping-driving-time">Tiempo en coche (minutos)</Label>
-                  <Input
-                    id="shopping-driving-time"
-                    type="number"
-                    min="0"
-                    value={editingShopping.driving_time || ''}
-                    onChange={(e) => setEditingShopping({ ...editingShopping, driving_time: e.target.value ? Number.parseInt(e.target.value) : null })}
-                    placeholder="Ej: 3"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Tiempo en minutos en coche desde la propiedad
-                  </p>
-                </div>
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="shopping-walking-time">Tiempo caminando (minutos)</Label>
+                      <Input
+                        id="shopping-walking-time"
+                        type="number"
+                        min="0"
+                        value={editingShopping.walking_time || ''}
+                        onChange={(e) => setEditingShopping({ ...editingShopping, walking_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                        placeholder="Ej: 15"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Tiempo en minutos caminando desde la propiedad
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="shopping-driving-time">Tiempo en coche (minutos)</Label>
+                      <Input
+                        id="shopping-driving-time"
+                        type="number"
+                        min="0"
+                        value={editingShopping.driving_time || ''}
+                        onChange={(e) => setEditingShopping({ ...editingShopping, driving_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                        placeholder="Ej: 3"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Tiempo en minutos en coche desde la propiedad
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="shopping-badge">Badge</Label>
-                  <Input
-                    id="shopping-badge"
-                    value={editingShopping.badge || ''}
-                    onChange={(e) => setEditingShopping({ ...editingShopping, badge: e.target.value })}
-                    placeholder="Ej: Recomendado"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="shopping-order">Orden</Label>
-                  <Input
-                    id="shopping-order"
-                    type="number"
-                    value={editingShopping.order_index || ''}
-                    onChange={(e) => setEditingShopping({ ...editingShopping, order_index: e.target.value ? Number.parseInt(e.target.value) : 0 })}
-                  />
-                </div>
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="shopping-badge">Badge</Label>
+                      <Input
+                        id="shopping-badge"
+                        value={editingShopping.badge || ''}
+                        onChange={(e) => setEditingShopping({ ...editingShopping, badge: e.target.value })}
+                        placeholder="Ej: Recomendado"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="shopping-order">Orden</Label>
+                      <Input
+                        id="shopping-order"
+                        type="number"
+                        value={editingShopping.order_index || ''}
+                        onChange={(e) => setEditingShopping({ ...editingShopping, order_index: e.target.value ? Number.parseInt(e.target.value) : 0 })}
+                      />
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="shopping-image">URL de Imagen</Label>
-                <Input
-                  id="shopping-image"
-                  value={editingShopping.image_url || ''}
-                  onChange={(e) => setEditingShopping({ ...editingShopping, image_url: e.target.value })}
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shopping-image">URL de Imagen</Label>
+                    <Input
+                      id="shopping-image"
+                      value={editingShopping.image_url || ''}
+                      onChange={(e) => setEditingShopping({ ...editingShopping, image_url: e.target.value })}
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="shopping-url">URL del Lugar</Label>
-                <Input
-                  id="shopping-url"
-                  value={editingShopping.url || ''}
-                  onChange={(e) => setEditingShopping({ ...editingShopping, url: e.target.value })}
-                  placeholder="https://maps.google.com/... o https://lugar.com"
-                />
-                <p className="text-xs text-gray-500">URL de Google Maps o sitio web del lugar</p>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shopping-url">URL del Lugar / Sitio Web</Label>
+                    <Input
+                      id="shopping-url"
+                      value={editingShopping.url || ''}
+                      onChange={(e) => setEditingShopping({ ...editingShopping, url: e.target.value })}
+                      placeholder="https://maps.google.com/... o https://lugar.com"
+                    />
+                    <p className="text-xs text-gray-500">URL de Google Maps o sitio web del lugar</p>
+                  </div>
 
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-save mr-2"></i>
-                      Guardar
-                    </>
-                  )}
-                </Button>
-                <Button variant="outline" onClick={handleCancel} disabled={loading} className="w-full sm:w-auto">
-                  Cancelar
-                </Button>
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="shopping-phone">Teléfono</Label>
+                      <Input
+                        id="shopping-phone"
+                        value={editingShopping.phone || ''}
+                        onChange={(e) => setEditingShopping({ ...editingShopping, phone: e.target.value })}
+                        placeholder="Ej: +34 912 345 678"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="shopping-opening-hours">Horarios (una línea por día)</Label>
+                    <Textarea
+                      id="shopping-opening-hours"
+                      value={editingShopping.opening_hours?.weekday_text?.join('\n') || ''}
+                      onChange={(e) => {
+                        const lines = e.target.value.split('\n').filter(line => line.trim() !== '')
+                        setEditingShopping({
+                          ...editingShopping,
+                          opening_hours: {
+                            ...editingShopping.opening_hours,
+                            weekday_text: lines,
+                            open_now: editingShopping.opening_hours?.open_now ?? false
+                          }
+                        })
+                      }}
+                      placeholder={"Lunes: 9:00–18:00\nMartes: 9:00–18:00\n..."}
+                      rows={7}
+                    />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-save mr-2"></i>
+                          Guardar
+                        </>
+                      )}
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel} disabled={loading} className="w-full sm:w-auto">
+                      Cancelar
+                    </Button>
+                  </div>
                 </>
               )}
             </div>

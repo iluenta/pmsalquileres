@@ -1,4 +1,4 @@
-import type { HouseRule } from "@/types/guides"
+import type { HouseRule, GuideSection } from "@/types/guides"
 import { Card, CardContent } from "@/components/ui/card"
 import { ClipboardList, CheckCircle2 } from "lucide-react"
 import { getIconByName } from "@/lib/utils/icon-registry"
@@ -6,17 +6,23 @@ import { FormattedText } from "@/components/ui/formatted-text"
 
 interface HouseRulesSectionProps {
     rules: HouseRule[]
+    introSection?: GuideSection
 }
 
-export function HouseRulesSection({ rules }: HouseRulesSectionProps) {
+export function HouseRulesSection({ rules, introSection }: HouseRulesSectionProps) {
     return (
         <div className="max-w-4xl mx-auto">
             <div className="text-center mb-10">
-                <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
-                    <ClipboardList className="h-8 w-8 text-blue-600" />
-                </div>
-                <h2 className="text-3xl font-bold text-gray-900">Normas de la Casa</h2>
-                <p className="text-gray-600 mt-2">Para garantizar una estancia agradable para todos</p>
+                {(() => {
+                    const Icon = getIconByName(introSection?.icon, ClipboardList)
+                    return (
+                        <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
+                            <Icon className="h-8 w-8 text-blue-600" />
+                        </div>
+                    )
+                })()}
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Normas de la Casa"}</h2>
+                <p className="text-gray-600 mt-2">{introSection?.content || "Para garantizar una estancia agradable para todos"}</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">

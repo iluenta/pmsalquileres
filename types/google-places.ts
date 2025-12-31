@@ -31,6 +31,11 @@ export interface PlaceDetails {
   types?: string[]
   formatted_phone_number?: string
   website?: string
+  opening_hours?: {
+    open_now?: boolean
+    periods?: any[]
+    weekday_text?: string[]
+  }
   url?: string // URL de Google Maps
   geometry?: {
     location: {

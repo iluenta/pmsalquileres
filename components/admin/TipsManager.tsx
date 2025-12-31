@@ -10,6 +10,18 @@ import { Tip } from "@/types/guides"
 import { getTips, createTip, updateTip, deleteTip } from "@/lib/api/guides-client"
 import { getIconByName } from "@/lib/utils/icon-registry"
 import { IconSelector } from "@/components/admin/IconSelector"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface TipsManagerProps {
   guideId: string
@@ -20,6 +32,7 @@ export function TipsManager({ guideId }: TipsManagerProps) {
   const [loading, setLoading] = useState(true)
   const [editingTip, setEditingTip] = useState<Tip | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
+  const { toast } = useToast()
 
   // Cargar consejos al montar el componente
   useEffect(() => {
@@ -79,6 +92,10 @@ export function TipsManager({ guideId }: TipsManagerProps) {
         if (newTip) {
           console.log("[TipsManager] New tip created successfully:", newTip)
           setTips([...tips, newTip])
+          toast({
+            title: "Consejo creado",
+            description: "El consejo ha sido creado correctamente.",
+          })
         } else {
           console.error("[TipsManager] Failed to create tip (API returned null)")
         }
@@ -96,6 +113,10 @@ export function TipsManager({ guideId }: TipsManagerProps) {
         if (updatedTip) {
           console.log("[TipsManager] Tip updated successfully:", updatedTip)
           setTips(tips.map(tip => tip.id === editingTip.id ? updatedTip : tip))
+          toast({
+            title: "Consejo actualizado",
+            description: "El consejo ha sido actualizado correctamente.",
+          })
         } else {
           console.error("[TipsManager] Failed to update tip (API returned null)")
         }
@@ -109,15 +130,22 @@ export function TipsManager({ guideId }: TipsManagerProps) {
   }
 
   const handleDelete = async (tipId: string) => {
-    if (confirm("¿Estás seguro de que quieres eliminar este consejo?")) {
-      try {
-        const success = await deleteTip(tipId)
-        if (success) {
-          setTips(tips.filter(tip => tip.id !== tipId))
-        }
-      } catch (error) {
-        console.error('Error deleting tip:', error)
+    try {
+      const success = await deleteTip(tipId)
+      if (success) {
+        setTips(tips.filter(tip => tip.id !== tipId))
+        toast({
+          title: "Consejo eliminado",
+          description: "El consejo ha sido eliminado correctamente.",
+        })
       }
+    } catch (error) {
+      console.error('Error deleting tip:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el consejo.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -183,9 +211,30 @@ export function TipsManager({ guideId }: TipsManagerProps) {
                         <Button size="sm" variant="outline" onClick={() => handleEdit(tip)}>
                           <i className="fas fa-edit"></i>
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDelete(tip.id)}>
-                          <i className="fas fa-trash"></i>
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive">
+                              <i className="fas fa-trash"></i>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará de forma permanente el consejo "{tip.title}".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(tip.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </div>

@@ -2,6 +2,7 @@ import type { ApartmentSection as ApartmentSectionType, GuideSection } from "@/t
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin } from "lucide-react"
+import { getIconByName } from "@/lib/utils/icon-registry"
 
 // Importar lógica de iconos reutilizada o duplicar función simple
 import { Home, UtensilsCrossed, Bath, Armchair, Bed, Sun, DoorOpen, Wind, Car, LucideIcon } from "lucide-react"
@@ -30,6 +31,14 @@ export function ApartmentSection({ apartmentSections, property, introSection }: 
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
             <div className="text-center mb-8">
+                {(() => {
+                    const Icon = getIconByName(introSection?.icon, Home)
+                    return (
+                        <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-full mb-4">
+                            <Icon className="h-8 w-8 text-blue-600" />
+                        </div>
+                    )
+                })()}
                 <h2 className="text-3xl font-bold text-gray-900 mb-4">{introSection?.title || "Tu Apartamento"}</h2>
                 {introSection?.content && (
                     <p className="text-lg text-gray-700 max-w-3xl mx-auto">{introSection.content}</p>

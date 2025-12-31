@@ -12,6 +12,18 @@ import { Activity } from "@/types/guides"
 import { createActivity, updateActivity, deleteActivity } from "@/lib/api/guides-client"
 import { getActivityFromGoogleUrl } from "@/lib/api/google-places"
 import { GoogleRestaurantInfo } from "./GoogleRestaurantInfo"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Loader2, Search, AlertCircle } from "lucide-react"
 
 interface ActivitiesEditFormProps {
@@ -30,6 +42,7 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, pr
   const [googleLoading, setGoogleLoading] = useState(false)
   const [googleActivityData, setGoogleActivityData] = useState<Partial<Activity> | null>(null)
   const [googleError, setGoogleError] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const handleEdit = (activity: Activity) => {
     setEditingActivity(activity)
@@ -59,6 +72,9 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, pr
       badge: "",
       image_url: "",
       url: "",
+      phone: "",
+      website: "",
+      opening_hours: null,
       order_index: activities.length + 1,
       created_at: "",
       updated_at: ""
@@ -111,6 +127,9 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, pr
       badge: googleActivityData.badge || prev?.badge || "",
       image_url: googleActivityData.image_url || prev?.image_url || "",
       url: googleActivityData.url || googleUrl || prev?.url || "",
+      phone: googleActivityData.phone || prev?.phone || "",
+      website: googleActivityData.website || prev?.website || "",
+      opening_hours: googleActivityData.opening_hours || prev?.opening_hours || null,
     }))
 
     setGoogleActivityData(null)
@@ -126,7 +145,7 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, pr
 
     try {
       setLoading(true)
-      
+
       if (isAddingNew) {
         // Crear nueva actividad
         const newActivity = await createActivity({
@@ -146,11 +165,18 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, pr
           badge: editingActivity.badge,
           image_url: editingActivity.image_url,
           url: editingActivity.url,
+          phone: editingActivity.phone,
+          website: editingActivity.website,
+          opening_hours: editingActivity.opening_hours,
           order_index: editingActivity.order_index
         })
-        
+
         if (newActivity) {
           onActivitiesChange([...activities, newActivity])
+          toast({
+            title: "Actividad guardada",
+            description: "La actividad ha sido creada correctamente.",
+          })
         }
       } else {
         // Actualizar actividad existente
@@ -170,14 +196,21 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, pr
           badge: editingActivity.badge,
           image_url: editingActivity.image_url,
           url: editingActivity.url,
+          phone: editingActivity.phone,
+          website: editingActivity.website,
+          opening_hours: editingActivity.opening_hours,
           order_index: editingActivity.order_index
         })
-        
+
         if (updatedActivity) {
           onActivitiesChange(activities.map(activity => activity.id === editingActivity.id ? updatedActivity : activity))
+          toast({
+            title: "Actividad actualizada",
+            description: "La información ha sido actualizada correctamente.",
+          })
         }
       }
-      
+
       setEditingActivity(null)
       setIsAddingNew(false)
       setGoogleUrl("")
@@ -199,18 +232,25 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, pr
   }
 
   const handleDelete = async (activityId: string) => {
-    if (confirm("¿Estás seguro de que quieres eliminar esta actividad?")) {
-      try {
-        setLoading(true)
-        const success = await deleteActivity(activityId)
-        if (success) {
-          onActivitiesChange(activities.filter(activity => activity.id !== activityId))
-        }
-      } catch (error) {
-        console.error('Error deleting activity:', error)
-      } finally {
-        setLoading(false)
+    try {
+      setLoading(true)
+      const success = await deleteActivity(activityId)
+      if (success) {
+        onActivitiesChange(activities.filter(activity => activity.id !== activityId))
+        toast({
+          title: "Actividad eliminada",
+          description: "La actividad ha sido eliminada correctamente.",
+        })
       }
+    } catch (error) {
+      console.error('Error deleting activity:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la actividad.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -283,22 +323,42 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, pr
                         >
                           <i className="fas fa-edit"></i>
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(activity.id)}
-                          disabled={loading}
-                          className="text-red-600 hover:text-red-700 w-full sm:w-auto"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={loading}
+                              className="text-red-600 hover:text-red-700 w-full sm:w-auto"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará de forma permanente la actividad "{activity.name}".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(activity.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </CardHeader>
                   {activity.image_url && (
                     <CardContent className="pt-0">
-                      <img 
-                        src={activity.image_url} 
+                      <img
+                        src={activity.image_url}
                         alt={activity.name}
                         className="w-full h-32 object-cover rounded-lg"
                       />
@@ -359,7 +419,7 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, pr
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500">
-                  {isAddingNew 
+                  {isAddingNew
                     ? "Pega la URL completa de una búsqueda de Google de la actividad para obtener automáticamente su información"
                     : "Actualiza la información de la actividad pegando una nueva URL de búsqueda de Google"}
                 </p>
@@ -381,178 +441,205 @@ export function ActivitiesEditForm({ activities, guideId, onActivitiesChange, pr
                 />
               )}
 
+              {/* Teléfono */}
+              {!googleActivityData && (
+                <div className="space-y-2">
+                  <Label htmlFor="activity-phone">Teléfono</Label>
+                  <Input
+                    id="activity-phone"
+                    value={editingActivity.phone || ''}
+                    onChange={(e) => setEditingActivity({ ...editingActivity, phone: e.target.value })}
+                    placeholder="Ej: +34 912 345 678"
+                  />
+                </div>
+              )}
+
               {/* Formulario manual (solo si no hay datos de Google disponibles) */}
               {!googleActivityData && (
                 <>
-              <div className="space-y-2">
-                <Label htmlFor="activity-name">Nombre</Label>
-                <Input
-                  id="activity-name"
-                  value={editingActivity.name || ''}
-                  onChange={(e) => setEditingActivity({ ...editingActivity, name: e.target.value })}
-                  placeholder="Nombre de la actividad"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-name">Nombre</Label>
+                    <Input
+                      id="activity-name"
+                      value={editingActivity.name || ''}
+                      onChange={(e) => setEditingActivity({ ...editingActivity, name: e.target.value })}
+                      placeholder="Nombre de la actividad"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="activity-description">Descripción</Label>
-                <Textarea
-                  id="activity-description"
-                  value={editingActivity.description || ''}
-                  onChange={(e) => setEditingActivity({ ...editingActivity, description: e.target.value })}
-                  placeholder="Descripción de la actividad"
-                  rows={3}
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-description">Descripción</Label>
+                    <Textarea
+                      id="activity-description"
+                      value={editingActivity.description || ''}
+                      onChange={(e) => setEditingActivity({ ...editingActivity, description: e.target.value })}
+                      placeholder="Descripción de la actividad"
+                      rows={3}
+                    />
+                  </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="activity-distance">Distancia</Label>
-                  <Input
-                    id="activity-distance"
-                    value={editingActivity.distance || ''}
-                    onChange={(e) => setEditingActivity({ ...editingActivity, distance: e.target.value ? Number(e.target.value) : null })}
-                    placeholder="Ej: 10 minutos en coche"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="activity-price">Información de Precio</Label>
-                  <Input
-                    id="activity-price"
-                    value={editingActivity.price_info || ''}
-                    onChange={(e) => setEditingActivity({ ...editingActivity, price_info: e.target.value })}
-                    placeholder="Ej: Desde 15€ por persona"
-                  />
-                </div>
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="activity-price">Información de Precio (Manual)</Label>
+                      <Input
+                        id="activity-price"
+                        value={editingActivity.price_info || ''}
+                        onChange={(e) => setEditingActivity({ ...editingActivity, price_info: e.target.value })}
+                        placeholder="Ej: Desde 15€ por persona"
+                      />
+                      <p className="text-xs text-gray-500">Detalles específicos del precio</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="activity-price-range">Rango de Precio (desde Google)</Label>
+                      <Input
+                        id="activity-price-range"
+                        value={editingActivity.price_range || ''}
+                        onChange={(e) => setEditingActivity({ ...editingActivity, price_range: e.target.value })}
+                        placeholder="€20-€40"
+                      />
+                      <p className="text-xs text-gray-500">Estimación de Google</p>
+                    </div>
+                  </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="activity-badge">Badge</Label>
-                  <Input
-                    id="activity-badge"
-                    value={editingActivity.badge || ''}
-                    onChange={(e) => setEditingActivity({ ...editingActivity, badge: e.target.value })}
-                    placeholder="Ej: Recomendada"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="activity-order">Orden</Label>
-                  <Input
-                    id="activity-order"
-                    type="number"
-                    value={editingActivity.order_index || ''}
-                    onChange={(e) => setEditingActivity({ ...editingActivity, order_index: e.target.value ? Number.parseInt(e.target.value) : 0 })}
-                  />
-                </div>
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="activity-badge">Badge</Label>
+                      <Input
+                        id="activity-badge"
+                        value={editingActivity.badge || ''}
+                        onChange={(e) => setEditingActivity({ ...editingActivity, badge: e.target.value })}
+                        placeholder="Ej: Recomendada"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="activity-order">Orden</Label>
+                      <Input
+                        id="activity-order"
+                        type="number"
+                        value={editingActivity.order_index || ''}
+                        onChange={(e) => setEditingActivity({ ...editingActivity, order_index: e.target.value ? Number.parseInt(e.target.value) : 0 })}
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="activity-walking-time">Tiempo Caminando (minutos)</Label>
-                  <Input
-                    id="activity-walking-time"
-                    type="number"
-                    min="0"
-                    value={editingActivity.walking_time || ''}
-                    onChange={(e) => setEditingActivity({ ...editingActivity, walking_time: e.target.value ? Number.parseInt(e.target.value) : null })}
-                    placeholder="Ej: 15"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Tiempo en minutos caminando desde la propiedad
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="activity-driving-time">Tiempo en Coche (minutos)</Label>
-                  <Input
-                    id="activity-driving-time"
-                    type="number"
-                    min="0"
-                    value={editingActivity.driving_time || ''}
-                    onChange={(e) => setEditingActivity({ ...editingActivity, driving_time: e.target.value ? Number.parseInt(e.target.value) : null })}
-                    placeholder="Ej: 3"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Tiempo en minutos en coche desde la propiedad
-                  </p>
-                </div>
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="activity-walking-time">Tiempo Caminando (minutos)</Label>
+                      <Input
+                        id="activity-walking-time"
+                        type="number"
+                        min="0"
+                        value={editingActivity.walking_time || ''}
+                        onChange={(e) => setEditingActivity({ ...editingActivity, walking_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                        placeholder="Ej: 15"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Tiempo en minutos caminando desde la propiedad
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="activity-driving-time">Tiempo en Coche (minutos)</Label>
+                      <Input
+                        id="activity-driving-time"
+                        type="number"
+                        min="0"
+                        value={editingActivity.driving_time || ''}
+                        onChange={(e) => setEditingActivity({ ...editingActivity, driving_time: e.target.value ? Number.parseInt(e.target.value) : null })}
+                        placeholder="Ej: 3"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Tiempo en minutos en coche desde la propiedad
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="activity-address">Dirección</Label>
-                <Input
-                  id="activity-address"
-                  value={editingActivity.address || ''}
-                  onChange={(e) => setEditingActivity({ ...editingActivity, address: e.target.value })}
-                  placeholder="Dirección de la actividad"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-address">Dirección</Label>
+                    <Input
+                      id="activity-address"
+                      value={editingActivity.address || ''}
+                      onChange={(e) => setEditingActivity({ ...editingActivity, address: e.target.value })}
+                      placeholder="Dirección de la actividad"
+                    />
+                  </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="activity-rating">Calificación (1-5)</Label>
-                  <Input
-                    id="activity-rating"
-                    type="number"
-                    min="0"
-                    max="5"
-                    step="0.1"
-                    value={editingActivity.rating !== null ? editingActivity.rating : ''}
-                    onChange={(e) => setEditingActivity({ ...editingActivity, rating: e.target.value ? Number.parseFloat(e.target.value) : null })}
-                    placeholder="4.5"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="activity-reviews">Número de Reseñas</Label>
-                  <Input
-                    id="activity-reviews"
-                    type="number"
-                    min="0"
-                    value={editingActivity.review_count !== null ? editingActivity.review_count : ''}
-                    onChange={(e) => setEditingActivity({ ...editingActivity, review_count: e.target.value ? Number.parseInt(e.target.value) : null })}
-                    placeholder="150"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="activity-price-range">Rango de Precio</Label>
-                  <Input
-                    id="activity-price-range"
-                    value={editingActivity.price_range || ''}
-                    onChange={(e) => setEditingActivity({ ...editingActivity, price_range: e.target.value })}
-                    placeholder="€20-€40"
-                  />
-                </div>
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="activity-rating">Calificación (1-5)</Label>
+                      <Input
+                        id="activity-rating"
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        value={editingActivity.rating !== null ? editingActivity.rating : ''}
+                        onChange={(e) => setEditingActivity({ ...editingActivity, rating: e.target.value ? Number.parseFloat(e.target.value) : null })}
+                        placeholder="4.5"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="activity-reviews">Número de Reseñas</Label>
+                      <Input
+                        id="activity-reviews"
+                        type="number"
+                        min="0"
+                        value={editingActivity.review_count !== null ? editingActivity.review_count : ''}
+                        onChange={(e) => setEditingActivity({ ...editingActivity, review_count: e.target.value ? Number.parseInt(e.target.value) : null })}
+                        placeholder="150"
+                      />
+                    </div>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="activity-image">URL de Imagen</Label>
-                <Input
-                  id="activity-image"
-                  value={editingActivity.image_url || ''}
-                  onChange={(e) => setEditingActivity({ ...editingActivity, image_url: e.target.value })}
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-image">URL de Imagen</Label>
+                    <Input
+                      id="activity-image"
+                      value={editingActivity.image_url || ''}
+                      onChange={(e) => setEditingActivity({ ...editingActivity, image_url: e.target.value })}
+                      placeholder="https://ejemplo.com/imagen.jpg"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="activity-url">URL del Lugar (Google Maps, Web, etc.)</Label>
-                <Input
-                  id="activity-url"
-                  value={editingActivity.url || ''}
-                  onChange={(e) => setEditingActivity({ ...editingActivity, url: e.target.value })}
-                  placeholder="https://maps.app.goo.gl/..."
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-url">URL del Lugar / Sitio Web</Label>
+                    <Input
+                      id="activity-url"
+                      value={editingActivity.url || ''}
+                      onChange={(e) => setEditingActivity({ ...editingActivity, url: e.target.value })}
+                      placeholder="https://maps.app.goo.gl/..."
+                    />
+                  </div>
 
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
-                  <i className="fas fa-save mr-2"></i>
-                  {loading ? 'Guardando...' : 'Guardar'}
-                </Button>
-                <Button variant="outline" onClick={handleCancel} disabled={loading} className="w-full sm:w-auto">
-                  Cancelar
-                </Button>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="activity-opening-hours">Horarios (una línea por día)</Label>
+                    <Textarea
+                      id="activity-opening-hours"
+                      value={editingActivity.opening_hours?.weekday_text?.join('\n') || ''}
+                      onChange={(e) => {
+                        const lines = e.target.value.split('\n').filter(line => line.trim() !== '')
+                        setEditingActivity({
+                          ...editingActivity,
+                          opening_hours: {
+                            ...editingActivity.opening_hours,
+                            weekday_text: lines,
+                            open_now: editingActivity.opening_hours?.open_now ?? false
+                          }
+                        })
+                      }}
+                      placeholder={"Lunes: 9:00–18:00\nMartes: 9:00–18:00\n..."}
+                      rows={7}
+                    />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto">
+                      <i className="fas fa-save mr-2"></i>
+                      {loading ? 'Guardando...' : 'Guardar'}
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel} disabled={loading} className="w-full sm:w-auto">
+                      Cancelar
+                    </Button>
+                  </div>
                 </>
               )}
             </div>

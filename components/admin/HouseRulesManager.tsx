@@ -10,6 +10,18 @@ import { HouseRule } from "@/types/guides"
 import { getHouseRules, createHouseRule, updateHouseRule, deleteHouseRule } from "@/lib/api/guides-client"
 import { getIconByName } from "@/lib/utils/icon-registry"
 import { IconSelector } from "@/components/admin/IconSelector"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface HouseRulesManagerProps {
   guideId: string
@@ -20,6 +32,7 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
   const [loading, setLoading] = useState(true)
   const [editingRule, setEditingRule] = useState<HouseRule | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
+  const { toast } = useToast()
 
   // Cargar normas al montar el componente
   useEffect(() => {
@@ -74,6 +87,10 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
 
         if (newRule) {
           setRules([...rules, newRule])
+          toast({
+            title: "Norma creada",
+            description: "La norma de la casa ha sido creada correctamente.",
+          })
         }
       } else {
         // Actualizar norma existente
@@ -86,6 +103,10 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
 
         if (updatedRule) {
           setRules(rules.map(rule => rule.id === editingRule.id ? updatedRule : rule))
+          toast({
+            title: "Norma actualizada",
+            description: "La norma ha sido actualizada correctamente.",
+          })
         }
       }
 
@@ -97,15 +118,22 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
   }
 
   const handleDelete = async (ruleId: string) => {
-    if (confirm("¿Estás seguro de que quieres eliminar esta norma?")) {
-      try {
-        const success = await deleteHouseRule(ruleId)
-        if (success) {
-          setRules(rules.filter(rule => rule.id !== ruleId))
-        }
-      } catch (error) {
-        console.error('Error deleting house rule:', error)
+    try {
+      const success = await deleteHouseRule(ruleId)
+      if (success) {
+        setRules(rules.filter(rule => rule.id !== ruleId))
+        toast({
+          title: "Norma eliminada",
+          description: "La norma de la casa ha sido eliminada correctamente.",
+        })
       }
+    } catch (error) {
+      console.error('Error deleting house rule:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la norma.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -168,9 +196,30 @@ export function HouseRulesManager({ guideId }: HouseRulesManagerProps) {
                         <Button size="sm" variant="outline" onClick={() => handleEdit(rule)}>
                           <i className="fas fa-edit"></i>
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDelete(rule.id)}>
-                          <i className="fas fa-trash"></i>
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive">
+                              <i className="fas fa-trash"></i>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará de forma permanente la norma "{rule.title}".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(rule.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </div>

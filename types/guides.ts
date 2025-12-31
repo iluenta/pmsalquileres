@@ -44,7 +44,7 @@ export interface GuideSection {
   id: string
   guide_id: string
   tenant_id: string
-  section_type: "apartment" | "rules" | "house_guide" | "tips" | "contact"
+  section_type: "apartment" | "rules" | "house_guide" | "tips" | "contact" | "beaches" | "restaurants" | "shopping" | "activities"
   title: string
   content: string
   icon: string
@@ -102,6 +102,9 @@ export interface Beach {
   price_range: string | null
   badge: string | null
   url: string | null // URL de la playa (Google Maps o website)
+  phone: string | null
+  website: string | null
+  opening_hours: any | null
   order_index: number
   created_at: string
   updated_at: string
@@ -124,6 +127,9 @@ export interface Restaurant {
   review_count: number | null
   badge: string | null
   url: string | null // URL del restaurante (Google Maps o website)
+  phone: string | null
+  website: string | null
+  opening_hours: any | null
   order_index: number
   created_at: string
   updated_at: string
@@ -146,6 +152,9 @@ export interface Shopping {
   review_count: number | null
   badge: string | null
   url: string | null // URL del lugar (Google Maps o website)
+  phone: string | null
+  website: string | null
+  opening_hours: any | null
   order_index: number
   created_at: string
   updated_at: string
@@ -170,6 +179,9 @@ export interface Activity {
   badge: string | null
   image_url: string | null
   url: string | null // URL de la actividad (Google Maps o website)
+  phone: string | null
+  website: string | null
+  opening_hours: any | null
   order_index: number
   created_at: string
   updated_at: string
@@ -296,7 +308,7 @@ export interface UpdateGuideData {
 
 export interface CreateGuideSectionData {
   guide_id: string
-  section_type: "apartment" | "rules" | "house_guide" | "tips" | "contact"
+  section_type: "apartment" | "rules" | "house_guide" | "tips" | "contact" | "beaches" | "restaurants" | "shopping" | "activities"
   title: string
   content: string
   icon: string
@@ -304,7 +316,7 @@ export interface CreateGuideSectionData {
 }
 
 export interface UpdateGuideSectionData {
-  section_type?: "apartment" | "rules" | "house_guide" | "tips" | "contact"
+  section_type?: "apartment" | "rules" | "house_guide" | "tips" | "contact" | "beaches" | "restaurants" | "shopping" | "activities"
   title?: string
   content?: string
   icon?: string
@@ -351,6 +363,9 @@ export interface CreateBeachData {
   price_range?: string | null
   badge?: string | null
   url?: string | null
+  phone?: string | null
+  website?: string | null
+  opening_hours?: any | null
   order_index?: number
 }
 
@@ -368,6 +383,9 @@ export interface UpdateBeachData {
   price_range?: string | null
   badge?: string | null
   url?: string | null
+  phone?: string | null
+  website?: string | null
+  opening_hours?: any | null
   order_index?: number
 }
 
@@ -386,6 +404,9 @@ export interface CreateRestaurantData {
   review_count?: number | null
   badge?: string | null
   url?: string | null
+  phone?: string | null
+  website?: string | null
+  opening_hours?: any | null
   order_index?: number
 }
 
@@ -403,6 +424,9 @@ export interface UpdateRestaurantData {
   review_count?: number | null
   badge?: string | null
   url?: string | null
+  phone?: string | null
+  website?: string | null
+  opening_hours?: any | null
   order_index?: number
 }
 
@@ -421,6 +445,9 @@ export interface CreateShoppingData {
   review_count?: number | null
   badge?: string | null
   url?: string | null
+  phone?: string | null
+  website?: string | null
+  opening_hours?: any | null
   order_index?: number
 }
 
@@ -438,6 +465,9 @@ export interface UpdateShoppingData {
   review_count?: number | null
   badge?: string | null
   url?: string | null
+  phone?: string | null
+  website?: string | null
+  opening_hours?: any | null
   order_index?: number
 }
 
@@ -458,6 +488,9 @@ export interface CreateActivityData {
   badge?: string | null
   image_url?: string | null
   url?: string | null
+  phone?: string | null
+  website?: string | null
+  opening_hours?: any | null
   order_index?: number
 }
 
@@ -477,6 +510,9 @@ export interface UpdateActivityData {
   badge?: string | null
   image_url?: string | null
   url?: string | null
+  phone?: string | null
+  website?: string | null
+  opening_hours?: any | null
   order_index?: number
 }
 

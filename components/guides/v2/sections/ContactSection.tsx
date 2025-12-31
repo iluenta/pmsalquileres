@@ -2,13 +2,17 @@ import type { GuideContactInfo, InterestPhoneCategory, GuideSection } from "@/ty
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Phone, Mail, MessageCircle, AlertTriangle, Wrench, CheckCircle2, MapPin, MessageSquare, Stethoscope, Pill } from "lucide-react"
 import { getIconByName } from "@/lib/utils/icon-registry"
+import { uiTranslations } from "@/lib/utils/ui-translations"
 
 interface ContactSectionProps {
     contactInfo: GuideContactInfo
     introSection?: GuideSection
+    currentLanguage?: string
 }
 
-export function ContactSection({ contactInfo, introSection }: ContactSectionProps) {
+export function ContactSection({ contactInfo, introSection, currentLanguage = "es" }: ContactSectionProps) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
+
     // Parse emergency_numbers
     const emergencyNumbers = contactInfo.emergency_numbers && typeof contactInfo.emergency_numbers === 'object'
         ? contactInfo.emergency_numbers
@@ -33,10 +37,10 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                         </div>
                     )
                 })()}
-                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Contacto y Emergencias"}</h2>
-                {introSection?.content && (
-                    <p className="text-gray-600 mt-2 max-w-2xl mx-auto">{introSection.content}</p>
-                )}
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || t.contact_default_title}</h2>
+                <p className="text-gray-600 mt-2 max-w-2xl mx-auto">
+                    {introSection?.content || t.contact_default_desc}
+                </p>
             </div>
             {/* Grid de 2 columnas: Anfitriones + Servicios (izq) y Teléfonos (der) */}
             <div className="grid md:grid-cols-2 gap-6">
@@ -47,7 +51,7 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <MessageSquare className="h-5 w-5" style={{ color: 'var(--guide-primary)' }} />
-                                Tus Anfitriones
+                                {t.hosts_title}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -64,7 +68,7 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                                     style={{ '--hover-color': 'var(--guide-primary)' } as any}
                                 >
                                     <Phone className="h-5 w-5 text-gray-500" />
-                                    <span className="font-medium">Llamar</span>
+                                    <span className="font-medium">{t.call}</span>
                                     <span className="hover:text-[var(--hover-color)]">{contactInfo.phone}</span>
                                 </a>
                             )}
@@ -92,7 +96,7 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
 
                             {contactInfo.support_person_name && contactInfo.support_person_phone && (
                                 <div className="border-t pt-4 mt-4">
-                                    <h4 className="text-sm font-semibold text-gray-800 mb-2">Persona de Soporte</h4>
+                                    <h4 className="text-sm font-semibold text-gray-800 mb-2">{t.support_person}</h4>
                                     <p className="text-sm text-gray-600 mb-2">
                                         {contactInfo.support_person_name} está disponible para cualquier duda o incidencia durante tu estancia.
                                     </p>
@@ -134,7 +138,7 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Wrench className="h-5 w-5" style={{ color: 'var(--guide-primary)' }} />
-                                Servicios del Apartamento
+                                {t.apartment_services}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -165,7 +169,7 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-red-600" />
-                            Teléfonos de Interés
+                            {t.interest_phones}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
@@ -175,28 +179,28 @@ export function ContactSection({ contactInfo, introSection }: ContactSectionProp
                                 href={`tel:${emergencias}`}
                                 className="bg-red-50 border-2 border-red-500 p-3 rounded-lg text-center hover:bg-red-100 transition-colors"
                             >
-                                <div className="font-bold text-sm mb-1 text-red-500">EMERGENCIAS</div>
+                                <div className="font-bold text-sm mb-1 text-red-500">{t.emergency_label}</div>
                                 <div className="text-lg font-semibold text-red-700">{emergencias}</div>
                             </a>
                             <a
                                 href={`tel:${policiaLocal}`}
                                 className="bg-white border-2 border-gray-200 p-3 rounded-lg text-center hover:border-gray-300 transition-colors"
                             >
-                                <div className="font-bold text-sm mb-1 text-gray-800">POLICÍA LOCAL</div>
+                                <div className="font-bold text-sm mb-1 text-gray-800">{t.local_police}</div>
                                 <div className="text-lg font-semibold text-gray-900">{policiaLocal}</div>
                             </a>
                             <a
                                 href={`tel:${guardiaCivil}`}
                                 className="bg-white border-2 border-gray-200 p-3 rounded-lg text-center hover:border-gray-300 transition-colors"
                             >
-                                <div className="font-bold text-sm mb-1 text-gray-800">GUARDIA CIVIL</div>
+                                <div className="font-bold text-sm mb-1 text-gray-800">{t.civil_guard}</div>
                                 <div className="text-lg font-semibold text-gray-900">{guardiaCivil}</div>
                             </a>
                             <a
                                 href={`tel:${bomberos}`}
                                 className="bg-white border-2 border-gray-200 p-3 rounded-lg text-center hover:border-gray-300 transition-colors"
                             >
-                                <div className="font-bold text-sm mb-1 text-gray-800">BOMBEROS</div>
+                                <div className="font-bold text-sm mb-1 text-gray-800">{t.firefighters}</div>
                                 <div className="text-lg font-semibold text-gray-900">{bomberos}</div>
                             </a>
                         </div>

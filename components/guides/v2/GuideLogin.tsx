@@ -10,14 +10,24 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getCookie, setCookie, deleteGuideCookies } from "@/lib/utils/cookies"
 import { getGuideThemePublic } from "@/lib/api/guides-public"
 import { themeConfigs, hexToRgb } from "@/lib/utils/themes"
+import { uiTranslations } from "@/lib/utils/ui-translations"
+import { LanguageSelector, Language } from "./LanguageSelector"
 
 interface GuideLoginProps {
     propertyId: string
     onLoginSuccess: (booking: any) => void
     propertyName?: string
+    currentLanguage?: Language
+    onLanguageChange?: (lang: Language) => void
 }
 
-export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLoginProps) {
+export function GuideLogin({
+    propertyId,
+    onLoginSuccess,
+    propertyName,
+    currentLanguage = "es",
+    onLanguageChange
+}: GuideLoginProps) {
     const [firstName, setFirstName] = useState("")
     const [lastName, setLastName] = useState("")
     const [loading, setLoading] = useState(false)
@@ -25,11 +35,12 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
     const [isThemeLoading, setIsThemeLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
+
     // Leer cookies y cargar tema
     useEffect(() => {
         if (!propertyId) return
 
-        // Cargar tema de la guía
         const loadTheme = async () => {
             try {
                 const data = await getGuideThemePublic(propertyId)
@@ -45,7 +56,6 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
 
         loadTheme()
 
-        // Leer cookies específicas para esta propiedad
         const savedFirstName = getCookie(`guide_guest_${propertyId}_firstName`)
         const savedLastName = getCookie(`guide_guest_${propertyId}_lastName`)
 
@@ -53,36 +63,31 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
         if (savedLastName) setLastName(savedLastName)
     }, [propertyId])
 
-    // Configuración de colores
     const config = themeConfigs[theme] || themeConfigs.default
 
-    // Aplicar variables de tema al root para estilos globales (como el scrollbar)
     useEffect(() => {
         const root = document.documentElement;
         root.style.setProperty('--guide-primary', config.primary);
         root.style.setProperty('--guide-primary-rgb', hexToRgb(config.primary));
         root.style.setProperty('--guide-secondary', config.secondary);
 
-        // Opcional: limpiar al desmontar
         return () => {
             root.style.removeProperty('--guide-primary');
             root.style.removeProperty('--guide-primary-rgb');
             root.style.removeProperty('--guide-secondary');
         };
-    }, [theme])
+    }, [theme, config])
 
-    // Si no hay propertyId, mostrar error
     if (!propertyId) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
                 <div className="text-center">
-                    <p className="text-red-600">Error: No se proporcionó un ID de propiedad válido</p>
+                    <p className="text-red-600">{t.error_no_property}</p>
                 </div>
             </div>
         )
     }
 
-    // Mientras carga el tema, mostrar loader neutro para evitar el flash azul
     if (isThemeLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -92,7 +97,6 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
-        // ... (handleSubmit content remains the same)
         e.preventDefault()
         setError(null)
         setLoading(true)
@@ -118,12 +122,12 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
                 onLoginSuccess(result.booking)
             } else {
                 deleteGuideCookies(propertyId)
-                setError(result.message || "No se pudo validar el acceso")
+                setError(result.message || t.error_validate_access)
             }
         } catch (err) {
             console.error('[GuideLogin] Error:', err)
             deleteGuideCookies(propertyId)
-            setError("Error al conectar con el servidor")
+            setError(t.error_server)
         } finally {
             setLoading(false)
         }
@@ -131,13 +135,23 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
 
     return (
         <div
-            className="min-h-screen flex items-center justify-center bg-gray-50 p-4 transition-colors duration-500"
+            className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 transition-colors duration-500"
             style={{
                 ['--guide-primary' as any]: config.primary,
                 ['--guide-secondary' as any]: config.secondary,
                 ['--guide-primary-rgb' as any]: hexToRgb(config.primary)
             }}
         >
+            {/* Language Selector Above Card */}
+            <div className="w-full max-w-md flex justify-end mb-4">
+                {onLanguageChange && (
+                    <LanguageSelector
+                        currentLanguage={currentLanguage}
+                        onLanguageChange={onLanguageChange}
+                    />
+                )}
+            </div>
+
             <Card className="w-full max-w-md shadow-xl border-t-4" style={{ borderTopColor: 'var(--guide-primary)' }}>
                 <CardHeader className="text-center pb-2">
                     <div
@@ -146,7 +160,7 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
                     >
                         <Lock className="h-6 w-6" style={{ color: 'var(--guide-primary)' }} />
                     </div>
-                    <CardTitle className="text-2xl font-bold text-gray-900">Guía del Huésped</CardTitle>
+                    <CardTitle className="text-2xl font-bold text-gray-900">{t.login_title}</CardTitle>
                     {propertyName && (
                         <CardDescription className="font-medium" style={{ color: 'var(--guide-primary)' }}>
                             {propertyName}
@@ -155,15 +169,15 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
                 </CardHeader>
                 <CardContent>
                     <p className="text-gray-600 text-sm text-center mb-8">
-                        Por motivos de privacidad, introduce tus datos para acceder a la guía de tu estancia.
+                        {t.login_desc}
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="firstName">Nombre</Label>
+                            <Label htmlFor="firstName">{t.first_name}</Label>
                             <Input
                                 id="firstName"
-                                placeholder="Tu nombre"
+                                placeholder={t.first_name_placeholder}
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
                                 required
@@ -172,10 +186,10 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="lastName">Primer Apellido</Label>
+                            <Label htmlFor="lastName">{t.last_name}</Label>
                             <Input
                                 id="lastName"
-                                placeholder="Tu primer apellido"
+                                placeholder={t.last_name_placeholder}
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
                                 required
@@ -202,17 +216,17 @@ export function GuideLogin({ propertyId, onLoginSuccess, propertyName }: GuideLo
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    Validando...
+                                    {t.validating}
                                 </>
                             ) : (
-                                "Acceder a la Guía"
+                                t.login_button
                             )}
                         </Button>
                     </form>
 
                     <div className="mt-8 pt-6 border-t border-gray-100 text-center">
                         <p className="text-xs text-gray-400 italic">
-                            El acceso se activa 10 días antes de tu llegada y finaliza el día siguiente a tu salida.
+                            {t.login_footer}
                         </p>
                     </div>
                 </CardContent>

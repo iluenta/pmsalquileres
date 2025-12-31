@@ -3,13 +3,17 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Lightbulb } from "lucide-react"
 import { getIconByName } from "@/lib/utils/icon-registry"
 import { FormattedText } from "@/components/ui/formatted-text"
+import { uiTranslations } from "@/lib/utils/ui-translations"
 
 interface TipsSectionProps {
     tips: Tip[]
     introSection?: GuideSection
+    currentLanguage?: string
 }
 
-export function TipsSection({ tips, introSection }: TipsSectionProps) {
+export function TipsSection({ tips, introSection, currentLanguage = "es" }: TipsSectionProps) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
+
     return (
         <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
@@ -24,9 +28,9 @@ export function TipsSection({ tips, introSection }: TipsSectionProps) {
                         </div>
                     )
                 })()}
-                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Consejos y Recomendaciones"}</h2>
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || t.tips_default_title}</h2>
                 <p className="text-gray-600 mt-2 max-w-2xl mx-auto">
-                    {introSection?.content || "Pequeños detalles y sugerencias útiles para que tu estancia sea perfecta y no te falte nada."}
+                    {introSection?.content || t.tips_default_desc}
                 </p>
             </div>
 
@@ -55,7 +59,7 @@ export function TipsSection({ tips, introSection }: TipsSectionProps) {
                                                 className="text-gray-600 leading-relaxed"
                                             />
                                         ) : (
-                                            <p className="text-gray-400 italic text-sm">Sin descripción disponible</p>
+                                            <p className="text-gray-400 italic text-sm">{t.no_description}</p>
                                         )}
 
                                         {tip.details && (

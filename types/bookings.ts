@@ -21,10 +21,11 @@ export interface Booking {
   booking_status_id: string | null
   booking_type_id: string | null // Tipo de reserva: comercial o período cerrado
   notes: string | null
+  check_in_url: string | null
   created_at: string
   updated_at: string
   created_by: string | null
-  
+
   // Relaciones (opcionales, cargadas cuando se solicita)
   property?: {
     id: string
@@ -117,6 +118,7 @@ export interface BookingWithDetails extends Omit<Booking, 'property' | 'person' 
     email: string | null
     phone: string | null
   } | null // Puede ser null para períodos cerrados
+  check_in_url: string | null
   channel: {
     id: string
     person: {
@@ -186,6 +188,7 @@ export interface UpdateBookingData {
   booking_status_id?: string | null
   booking_type_id?: string | null
   notes?: string | null
+  check_in_url?: string | null
 }
 
 export interface CreatePersonData {

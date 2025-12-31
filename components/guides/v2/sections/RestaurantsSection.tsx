@@ -8,13 +8,16 @@ import { Button } from "@/components/ui/button"
 import { Utensils, MapPin, Star, Euro, ExternalLink, ChevronDown, ChevronUp, Phone, Clock } from "lucide-react"
 import { DistanceDisplay } from "./DistanceDisplay"
 import { getIconByName } from "@/lib/utils/icon-registry"
+import { uiTranslations } from "@/lib/utils/ui-translations"
 
 interface RestaurantsSectionProps {
     restaurants: Restaurant[]
     introSection?: GuideSection
+    currentLanguage?: string
 }
 
-function RestaurantCard({ place }: { place: Restaurant }) {
+function RestaurantCard({ place, currentLanguage = "es" }: { place: Restaurant, currentLanguage?: string }) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
     const [isScheduleExpanded, setIsScheduleExpanded] = useState(false)
     const description = place.description || ""
@@ -94,9 +97,10 @@ function RestaurantCard({ place }: { place: Restaurant }) {
                                     e.stopPropagation();
                                     setIsScheduleExpanded(!isScheduleExpanded);
                                 }}
-                                className="hover:text-blue-600 transition-colors text-left flex items-center gap-1"
+                                className="transition-colors text-left flex items-center gap-1"
+                                style={{ color: 'var(--guide-primary)' }}
                             >
-                                <span>Ver horarios</span>
+                                <span>{isScheduleExpanded ? t.hide_schedule : t.show_schedule}</span>
                                 {isScheduleExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                             </button>
                             {isScheduleExpanded && (
@@ -118,17 +122,18 @@ function RestaurantCard({ place }: { place: Restaurant }) {
                         {shouldShowToggle && (
                             <button
                                 onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                                className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
+                                className="mt-2 text-xs font-medium flex items-center gap-1 transition-colors"
+                                style={{ color: 'var(--guide-primary)' }}
                             >
                                 {isDescriptionExpanded ? (
                                     <>
                                         <ChevronUp className="h-3 w-3" />
-                                        Ver menos
+                                        {t.read_less}
                                     </>
                                 ) : (
                                     <>
                                         <ChevronDown className="h-3 w-3" />
-                                        Leer más
+                                        {t.read_more}
                                     </>
                                 )}
                             </button>
@@ -140,9 +145,9 @@ function RestaurantCard({ place }: { place: Restaurant }) {
                     <div className="mt-auto pt-3 border-t border-gray-100">
                         <Button
                             asChild
-                            variant="outline"
                             size="sm"
-                            className="w-full"
+                            className="w-full text-white border-0"
+                            style={{ backgroundColor: 'var(--guide-primary)' }}
                         >
                             <a
                                 href={place.url}
@@ -151,7 +156,7 @@ function RestaurantCard({ place }: { place: Restaurant }) {
                                 className="flex items-center justify-center gap-2"
                             >
                                 <ExternalLink className="h-4 w-4" />
-                                Visitar Web
+                                {t.visit_web}
                             </a>
                         </Button>
                     </div>
@@ -161,7 +166,9 @@ function RestaurantCard({ place }: { place: Restaurant }) {
     )
 }
 
-export function RestaurantsSection({ restaurants, introSection }: RestaurantsSectionProps) {
+export function RestaurantsSection({ restaurants, introSection, currentLanguage = "es" }: RestaurantsSectionProps) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
+
     return (
         <div className="max-w-6xl mx-auto">
             <div className="text-center mb-10">
@@ -176,15 +183,15 @@ export function RestaurantsSection({ restaurants, introSection }: RestaurantsSec
                         </div>
                     )
                 })()}
-                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Dónde Comer"}</h2>
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || t.restaurants_default_title}</h2>
                 <p className="text-gray-600 mt-2">
-                    {introSection?.content || "Nuestra selección de los mejores restaurantes"}
+                    {introSection?.content || t.restaurants_default_desc}
                 </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {restaurants.map((place) => (
-                    <RestaurantCard key={place.id} place={place} />
+                    <RestaurantCard key={place.id} place={place} currentLanguage={currentLanguage} />
                 ))}
             </div>
         </div>

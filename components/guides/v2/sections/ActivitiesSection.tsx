@@ -8,13 +8,16 @@ import { Button } from "@/components/ui/button"
 import { Mountain, Clock, MapPin, Star, ExternalLink, ChevronDown, ChevronUp, Phone } from "lucide-react"
 import { DistanceDisplay } from "./DistanceDisplay"
 import { getIconByName } from "@/lib/utils/icon-registry"
+import { uiTranslations } from "@/lib/utils/ui-translations"
 
 interface ActivitiesSectionProps {
     activities: Activity[]
     introSection?: GuideSection
+    currentLanguage?: string
 }
 
-function ActivityCard({ activity }: { activity: Activity }) {
+function ActivityCard({ activity, currentLanguage = "es" }: { activity: Activity, currentLanguage?: string }) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
     const [isScheduleExpanded, setIsScheduleExpanded] = useState(false)
     const description = activity.description || ""
@@ -94,9 +97,10 @@ function ActivityCard({ activity }: { activity: Activity }) {
                                     e.stopPropagation();
                                     setIsScheduleExpanded(!isScheduleExpanded);
                                 }}
-                                className="hover:text-blue-600 transition-colors text-left flex items-center gap-1"
+                                className="transition-colors text-left flex items-center gap-1"
+                                style={{ color: 'var(--guide-primary)' }}
                             >
-                                <span>Ver horarios</span>
+                                <span>{isScheduleExpanded ? t.hide_schedule : t.show_schedule}</span>
                                 {isScheduleExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                             </button>
                             {isScheduleExpanded && (
@@ -118,17 +122,18 @@ function ActivityCard({ activity }: { activity: Activity }) {
                         {shouldShowToggle && (
                             <button
                                 onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                                className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
+                                className="mt-2 text-xs font-medium flex items-center gap-1 transition-colors"
+                                style={{ color: 'var(--guide-primary)' }}
                             >
                                 {isDescriptionExpanded ? (
                                     <>
                                         <ChevronUp className="h-3 w-3" />
-                                        Ver menos
+                                        {t.read_less}
                                     </>
                                 ) : (
                                     <>
                                         <ChevronDown className="h-3 w-3" />
-                                        Leer más
+                                        {t.read_more}
                                     </>
                                 )}
                             </button>
@@ -138,7 +143,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
 
                 {activity.price_info && (
                     <div className="mb-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                        <span className="text-xs font-semibold text-gray-500 uppercase">Precio aproximado</span>
+                        <span className="text-xs font-semibold text-gray-500 uppercase">{t.approx_price}</span>
                         <span className="font-semibold text-green-700">{activity.price_info}</span>
                     </div>
                 )}
@@ -147,9 +152,9 @@ function ActivityCard({ activity }: { activity: Activity }) {
                     <div className="mt-4 pt-3 border-t border-gray-100">
                         <Button
                             asChild
-                            variant="outline"
                             size="sm"
-                            className="w-full"
+                            className="w-full text-white border-0"
+                            style={{ backgroundColor: 'var(--guide-primary)' }}
                         >
                             <a
                                 href={activity.url}
@@ -158,7 +163,7 @@ function ActivityCard({ activity }: { activity: Activity }) {
                                 className="flex items-center justify-center gap-2"
                             >
                                 <ExternalLink className="h-4 w-4" />
-                                Visitar Web
+                                {t.visit_web}
                             </a>
                         </Button>
                     </div>
@@ -168,7 +173,9 @@ function ActivityCard({ activity }: { activity: Activity }) {
     )
 }
 
-export function ActivitiesSection({ activities, introSection }: ActivitiesSectionProps) {
+export function ActivitiesSection({ activities, introSection, currentLanguage = "es" }: ActivitiesSectionProps) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
+
     return (
         <div className="max-w-6xl mx-auto">
             <div className="text-center mb-10">
@@ -183,15 +190,15 @@ export function ActivitiesSection({ activities, introSection }: ActivitiesSectio
                         </div>
                     )
                 })()}
-                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Actividades"}</h2>
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || t.activities_default_title}</h2>
                 <p className="text-gray-600 mt-2">
-                    {introSection?.content || "Experiencias inolvidables cerca de ti"}
+                    {introSection?.content || t.activities_default_desc}
                 </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {activities.map((activity) => (
-                    <ActivityCard key={activity.id} activity={activity} />
+                    <ActivityCard key={activity.id} activity={activity} currentLanguage={currentLanguage} />
                 ))}
             </div>
         </div>

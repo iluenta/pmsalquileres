@@ -3,13 +3,17 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Book } from "lucide-react"
 import { getIconByName } from "@/lib/utils/icon-registry"
 import { FormattedText } from "@/components/ui/formatted-text"
+import { uiTranslations } from "@/lib/utils/ui-translations"
 
 interface HouseGuideSectionProps {
     items: HouseGuideItem[]
     introSection?: GuideSection
+    currentLanguage?: string
 }
 
-export function HouseGuideSection({ items, introSection }: HouseGuideSectionProps) {
+export function HouseGuideSection({ items, introSection, currentLanguage = "es" }: HouseGuideSectionProps) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
+
     return (
         <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
@@ -24,9 +28,9 @@ export function HouseGuideSection({ items, introSection }: HouseGuideSectionProp
                         </div>
                     )
                 })()}
-                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Guía de la Casa"}</h2>
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || t.house_guide_default_title}</h2>
                 <p className="text-gray-600 mt-2 max-w-2xl mx-auto">
-                    {introSection?.content || "Todo lo que necesitas saber sobre el funcionamiento del apartamento y sus equipos."}
+                    {introSection?.content || t.house_guide_default_desc}
                 </p>
             </div>
 

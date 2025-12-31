@@ -91,8 +91,9 @@ export function BookingForm({
     net_amount: booking?.net_amount || 0,
     booking_status_id: initialBookingStatusId,
     notes: booking?.notes || "",
+    check_in_url: booking?.check_in_url || "",
   })
-  
+
   const [bookingTypes, setBookingTypes] = useState<ConfigurationValue[]>([])
   const [allChannels, setAllChannels] = useState<Array<{
     id: string
@@ -104,10 +105,10 @@ export function BookingForm({
     tax_percentage: number | null
   }>>([])
   const [propertyChannels, setPropertyChannels] = useState<string[]>([])
-  
+
   // Determinar si es período cerrado
   const isClosedPeriod = formData.booking_type_id && bookingTypes.find(bt => bt.id === formData.booking_type_id)?.value === 'closed_period'
-  
+
   // Cargar tipos de reserva
   useEffect(() => {
     const loadBookingTypes = async () => {
@@ -116,7 +117,7 @@ export function BookingForm({
         if (response.ok) {
           const data = await response.json()
           setBookingTypes(data)
-          
+
           // Aplicar valor por defecto si no hay booking y no hay tipo seleccionado
           if (!booking && !formData.booking_type_id && data.length > 0) {
             const defaultType = data.find((type: ConfigurationValue) => type.is_default === true)
@@ -165,8 +166,8 @@ export function BookingForm({
             sales_commission: c.sales_commission || 0,
             collection_commission: c.collection_commission || 0,
             apply_tax: c.apply_tax || false,
-            tax_percentage: c.apply_tax && c.tax_type?.description 
-              ? parseFloat(c.tax_type.description) 
+            tax_percentage: c.apply_tax && c.tax_type?.description
+              ? parseFloat(c.tax_type.description)
               : null,
           })))
         }
@@ -176,7 +177,7 @@ export function BookingForm({
     }
     loadChannels()
   }, [])
-  
+
   // Cargar canales activos de la propiedad seleccionada
   useEffect(() => {
     const loadPropertyChannels = async () => {
@@ -184,7 +185,7 @@ export function BookingForm({
         setPropertyChannels([])
         return
       }
-      
+
       try {
         const response = await fetch(`/api/properties/${formData.property_id}/sales-channels`)
         if (response.ok) {
@@ -198,30 +199,30 @@ export function BookingForm({
     }
     loadPropertyChannels()
   }, [formData.property_id])
-  
+
   // Filtrar canales según la propiedad
   // Solo mostrar canales activos de la propiedad seleccionada
   const channels = formData.property_id
     ? allChannels.filter(c => propertyChannels.includes(c.id))
     : []
-  
+
   // Obtener el canal seleccionado con sus datos
   const selectedChannel = channels.find(c => c.id === formData.channel_id)
-  
+
   // Flags para rastrear qué campos fueron modificados manualmente
   const [manuallyModified, setManuallyModified] = useState({
     sales_commission_amount: false,
     collection_commission_amount: false,
     tax_amount: false,
   })
-  
+
   // Guardar valores iniciales de la reserva para comparar cambios (solo una vez)
   const initialValuesRef = useRef({
     totalAmount: booking?.total_amount || 0,
     channelId: booking?.channel_id || "",
     loaded: false,
   })
-  
+
   // Marcar como cargado después del primer render
   useEffect(() => {
     if (booking && !initialValuesRef.current.loaded) {
@@ -232,7 +233,7 @@ export function BookingForm({
       }
     }
   }, [booking])
-  
+
   // Resetear flags cuando cambia el canal
   useEffect(() => {
     // Solo resetear si realmente cambió el canal (no en la carga inicial)
@@ -244,7 +245,7 @@ export function BookingForm({
       })
     }
   }, [formData.channel_id])
-  
+
   // Calcular comisiones e impuestos SOLO cuando cambia el total_amount o el canal
   // NO recalcular al cargar una reserva existente
   useEffect(() => {
@@ -252,13 +253,13 @@ export function BookingForm({
     if (initialValuesRef.current.loaded) {
       const totalChanged = formData.total_amount !== initialValuesRef.current.totalAmount
       const channelChanged = formData.channel_id !== initialValuesRef.current.channelId
-      
+
       // Si no cambió nada, no recalcular (usar valores de la BD)
       if (!totalChanged && !channelChanged) {
         return
       }
     }
-    
+
     // Recalcular solo si hay importe total y canal seleccionado
     if (formData.total_amount > 0 && selectedChannel) {
       const calculated = calculateBookingAmounts({
@@ -267,18 +268,18 @@ export function BookingForm({
         collectionCommissionPercentage: selectedChannel.collection_commission,
         taxPercentage: selectedChannel.tax_percentage,
       })
-      
+
       // Solo actualizar campos que no fueron modificados manualmente
       setFormData(prev => ({
         ...prev,
-        sales_commission_amount: manuallyModified.sales_commission_amount 
-          ? prev.sales_commission_amount 
+        sales_commission_amount: manuallyModified.sales_commission_amount
+          ? prev.sales_commission_amount
           : calculated.salesCommissionAmount,
-        collection_commission_amount: manuallyModified.collection_commission_amount 
-          ? prev.collection_commission_amount 
+        collection_commission_amount: manuallyModified.collection_commission_amount
+          ? prev.collection_commission_amount
           : calculated.collectionCommissionAmount,
-        tax_amount: manuallyModified.tax_amount 
-          ? prev.tax_amount 
+        tax_amount: manuallyModified.tax_amount
+          ? prev.tax_amount
           : calculated.taxAmount,
         net_amount: recalculateNetAmount(
           formData.total_amount,
@@ -291,14 +292,14 @@ export function BookingForm({
       // Si no hay canal, poner todo a 0 (excepto si fueron modificados manualmente)
       setFormData(prev => ({
         ...prev,
-        sales_commission_amount: manuallyModified.sales_commission_amount 
-          ? prev.sales_commission_amount 
+        sales_commission_amount: manuallyModified.sales_commission_amount
+          ? prev.sales_commission_amount
           : 0,
-        collection_commission_amount: manuallyModified.collection_commission_amount 
-          ? prev.collection_commission_amount 
+        collection_commission_amount: manuallyModified.collection_commission_amount
+          ? prev.collection_commission_amount
           : 0,
-        tax_amount: manuallyModified.tax_amount 
-          ? prev.tax_amount 
+        tax_amount: manuallyModified.tax_amount
+          ? prev.tax_amount
           : 0,
         net_amount: recalculateNetAmount(
           prev.total_amount,
@@ -309,7 +310,7 @@ export function BookingForm({
       }))
     }
   }, [formData.total_amount, formData.channel_id, selectedChannel, manuallyModified])
-  
+
   // Recalcular net_amount cuando se modifican manualmente las comisiones o impuestos
   // (solo si no está en el useEffect anterior para evitar loops)
   useEffect(() => {
@@ -334,14 +335,14 @@ export function BookingForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [shouldScrollToError, setShouldScrollToError] = useState(false)
-  
+
   // Hacer scroll al primer error cuando se actualicen los errores después de un submit
   useEffect(() => {
     if (shouldScrollToError && Object.keys(errors).length > 0) {
       const firstErrorField = Object.keys(errors)[0]
       if (firstErrorField) {
-        const errorElement = document.getElementById(firstErrorField) || 
-                             document.querySelector(`[name="${firstErrorField}"]`)
+        const errorElement = document.getElementById(firstErrorField) ||
+          document.querySelector(`[name="${firstErrorField}"]`)
         if (errorElement) {
           setTimeout(() => {
             errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -372,14 +373,14 @@ export function BookingForm({
       newErrors.check_out_date = "La fecha de salida es obligatoria"
     }
 
-      if (formData.check_in_date && formData.check_out_date) {
+    if (formData.check_in_date && formData.check_out_date) {
       if (new Date(formData.check_out_date) <= new Date(formData.check_in_date)) {
         newErrors.check_out_date = "La fecha de salida debe ser posterior a la fecha de entrada"
       } else if (formData.property_id) {
         // Determinar el tipo de reserva para pasar a la validación
         // Es importante obtener el valor correcto del tipo de reserva
         let currentBookingType: 'commercial' | 'closed_period' = 'commercial' // Por defecto 'commercial'
-        
+
         if (formData.booking_type_id && bookingTypes.length > 0) {
           // Buscar el tipo de reserva en el array de bookingTypes
           const foundType = bookingTypes.find(bt => bt.id === formData.booking_type_id)
@@ -390,7 +391,7 @@ export function BookingForm({
             }
           }
         }
-        
+
         // Verificar disponibilidad solo si las fechas son válidas y hay propiedad seleccionada
         try {
           const response = await fetch('/api/calendar/validate', {
@@ -499,7 +500,7 @@ export function BookingForm({
     setLoading(true)
     const isValid = await validateForm()
     setLoading(false)
-    
+
     if (!isValid) {
       setShouldScrollToError(true)
       // No mostrar toast de validación, los errores ya se muestran debajo de cada campo
@@ -540,6 +541,7 @@ export function BookingForm({
         net_amount: isClosedPeriod ? 0 : (formData.net_amount || 0),
         number_of_guests: isClosedPeriod ? 0 : formData.number_of_guests,
         notes: formData.notes || null,
+        check_in_url: isClosedPeriod ? null : (formData.check_in_url || null),
       }
 
       if (onSave) {
@@ -583,7 +585,7 @@ export function BookingForm({
         }
 
         const result = await response.json()
-        
+
         if (result) {
           toast({
             title: booking ? "Reserva actualizada" : "Reserva creada",
@@ -597,10 +599,10 @@ export function BookingForm({
       }
     } catch (error: any) {
       console.error("Error saving booking:", error)
-      
+
       // Extraer mensaje de error de forma más robusta
       let errorMessage = "Ocurrió un error al guardar la reserva. Por favor, verifica los datos e intenta nuevamente."
-      
+
       // Si el error viene de la respuesta del servidor
       if (error?.message) {
         errorMessage = error.message
@@ -613,7 +615,7 @@ export function BookingForm({
       } else if (error?.hint) {
         errorMessage = error.hint
       }
-      
+
       // Siempre mostrar toast con mensaje válido
       if (errorMessage && errorMessage.trim()) {
         toast({
@@ -707,9 +709,9 @@ export function BookingForm({
                     onValueChange={(value) => {
                       const newType = bookingTypes.find(bt => bt.id === value)
                       const isNewClosedPeriod = newType?.value === 'closed_period'
-                      
-                      setFormData({ 
-                        ...formData, 
+
+                      setFormData({
+                        ...formData,
                         booking_type_id: value,
                         // Limpiar campos si cambia a período cerrado
                         ...(isNewClosedPeriod ? {
@@ -837,8 +839,8 @@ export function BookingForm({
                     <Select
                       value={formData.channel_id || "none"}
                       onValueChange={(value) =>
-                        setFormData({ 
-                          ...formData, 
+                        setFormData({
+                          ...formData,
                           channel_id: value === "none" ? "" : value,
                           channel_booking_number: value === "none" ? "" : formData.channel_booking_number
                         })
@@ -846,21 +848,21 @@ export function BookingForm({
                       disabled={!formData.property_id}
                     >
                       <SelectTrigger id="channel_id" className="bg-background">
-                        <SelectValue 
+                        <SelectValue
                           placeholder={
-                            !formData.property_id 
-                              ? "Seleccione primero una propiedad" 
-                              : channels.length === 0 
+                            !formData.property_id
+                              ? "Seleccione primero una propiedad"
+                              : channels.length === 0
                                 ? "No hay canales activos para esta propiedad"
                                 : "Seleccione un canal (opcional)"
-                          } 
+                          }
                         />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Sin canal</SelectItem>
                         {channels.length === 0 && formData.property_id ? (
                           <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                            No hay canales activos para esta propiedad. 
+                            No hay canales activos para esta propiedad.
                             Configúralos en la edición de la propiedad.
                           </div>
                         ) : (
@@ -883,7 +885,7 @@ export function BookingForm({
                     </Select>
                     {formData.property_id && propertyChannels.length === 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Esta propiedad no tiene canales de venta activos. 
+                        Esta propiedad no tiene canales de venta activos.
                         Configúralos en la edición de la propiedad.
                       </p>
                     )}
@@ -1207,6 +1209,28 @@ export function BookingForm({
                     className="bg-background resize-none h-40 md:h-56"
                   />
                 </div>
+
+                {/* Check-in URL */}
+                {!isClosedPeriod && (
+                  <div className="space-y-2">
+                    <Label htmlFor="check_in_url" className="text-sm font-medium text-foreground">
+                      URL de Check-in Online
+                    </Label>
+                    <Input
+                      id="check_in_url"
+                      type="url"
+                      placeholder="https://app.checkin.com/..."
+                      value={formData.check_in_url}
+                      onChange={(e) =>
+                        setFormData({ ...formData, check_in_url: e.target.value })
+                      }
+                      className="bg-background"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Enlace a la aplicación de check-in online para este huésped
+                    </p>
+                  </div>
+                )}
 
                 {/* Summary Card */}
                 <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-4 rounded-lg border border-primary/20 mt-6">

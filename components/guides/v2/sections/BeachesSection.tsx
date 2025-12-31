@@ -5,16 +5,28 @@ import type { Beach, GuideSection } from "@/types/guides"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Umbrella, MapPin, Star, ExternalLink, ChevronDown, ChevronUp, Phone, Clock } from "lucide-react"
+import { Umbrella, MapPin, Star, ExternalLink, ChevronDown, ChevronUp, Phone, Clock, ShoppingBag } from "lucide-react"
 import { DistanceDisplay } from "./DistanceDisplay"
 import { getIconByName } from "@/lib/utils/icon-registry"
+import { uiTranslations } from "@/lib/utils/ui-translations"
+
+// Assuming Shopping type is similar to Beach for now, adjust if needed
+type Shopping = Beach
 
 interface BeachesSectionProps {
     beaches: Beach[]
     introSection?: GuideSection
+    currentLanguage?: string
 }
 
-function BeachCard({ beach }: { beach: Beach }) {
+interface ShoppingSectionProps {
+    shopping: Shopping[]
+    introSection?: GuideSection
+    currentLanguage?: string
+}
+
+function BeachCard({ beach, currentLanguage = "es" }: { beach: Beach, currentLanguage?: string }) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
     const [isScheduleExpanded, setIsScheduleExpanded] = useState(false)
     const description = beach.description || ""
@@ -92,9 +104,10 @@ function BeachCard({ beach }: { beach: Beach }) {
                                     e.stopPropagation();
                                     setIsScheduleExpanded(!isScheduleExpanded);
                                 }}
-                                className="hover:text-blue-600 transition-colors text-left flex items-center gap-1"
+                                className="transition-colors text-left flex items-center gap-1"
+                                style={{ color: 'var(--guide-primary)' }}
                             >
-                                <span>Ver horarios</span>
+                                <span>{isScheduleExpanded ? t.hide_schedule : t.show_schedule}</span>
                                 {isScheduleExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                             </button>
                             {isScheduleExpanded && (
@@ -116,17 +129,18 @@ function BeachCard({ beach }: { beach: Beach }) {
                         {shouldShowToggle && (
                             <button
                                 onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                                className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
+                                className="mt-2 text-xs font-medium flex items-center gap-1 transition-colors"
+                                style={{ color: 'var(--guide-primary)' }}
                             >
                                 {isDescriptionExpanded ? (
                                     <>
                                         <ChevronUp className="h-3 w-3" />
-                                        Ver menos
+                                        {t.read_less}
                                     </>
                                 ) : (
                                     <>
                                         <ChevronDown className="h-3 w-3" />
-                                        Leer más
+                                        {t.read_more}
                                     </>
                                 )}
                             </button>
@@ -153,9 +167,9 @@ function BeachCard({ beach }: { beach: Beach }) {
                     <div className="mt-4 pt-3 border-t border-gray-100">
                         <Button
                             asChild
-                            variant="outline"
                             size="sm"
-                            className="w-full"
+                            className="w-full text-white border-0"
+                            style={{ backgroundColor: 'var(--guide-primary)' }}
                         >
                             <a
                                 href={beach.url}
@@ -164,7 +178,7 @@ function BeachCard({ beach }: { beach: Beach }) {
                                 className="flex items-center justify-center gap-2"
                             >
                                 <ExternalLink className="h-4 w-4" />
-                                Visitar Web
+                                {t.visit_web}
                             </a>
                         </Button>
                     </div>
@@ -174,7 +188,9 @@ function BeachCard({ beach }: { beach: Beach }) {
     )
 }
 
-export function BeachesSection({ beaches, introSection }: BeachesSectionProps) {
+export function BeachesSection({ beaches, introSection, currentLanguage = "es" }: BeachesSectionProps) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
+
     return (
         <div className="max-w-6xl mx-auto">
             <div className="text-center mb-10">
@@ -189,15 +205,15 @@ export function BeachesSection({ beaches, introSection }: BeachesSectionProps) {
                         </div>
                     )
                 })()}
-                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || "Playas Cercanas"}</h2>
+                <h2 className="text-3xl font-bold text-gray-900">{introSection?.title || t.beaches_default_title}</h2>
                 <p className="text-gray-600 mt-2">
-                    {introSection?.content || "Disfruta del sol y el mar en las mejores playas de la zona"}
+                    {introSection?.content || t.beaches_default_desc}
                 </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {beaches.map((beach) => (
-                    <BeachCard key={beach.id} beach={beach} />
+                    <BeachCard key={beach.id} beach={beach} currentLanguage={currentLanguage} />
                 ))}
             </div>
         </div>

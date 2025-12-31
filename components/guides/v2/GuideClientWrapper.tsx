@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { PropertyGuideV2 } from "./PropertyGuideV2"
 import { GuideLogin } from "./GuideLogin"
+import { Language } from "./LanguageSelector"
 
 interface GuideClientWrapperProps {
     propertyId: string
@@ -10,24 +11,32 @@ interface GuideClientWrapperProps {
 }
 
 export function GuideClientWrapper({ propertyId, propertyName }: GuideClientWrapperProps) {
-    // FORZAR isAuthenticated a false inicialmente - no usar localStorage ni nada que pueda persistir
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
     const [booking, setBooking] = useState<any>(null)
+    const [currentLanguage, setCurrentLanguage] = useState<Language>("es")
 
-    // Log para depuración - siempre ejecutar
+    // Detección inicial de idioma
+    useEffect(() => {
+        const browserLang = navigator.language.split("-")[0] as any
+        const supportedLanguages: Language[] = ["es", "en", "fr", "de", "it"]
+
+        if (supportedLanguages.includes(browserLang)) {
+            setCurrentLanguage(browserLang)
+        }
+    }, [])
+
+    // Log para depuración
     useEffect(() => {
         console.log("=".repeat(50))
-        console.log("[GuideClientWrapper] Component mounted")
+        console.log("[GuideClientWrapper] Component mounted/updated")
         console.log("[GuideClientWrapper] isAuthenticated:", isAuthenticated)
+        console.log("[GuideClientWrapper] currentLanguage:", currentLanguage)
         console.log("[GuideClientWrapper] propertyId:", propertyId)
-        console.log("[GuideClientWrapper] propertyName:", propertyName)
         console.log("[GuideClientWrapper] Will render:", isAuthenticated ? "PropertyGuideV2" : "GuideLogin")
         console.log("=".repeat(50))
-    }, [isAuthenticated, propertyId, propertyName])
+    }, [isAuthenticated, propertyId, propertyName, currentLanguage])
 
-    // Validar que propertyId existe
     if (!propertyId) {
-        console.error("[GuideClientWrapper] No propertyId provided")
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
@@ -37,29 +46,28 @@ export function GuideClientWrapper({ propertyId, propertyName }: GuideClientWrap
         )
     }
 
-    // SIEMPRE mostrar el login si no está autenticado - esta es la condición principal
     if (!isAuthenticated) {
-        console.log("[GuideClientWrapper] ✅ Rendering GuideLogin - isAuthenticated is FALSE")
         return (
             <GuideLogin
                 propertyId={propertyId}
                 propertyName={propertyName}
+                currentLanguage={currentLanguage}
+                onLanguageChange={setCurrentLanguage}
                 onLoginSuccess={(b) => {
-                    console.log("[GuideClientWrapper] 🔐 Login success callback triggered")
-                    console.log("[GuideClientWrapper] Booking received:", b)
                     if (b) {
                         setBooking(b)
                         setIsAuthenticated(true)
-                        console.log("[GuideClientWrapper] ✅ Setting isAuthenticated to TRUE")
-                    } else {
-                        console.error("[GuideClientWrapper] ❌ Login success but no booking provided")
                     }
                 }}
             />
         )
     }
 
-    // Si está autenticado, mostrar la guía
-    console.log("[GuideClientWrapper] 📖 Rendering PropertyGuideV2 - isAuthenticated is TRUE")
-    return <PropertyGuideV2 propertyId={propertyId} booking={booking} />
+    return (
+        <PropertyGuideV2
+            propertyId={propertyId}
+            booking={booking}
+            initialLanguage={currentLanguage}
+        />
+    )
 }

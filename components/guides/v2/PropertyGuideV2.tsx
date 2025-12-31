@@ -30,10 +30,11 @@ import { uiTranslations } from "@/lib/utils/ui-translations"
 
 interface PropertyGuideV2Props {
     propertyId: string
-    booking?: any | null
+    booking?: any
+    initialLanguage?: Language
 }
 
-export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
+export function PropertyGuideV2({ propertyId, booking, initialLanguage }: PropertyGuideV2Props) {
     // LOG CRÍTICO: Si este componente se renderiza, significa que se saltó el login
     console.log("=".repeat(80))
     console.log("🔴🔴🔴 [PropertyGuideV2] RENDERING DIRECTLY - THIS SHOULD NOT HAPPEN WITHOUT LOGIN 🔴🔴🔴")
@@ -47,23 +48,17 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
     const [isThemeLoading, setIsThemeLoading] = useState(true)
     const { data: originalData, loading, error } = useGuideData(propertyId)
 
-    // Estado para multi-idioma
-    const [currentLanguage, setCurrentLanguage] = useState<Language>("es")
+    const [currentLanguage, setCurrentLanguage] = useState<Language>(initialLanguage || "es")
     const [translatedData, setTranslatedData] = useState<CompleteGuideDataResponse | null>(null)
     const [isTranslating, setIsTranslating] = useState(false)
     const [translationCache, setTranslationCache] = useState<Record<string, CompleteGuideDataResponse>>({})
 
-    // Detectar idioma inicial desde el booking o navegador
+    // Detectar idioma inicial desde el booking si no se pasó initialLanguage
     useEffect(() => {
-        if (booking?.preferred_language) {
+        if (!initialLanguage && booking?.preferred_language) {
             setCurrentLanguage(booking.preferred_language as Language)
-        } else if (typeof window !== "undefined") {
-            const browserLang = navigator.language.split("-")[0] as Language
-            if (["en", "fr", "de", "it"].includes(browserLang)) {
-                setCurrentLanguage(browserLang)
-            }
         }
-    }, [booking])
+    }, [booking, initialLanguage])
 
     // Efecto para manejar la traducción
     useEffect(() => {
@@ -437,6 +432,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
                         guide={data.guide}
                         images={collageImages}
                         property={data.property}
+                        booking={booking}
                         currentLanguage={currentLanguage}
                     />
                 </section>
@@ -488,7 +484,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             const houseGuideIntro = data.sections.find(s => s.section_type === "house_guide")
             sections.push(
                 <section key="guia-casa" data-section-id="guia-casa" ref={(el) => { sectionRefs.current["guia-casa"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <HouseGuideSection items={data.house_guide_items} introSection={houseGuideIntro} />
+                    <HouseGuideSection items={data.house_guide_items} introSection={houseGuideIntro} currentLanguage={currentLanguage} />
                 </section>
             )
         }
@@ -498,7 +494,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             const tipsIntro = data.sections.find(s => s.section_type === "tips")
             sections.push(
                 <section key="consejos" data-section-id="consejos" ref={(el) => { sectionRefs.current["consejos"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <TipsSection tips={data.tips} introSection={tipsIntro} />
+                    <TipsSection tips={data.tips} introSection={tipsIntro} currentLanguage={currentLanguage} />
                 </section>
             )
         }
@@ -508,7 +504,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             const shoppingIntro = data.sections.find(s => s.section_type === "shopping")
             sections.push(
                 <section key="compras" data-section-id="compras" ref={(el) => { sectionRefs.current["compras"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <ShoppingSection shopping={data.shopping} introSection={shoppingIntro} />
+                    <ShoppingSection shopping={data.shopping} introSection={shoppingIntro} currentLanguage={currentLanguage} />
                 </section>
             )
         }
@@ -518,7 +514,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             const beachesIntro = data.sections.find(s => s.section_type === "beaches")
             sections.push(
                 <section key="playas" data-section-id="playas" ref={(el) => { sectionRefs.current["playas"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <BeachesSection beaches={data.beaches} introSection={beachesIntro} />
+                    <BeachesSection beaches={data.beaches} introSection={beachesIntro} currentLanguage={currentLanguage} />
                 </section>
             )
         }
@@ -528,7 +524,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             const restaurantsIntro = data.sections.find(s => s.section_type === "restaurants")
             sections.push(
                 <section key="restaurantes" data-section-id="restaurantes" ref={(el) => { sectionRefs.current["restaurantes"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <RestaurantsSection restaurants={data.restaurants} introSection={restaurantsIntro} />
+                    <RestaurantsSection restaurants={data.restaurants} introSection={restaurantsIntro} currentLanguage={currentLanguage} />
                 </section>
             )
         }
@@ -538,7 +534,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             const activitiesIntro = data.sections.find(s => s.section_type === "activities")
             sections.push(
                 <section key="actividades" data-section-id="actividades" ref={(el) => { sectionRefs.current["actividades"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <ActivitiesSection activities={data.activities} introSection={activitiesIntro} />
+                    <ActivitiesSection activities={data.activities} introSection={activitiesIntro} currentLanguage={currentLanguage} />
                 </section>
             )
         }
@@ -548,7 +544,7 @@ export function PropertyGuideV2({ propertyId, booking }: PropertyGuideV2Props) {
             const contactIntro = data.sections.find(s => s.section_type === "contact")
             sections.push(
                 <section key="contacto" data-section-id="contacto" ref={(el) => { sectionRefs.current["contacto"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <ContactSection contactInfo={data.contact_info} introSection={contactIntro} />
+                    <ContactSection contactInfo={data.contact_info} introSection={contactIntro} currentLanguage={currentLanguage} />
                 </section>
             )
         }

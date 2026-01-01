@@ -98,7 +98,7 @@ export function ContactSection({ contactInfo, introSection, currentLanguage = "e
                                 <div className="border-t pt-4 mt-4">
                                     <h4 className="text-sm font-semibold text-gray-800 mb-2">{t.support_person}</h4>
                                     <p className="text-sm text-gray-600 mb-2">
-                                        {contactInfo.support_person_name} está disponible para cualquier duda o incidencia durante tu estancia.
+                                        {contactInfo.support_person_name} {t.support_person_desc}
                                     </p>
                                     <div className="space-y-2">
                                         <a
@@ -143,7 +143,7 @@ export function ContactSection({ contactInfo, introSection, currentLanguage = "e
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <p className="text-gray-700 text-sm">
-                                Si encuentras cualquier problema en el apartamento durante tu estancia, por favor contáctanos inmediatamente:
+                                {t.service_problems_title}
                             </p>
 
                             {contactInfo.service_issues && contactInfo.service_issues.length > 0 ? (
@@ -157,7 +157,7 @@ export function ContactSection({ contactInfo, introSection, currentLanguage = "e
                                 </div>
                             ) : (
                                 <p className="text-sm text-gray-500 italic">
-                                    No hay problemas comunes listados. Contacta directamente con los anfitriones si encuentras algún problema.
+                                    {t.no_service_problems}
                                 </p>
                             )}
                         </CardContent>
@@ -210,10 +210,10 @@ export function ContactSection({ contactInfo, introSection, currentLanguage = "e
                             <div className="space-y-4 pt-4 border-t">
                                 {contactInfo.interest_phones.map((category: InterestPhoneCategory, catIndex: number) => {
                                     const categoryLabels: Record<string, string> = {
-                                        farmacia: 'Farmacia',
-                                        veterinario: 'Veterinario',
-                                        medico: 'Médico',
-                                        otros: 'Otros'
+                                        farmacia: t.cat_pharmacy,
+                                        veterinario: t.cat_vet,
+                                        medico: t.cat_doctor,
+                                        otros: t.cat_others
                                     }
 
                                     const categoryLabel = categoryLabels[category.category] || category.category

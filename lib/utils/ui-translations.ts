@@ -69,7 +69,14 @@ export const uiTranslations: Record<string, Record<string, string>> = {
         error_validate_access: "No se pudo validar el acceso",
         error_server: "Error al conectar con el servidor",
         how_to_get_there: "Cómo llegar",
-        do_check_in: "Hacer Check-in"
+        do_check_in: "Hacer Check-in",
+        support_person_desc: "está disponible para cualquier duda o incidencia durante tu estancia.",
+        service_problems_title: "Si encuentras cualquier problema en el apartamento durante tu estancia, por favor contáctanos inmediatamente:",
+        no_service_problems: "No hay problemas comunes listados. Contacta directamente con los anfitriones si encuentras algún problema.",
+        cat_pharmacy: "Farmacia",
+        cat_vet: "Veterinario",
+        cat_doctor: "Médico",
+        cat_others: "Otros"
     },
     en: {
         weather_title: "The Weather in",
@@ -141,7 +148,14 @@ export const uiTranslations: Record<string, Record<string, string>> = {
         error_validate_access: "Could not validate access",
         error_server: "Error connecting to the server",
         how_to_get_there: "How to get there",
-        do_check_in: "Do Check-in"
+        do_check_in: "Do Check-in",
+        support_person_desc: "is available for any questions or incidents during your stay.",
+        service_problems_title: "If you find any problem in the apartment during your stay, please contact us immediately:",
+        no_service_problems: "No common problems listed. Contact the hosts directly if you encounter any problem.",
+        cat_pharmacy: "Pharmacy",
+        cat_vet: "Veterinarian",
+        cat_doctor: "Doctor",
+        cat_others: "Others"
     },
     fr: {
         weather_title: "La météo à",
@@ -213,7 +227,14 @@ export const uiTranslations: Record<string, Record<string, string>> = {
         error_validate_access: "Impossible de valider l'accès",
         error_server: "Erreur lors de la connexion au serveur",
         how_to_get_there: "Comment s'y rendre",
-        do_check_in: "Faire le Check-in"
+        do_check_in: "Faire le Check-in",
+        support_person_desc: "est disponible pour toute question ou incident pendant votre séjour.",
+        service_problems_title: "Si vous rencontrez un problème dans l'appartement pendant votre séjour, veuillez nous contacter immédiatement :",
+        no_service_problems: "Aucun problème courant répertorié. Contactez directement les hôtes si vous rencontrez un problème.",
+        cat_pharmacy: "Pharmacie",
+        cat_vet: "Vétérinaire",
+        cat_doctor: "Médecin",
+        cat_others: "Autres"
     },
     de: {
         weather_title: "Das Wetter in",
@@ -285,7 +306,14 @@ export const uiTranslations: Record<string, Record<string, string>> = {
         error_validate_access: "Zugriff konnte nicht validiert werden",
         error_server: "Fehler beim Verbinden mit dem Server",
         how_to_get_there: "Anfahrt",
-        do_check_in: "Check-in machen"
+        do_check_in: "Check-in machen",
+        support_person_desc: "steht für alle Fragen oder Vorfälle während Ihres Aufenthalts zur Verfügung.",
+        service_problems_title: "Wenn Sie während Ihres Aufenthalts Probleme in der Wohnung feststellen, kontaktieren Sie uns bitte umgehend:",
+        no_service_problems: "Keine häufigen Probleme aufgeführt. Kontaktieren Sie die Gastgeber direkt, wenn Sie auf ein Problem stoßen.",
+        cat_pharmacy: "Apotheke",
+        cat_vet: "Tierarzt",
+        cat_doctor: "Arzt",
+        cat_others: "Andere"
     },
     it: {
         weather_title: "Il meteo a",
@@ -357,6 +385,13 @@ export const uiTranslations: Record<string, Record<string, string>> = {
         error_validate_access: "Impossibile convalidare l'accesso",
         error_server: "Errore di connessione al server",
         how_to_get_there: "Come arrivare",
-        do_check_in: "Effettua il Check-in"
+        do_check_in: "Effettua il Check-in",
+        support_person_desc: "è disponibile per qualsiasi domanda o imprevisto durante il tuo soggiorno.",
+        service_problems_title: "Se riscontri qualsiasi problema nell'appartamento durante il tuo soggiorno, ti preghiamo de contattarci immediatamente:",
+        no_service_problems: "Nessun problema comune elencato. Contatta direttamente gli host se riscontri qualche problema.",
+        cat_pharmacy: "Farmacia",
+        cat_vet: "Veterinario",
+        cat_doctor: "Medico",
+        cat_others: "Altri"
     }
 };

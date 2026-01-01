@@ -2,6 +2,7 @@
 
 import { Menu } from "lucide-react"
 import type { PropertyGuide } from "@/types/guides"
+import { uiTranslations } from "@/lib/utils/ui-translations"
 
 interface GuideHeaderProps {
     guide: PropertyGuide
@@ -9,16 +10,27 @@ interface GuideHeaderProps {
     guestName?: string | null
     checkInDate?: string | null
     checkOutDate?: string | null
+    currentLanguage?: string
     children?: React.ReactNode // Para inyectar el LanguageSelector
 }
 
-export function GuideHeader({ guide, onMenuClick, guestName, checkInDate, checkOutDate, children }: GuideHeaderProps) {
+export function GuideHeader({
+    guide,
+    onMenuClick,
+    guestName,
+    checkInDate,
+    checkOutDate,
+    currentLanguage = "es",
+    children
+}: GuideHeaderProps) {
+    const t = uiTranslations[currentLanguage] || uiTranslations["es"]
+
     // Formatear fechas si están disponibles
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return null
         try {
             const date = new Date(dateString)
-            return date.toLocaleDateString('es-ES', {
+            return date.toLocaleDateString(currentLanguage, {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric'
@@ -67,11 +79,13 @@ export function GuideHeader({ guide, onMenuClick, guestName, checkInDate, checkO
                         {guestName && (
                             <div className="text-sm md:text-base text-white/90 text-center">
                                 <p className="font-medium">
-                                    Hola {guestName}
+                                    {t.hello} {guestName}
                                 </p>
                                 {formattedCheckIn && formattedCheckOut && (
                                     <p className="text-white/80">
-                                        Tienes una reserva del {formattedCheckIn} al {formattedCheckOut}
+                                        {t.booking_dates
+                                            .replace('{from}', formattedCheckIn)
+                                            .replace('{to}', formattedCheckOut)}
                                     </p>
                                 )}
                             </div>

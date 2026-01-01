@@ -568,6 +568,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
                 guestName={booking?.persons ? `${booking.persons.first_name} ${booking.persons.last_name}`.trim() : null}
                 checkInDate={booking?.check_in_date || null}
                 checkOutDate={booking?.check_out_date || null}
+                currentLanguage={currentLanguage}
             >
                 <LanguageSelector
                     currentLanguage={currentLanguage}

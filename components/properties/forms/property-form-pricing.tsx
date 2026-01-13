@@ -2,6 +2,7 @@
 
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 
 interface PropertyFormPricingProps {
   formData: {
@@ -10,6 +11,7 @@ interface PropertyFormPricingProps {
     security_deposit: number
     check_in_time: string
     check_out_time: string
+    check_in_instructions: string
   }
   onFieldChange: (field: string, value: any) => void
 }
@@ -103,6 +105,22 @@ export function PropertyFormPricing({
                 />
               </div>
             </div>
+          </div>
+
+          <div className="border-t border-border pt-4 mt-4">
+            <Label htmlFor="check_in_instructions" className="text-sm font-medium mb-2 block">
+              Instrucciones de Check-in (Paso previo)
+            </Label>
+            <p className="text-xs text-muted-foreground mb-3">
+              Este texto se mostrará en un aviso antes de que el huésped acceda a la URL de registro. Úsalo para avisar sobre documentos necesarios, llaves o normas urgentes.
+            </p>
+            <Textarea
+              id="check_in_instructions"
+              placeholder="Ej: Por favor, tenga a mano su DNI para el escaneo. La entrega de llaves se realizará mediante el cajetín de seguridad con el código 1234..."
+              value={formData.check_in_instructions || ""}
+              onChange={(e) => onFieldChange("check_in_instructions", e.target.value)}
+              className="bg-background min-h-[100px]"
+            />
           </div>
         </div>
       </div>

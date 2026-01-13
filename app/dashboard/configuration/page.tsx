@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Settings2, ChevronRight, Edit, MoreVertical } from "lucide-react"
+import { Plus, Settings2, ChevronRight, Edit, MoreVertical, Users } from "lucide-react"
 import Link from "next/link"
 import {
   DropdownMenu,
@@ -42,12 +42,20 @@ export default async function ConfigurationPage() {
           <h1 className="text-3xl font-bold tracking-tight">Configuración del Sistema</h1>
           <p className="text-muted-foreground">Gestiona las tablas de configuración y valores del sistema</p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/configuration/types/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Tipo
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/configuration/roles">
+              <Users className="mr-2 h-4 w-4" />
+              Roles y Permisos
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/configuration/types/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Tipo
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

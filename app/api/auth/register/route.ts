@@ -18,14 +18,14 @@ export async function POST(request: Request) {
 
     // Verificar si el usuario ya existe en Auth
     const { data: existingAuthUser, error: listError } = await supabaseAdmin.auth.admin.listUsers()
-    
+
     if (!listError && existingAuthUser?.users) {
       const userExists = existingAuthUser.users.some((u) => u.email === email)
-      
+
       if (userExists) {
         return NextResponse.json(
-          { 
-            error: "Ya existe un usuario con este correo electrónico. Si crees que esto es un error, contacta al administrador del sistema para limpiar los datos." 
+          {
+            error: "Ya existe un usuario con este correo electrónico. Si crees que esto es un error, contacta al administrador del sistema para limpiar los datos."
           },
           { status: 409 },
         )
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
 
       if (userError) {
         console.error("[v0] Error creating user record:", userError)
-        
+
         // Si es error de clave duplicada, no hacer rollback completo
         if (userError.code === '23505') {
           console.log("[v0] Duplicate key error - user already exists, continuing...")
@@ -115,6 +115,23 @@ export async function POST(request: Request) {
           { error: "Error al crear el perfil de usuario: " + userError.message },
           { status: 500 },
         )
+      }
+
+      // 4. Asignar rol ADMIN inicial
+      const roleResponse: any = await supabaseAdmin
+        .from("roles")
+        .select("id")
+        .eq("code", "admin")
+        .is("tenant_id", null)
+        .single()
+
+      const roleData = roleResponse?.data
+
+      if (roleData) {
+        await (supabaseAdmin.from("user_roles") as any).insert({
+          user_id: authData.user.id,
+          role_id: roleData.id
+        })
       }
     }
 

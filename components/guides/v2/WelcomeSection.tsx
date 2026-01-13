@@ -12,6 +12,7 @@ interface WelcomeSectionProps {
     }
     booking?: any
     currentLanguage?: string
+    onCheckInClick?: () => void
 }
 
 export function WelcomeSection({
@@ -19,7 +20,8 @@ export function WelcomeSection({
     images = [],
     property,
     booking,
-    currentLanguage = "es"
+    currentLanguage = "es",
+    onCheckInClick
 }: WelcomeSectionProps) {
     const t = uiTranslations[currentLanguage] || uiTranslations["es"]
     if (!guide.welcome_message) return null
@@ -90,10 +92,8 @@ export function WelcomeSection({
                                 </a>
                             )}
                             {booking?.check_in_url && (
-                                <a
-                                    href={booking.check_in_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <button
+                                    onClick={() => onCheckInClick ? onCheckInClick() : window.open(booking.check_in_url, "_blank", "noopener,noreferrer")}
                                     className="flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold transition-all active:scale-95 border-2 shadow-sm"
                                     style={{
                                         borderColor: 'var(--guide-primary)',
@@ -103,7 +103,7 @@ export function WelcomeSection({
                                 >
                                     <Sparkles className="h-5 w-5" />
                                     {t.do_check_in}
-                                </a>
+                                </button>
                             )}
                         </div>
                     </div>
@@ -140,10 +140,8 @@ export function WelcomeSection({
                                 </a>
                             )}
                             {booking?.check_in_url && (
-                                <a
-                                    href={booking.check_in_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <button
+                                    onClick={() => onCheckInClick ? onCheckInClick() : window.open(booking.check_in_url, "_blank", "noopener,noreferrer")}
                                     className="flex items-center justify-center gap-3 px-8 py-5 rounded-2xl font-black text-lg transition-all hover:scale-[1.02] hover:shadow-lg border-2 bg-white/50 backdrop-blur-sm group"
                                     style={{
                                         borderColor: 'var(--guide-primary)',
@@ -152,7 +150,7 @@ export function WelcomeSection({
                                 >
                                     <Sparkles className="h-6 w-6 transition-transform group-hover:rotate-12" />
                                     {t.do_check_in}
-                                </a>
+                                </button>
                             )}
                         </div>
 

@@ -40,7 +40,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
   const [allChannels, setAllChannels] = useState<Array<{ id: string; name: string; logo_url: string | null }>>([])
   const [selectedChannels, setSelectedChannels] = useState<string[]>([])
   const [loadingChannels, setLoadingChannels] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     property_code: property?.property_code || "",
     name: property?.name || "",
@@ -64,6 +64,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     security_deposit: property?.security_deposit || 0,
     check_in_time: property?.check_in_time || "15:00",
     check_out_time: property?.check_out_time || "11:00",
+    check_in_instructions: property?.check_in_instructions || "",
     is_active: property?.is_active ?? true,
   })
 
@@ -114,7 +115,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
         setSelectedChannels([])
         return
       }
-      
+
       try {
         const response = await fetch(`/api/properties/${property.id}/sales-channels`)
         if (response.ok) {
@@ -185,7 +186,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
       if (!formData.name.trim()) {
         throw new Error("El nombre de la propiedad es obligatorio")
       }
-      
+
       if (!formData.property_code.trim()) {
         throw new Error("El código de la propiedad es obligatorio")
       }
@@ -218,7 +219,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
       }
 
       let propertyId: string
-      
+
       if (property) {
         // Update existing property
         const { error } = await supabase.from("properties").update(dataToSave).eq("id", property.id)
@@ -271,9 +272,9 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     } catch (error: any) {
       console.error("[v0] Error saving property:", error)
       console.error("[v0] Error details:", JSON.stringify(error, null, 2))
-      
+
       let errorMessage = "No se pudo guardar la propiedad."
-      
+
       if (error?.message) {
         errorMessage = error.message
       } else if (error?.error?.message) {
@@ -281,7 +282,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
       } else if (typeof error === 'string') {
         errorMessage = error
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -361,7 +362,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
       const { url } = await response.json()
       setFormData((prev) => ({ ...prev, image_url: url }))
       setImagePreview(url)
-      
+
       toast({
         title: "Imagen subida",
         description: "La imagen se ha subido correctamente",
@@ -441,99 +442,8 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
       {/* Content */}
       <form onSubmit={handleSubmit} className="space-y-6 md:space-y-0">
         <div className="hidden md:block">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsContent value="general" className="space-y-6 mt-0">
-                <PropertyFormGeneral
-                  formData={{
-                    property_code: formData.property_code,
-                    name: formData.name,
-                    slug: formData.slug,
-                    description: formData.description,
-                    image_url: formData.image_url,
-                    property_type_id: formData.property_type_id,
-                    is_active: formData.is_active,
-                  }}
-                  propertyTypes={propertyTypes}
-                  propertyId={property?.id}
-                  slugError={slugError}
-                  slugValidating={slugValidating}
-                  autoGeneratingSlug={autoGeneratingSlug}
-                  imagePreview={imagePreview}
-                  uploadingImage={uploadingImage}
-                  onFieldChange={handleFieldChange}
-                  onSlugChange={handleSlugChange}
-                  onImageUpload={handleImageUpload}
-                  onRemoveImage={handleRemoveImage}
-                />
-              </TabsContent>
-
-              <TabsContent value="location" className="space-y-6 mt-0">
-                <PropertyFormLocation
-                  formData={{
-                    street: formData.street,
-                    number: formData.number,
-                    city: formData.city,
-                    province: formData.province,
-                    postal_code: formData.postal_code,
-                    country: formData.country,
-                  }}
-                  onFieldChange={handleFieldChange}
-                />
-              </TabsContent>
-
-              <TabsContent value="characteristics" className="space-y-6 mt-0">
-                <PropertyFormCharacteristics
-                  formData={{
-                    bedrooms: formData.bedrooms,
-                    bathrooms: formData.bathrooms,
-                    max_guests: formData.max_guests,
-                    square_meters: formData.square_meters,
-                    min_nights: formData.min_nights,
-                  }}
-                  onFieldChange={handleFieldChange}
-                />
-              </TabsContent>
-
-              <TabsContent value="pricing" className="space-y-6 mt-0">
-                <PropertyFormPricing
-                  formData={{
-                    base_price_per_night: formData.base_price_per_night,
-                    cleaning_fee: formData.cleaning_fee,
-                    security_deposit: formData.security_deposit,
-                    check_in_time: formData.check_in_time,
-                    check_out_time: formData.check_out_time,
-                  }}
-                  onFieldChange={handleFieldChange}
-                />
-              </TabsContent>
-
-              <TabsContent value="channels" className="space-y-6 mt-0">
-                <PropertyFormChannels
-                  allChannels={allChannels}
-                  selectedChannels={selectedChannels}
-                  loadingChannels={loadingChannels}
-                  onChannelToggle={handleChannelToggle}
-                />
-              </TabsContent>
-
-              <TabsContent value="gallery" className="space-y-6 mt-0">
-                {property?.id ? (
-                  <PropertyImageGallery 
-                    propertyId={property.id} 
-                    tenantId={tenantId} 
-                  />
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <p>Guarda la propiedad primero para gestionar la galería de imágenes</p>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* Mobile Content */}
-          <div className="md:hidden space-y-6">
-            {mobileTab === "general" && (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsContent value="general" className="space-y-6 mt-0">
               <PropertyFormGeneral
                 formData={{
                   property_code: formData.property_code,
@@ -556,8 +466,9 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
                 onImageUpload={handleImageUpload}
                 onRemoveImage={handleRemoveImage}
               />
-            )}
-            {mobileTab === "location" && (
+            </TabsContent>
+
+            <TabsContent value="location" className="space-y-6 mt-0">
               <PropertyFormLocation
                 formData={{
                   street: formData.street,
@@ -569,8 +480,9 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
                 }}
                 onFieldChange={handleFieldChange}
               />
-            )}
-            {mobileTab === "characteristics" && (
+            </TabsContent>
+
+            <TabsContent value="characteristics" className="space-y-6 mt-0">
               <PropertyFormCharacteristics
                 formData={{
                   bedrooms: formData.bedrooms,
@@ -581,8 +493,9 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
                 }}
                 onFieldChange={handleFieldChange}
               />
-            )}
-            {mobileTab === "pricing" && (
+            </TabsContent>
+
+            <TabsContent value="pricing" className="space-y-6 mt-0">
               <PropertyFormPricing
                 formData={{
                   base_price_per_night: formData.base_price_per_night,
@@ -590,31 +503,121 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
                   security_deposit: formData.security_deposit,
                   check_in_time: formData.check_in_time,
                   check_out_time: formData.check_out_time,
+                  check_in_instructions: formData.check_in_instructions,
                 }}
                 onFieldChange={handleFieldChange}
               />
-            )}
-            {mobileTab === "channels" && (
+            </TabsContent>
+
+            <TabsContent value="channels" className="space-y-6 mt-0">
               <PropertyFormChannels
                 allChannels={allChannels}
                 selectedChannels={selectedChannels}
                 loadingChannels={loadingChannels}
                 onChannelToggle={handleChannelToggle}
               />
-            )}
-            {mobileTab === "gallery" && (
-              property?.id ? (
-                <PropertyImageGallery 
-                  propertyId={property.id} 
-                  tenantId={tenantId} 
+            </TabsContent>
+
+            <TabsContent value="gallery" className="space-y-6 mt-0">
+              {property?.id ? (
+                <PropertyImageGallery
+                  propertyId={property.id}
+                  tenantId={tenantId}
                 />
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   <p>Guarda la propiedad primero para gestionar la galería de imágenes</p>
                 </div>
-              )
-            )}
-          </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Mobile Content */}
+        <div className="md:hidden space-y-6">
+          {mobileTab === "general" && (
+            <PropertyFormGeneral
+              formData={{
+                property_code: formData.property_code,
+                name: formData.name,
+                slug: formData.slug,
+                description: formData.description,
+                image_url: formData.image_url,
+                property_type_id: formData.property_type_id,
+                is_active: formData.is_active,
+              }}
+              propertyTypes={propertyTypes}
+              propertyId={property?.id}
+              slugError={slugError}
+              slugValidating={slugValidating}
+              autoGeneratingSlug={autoGeneratingSlug}
+              imagePreview={imagePreview}
+              uploadingImage={uploadingImage}
+              onFieldChange={handleFieldChange}
+              onSlugChange={handleSlugChange}
+              onImageUpload={handleImageUpload}
+              onRemoveImage={handleRemoveImage}
+            />
+          )}
+          {mobileTab === "location" && (
+            <PropertyFormLocation
+              formData={{
+                street: formData.street,
+                number: formData.number,
+                city: formData.city,
+                province: formData.province,
+                postal_code: formData.postal_code,
+                country: formData.country,
+              }}
+              onFieldChange={handleFieldChange}
+            />
+          )}
+          {mobileTab === "characteristics" && (
+            <PropertyFormCharacteristics
+              formData={{
+                bedrooms: formData.bedrooms,
+                bathrooms: formData.bathrooms,
+                max_guests: formData.max_guests,
+                square_meters: formData.square_meters,
+                min_nights: formData.min_nights,
+              }}
+              onFieldChange={handleFieldChange}
+            />
+          )}
+          {mobileTab === "pricing" && (
+            <PropertyFormPricing
+              formData={{
+                base_price_per_night: formData.base_price_per_night,
+                cleaning_fee: formData.cleaning_fee,
+                security_deposit: formData.security_deposit,
+                check_in_time: formData.check_in_time,
+                check_out_time: formData.check_out_time,
+                check_in_instructions: formData.check_in_instructions,
+              }}
+              onFieldChange={handleFieldChange}
+            />
+          )}
+          {mobileTab === "channels" && (
+            <PropertyFormChannels
+              allChannels={allChannels}
+              selectedChannels={selectedChannels}
+              loadingChannels={loadingChannels}
+              onChannelToggle={handleChannelToggle}
+            />
+          )}
+          {mobileTab === "gallery" && (
+            property?.id ? (
+              <PropertyImageGallery
+                propertyId={property.id}
+                tenantId={tenantId}
+              />
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>Guarda la propiedad primero para gestionar la galería de imágenes</p>
+              </div>
+            )
+          )}
+        </div>
 
         {/* Footer Actions */}
         <div className="border-t border-border bg-card sticky bottom-0 z-40 mt-8">

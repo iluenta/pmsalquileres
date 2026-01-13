@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useGuideData } from "@/hooks/useGuideData"
 import { GuideHeader } from "./GuideHeader"
 import { GuideSidebar } from "./GuideSidebar"
+import { GuideBottomNav } from "./GuideBottomNav"
 import { WelcomeSection } from "./WelcomeSection"
 import { ApartmentSection } from "./sections/ApartmentSection"
 import { HouseRulesSection } from "./sections/HouseRulesSection"
@@ -25,6 +26,7 @@ import { Button } from "@/components/ui/button"
 import { getGuideThemePublic } from "@/lib/api/guides-public"
 import { LanguageSelector, Language } from "./LanguageSelector"
 import { CompleteGuideDataResponse } from "@/types/guides"
+import { CheckInNoticeDialog } from "./CheckInNoticeDialog"
 
 import { uiTranslations } from "@/lib/utils/ui-translations"
 
@@ -44,6 +46,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
     const [activeTab, setActiveTab] = useState("bienvenida")
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [isCheckInNoticeOpen, setIsCheckInNoticeOpen] = useState(false)
     const [theme, setTheme] = useState<string>("default")
     const [isThemeLoading, setIsThemeLoading] = useState(true)
     const { data: originalData, loading, error } = useGuideData(propertyId)
@@ -150,8 +153,8 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
             requestAnimationFrame(() => {
                 // Calcular la altura del header según el tamaño de pantalla
                 const isMobile = window.innerWidth < 768
-                const headerHeight = isMobile ? 120 : 150
-                const extraSpacing = 20 // Espacio adicional para que se vea bien el inicio
+                const headerHeight = isMobile ? 60 : 150 // Ahora el header es fijo de 60px en móvil
+                const extraSpacing = 10
 
                 // Obtener la posición relativa al documento usando getBoundingClientRect
                 const rect = section.getBoundingClientRect()
@@ -185,6 +188,17 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
             scrollToSection(tabId)
         }, 50)
     }, [scrollToSection])
+
+    const handleCheckInClick = useCallback(() => {
+        setIsCheckInNoticeOpen(true)
+    }, [])
+
+    const handleConfirmCheckIn = useCallback(() => {
+        setIsCheckInNoticeOpen(false)
+        if (booking?.check_in_url) {
+            window.open(booking.check_in_url, "_blank", "noopener,noreferrer")
+        }
+    }, [booking?.check_in_url])
 
     // Limpiar timeout al desmontar (debe estar antes de los returns)
     useEffect(() => {
@@ -245,7 +259,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         const timeoutId = setTimeout(() => {
             // Calcular el rootMargin según el tamaño de pantalla
             const isMobile = window.innerWidth < 768
-            const headerHeight = isMobile ? 120 : 150
+            const headerHeight = isMobile ? 60 : 150
 
             observer = new IntersectionObserver(
                 (entries) => {
@@ -403,8 +417,8 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
     const tabs = [
         { id: "bienvenida", label: t.welcome, icon: getIconByName("Sparkles"), show: !!data.guide.welcome_message },
         { id: "apartamento", label: t.apartment, icon: getIconByName("Home"), show: data.apartment_sections?.length > 0 },
-        { id: "tiempo", label: t.today, icon: getIconByName("CloudSun"), show: !!(data.guide.latitude && data.guide.longitude) },
         { id: "normas", label: t.house_rules, icon: getIconByName("ClipboardList"), show: data.house_rules?.length > 0 },
+        { id: "tiempo", label: t.today, icon: getIconByName("CloudSun"), show: !!(data.guide.latitude && data.guide.longitude) },
         { id: "guia-casa", label: t.house_guide, icon: getIconByName("Book"), show: data.house_guide_items?.length > 0 },
         { id: "consejos", label: t.tips, icon: getIconByName("Lightbulb"), show: data.tips?.length > 0 },
         { id: "compras", label: t.shopping, icon: getIconByName("ShoppingBag"), show: data.shopping?.length > 0 && data.sections.some(s => s.section_type === 'shopping') },
@@ -427,13 +441,14 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         // Bienvenida
         if (tabs.find(t => t.id === "bienvenida")) {
             sections.push(
-                <section key="bienvenida" data-section-id="bienvenida" ref={(el) => { sectionRefs.current["bienvenida"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                <section key="bienvenida" data-section-id="bienvenida" ref={(el) => { sectionRefs.current["bienvenida"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <WelcomeSection
                         guide={data.guide}
                         images={collageImages}
                         property={data.property}
                         booking={booking}
                         currentLanguage={currentLanguage}
+                        onCheckInClick={handleCheckInClick}
                     />
                 </section>
             )
@@ -443,7 +458,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         if (tabs.find(t => t.id === "apartamento")) {
             const apartmentIntro = data.sections.find(s => s.section_type === "apartment")
             sections.push(
-                <section key="apartamento" data-section-id="apartamento" ref={(el) => { sectionRefs.current["apartamento"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                <section key="apartamento" data-section-id="apartamento" ref={(el) => { sectionRefs.current["apartamento"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <ApartmentSection
                         apartmentSections={data.apartment_sections}
                         property={data.property}
@@ -454,10 +469,20 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
             )
         }
 
+        // Normas
+        if (tabs.find(t => t.id === "normas")) {
+            const rulesIntro = data.sections.find(s => s.section_type === "rules")
+            sections.push(
+                <section key="normas" data-section-id="normas" ref={(el) => { sectionRefs.current["normas"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
+                    <HouseRulesSection rules={data.house_rules} introSection={rulesIntro} currentLanguage={currentLanguage} />
+                </section>
+            )
+        }
+
         // Tiempo
         if (tabs.find(t => t.id === "tiempo")) {
             sections.push(
-                <section key="tiempo" data-section-id="tiempo" ref={(el) => { sectionRefs.current["tiempo"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                <section key="tiempo" data-section-id="tiempo" ref={(el) => { sectionRefs.current["tiempo"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <WeatherSection
                         latitude={data.guide.latitude}
                         longitude={data.guide.longitude}
@@ -469,21 +494,11 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
             )
         }
 
-        // Normas
-        if (tabs.find(t => t.id === "normas")) {
-            const rulesIntro = data.sections.find(s => s.section_type === "rules")
-            sections.push(
-                <section key="normas" data-section-id="normas" ref={(el) => { sectionRefs.current["normas"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
-                    <HouseRulesSection rules={data.house_rules} introSection={rulesIntro} currentLanguage={currentLanguage} />
-                </section>
-            )
-        }
-
         // Guía Casa
         if (tabs.find(t => t.id === "guia-casa")) {
             const houseGuideIntro = data.sections.find(s => s.section_type === "house_guide")
             sections.push(
-                <section key="guia-casa" data-section-id="guia-casa" ref={(el) => { sectionRefs.current["guia-casa"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                <section key="guia-casa" data-section-id="guia-casa" ref={(el) => { sectionRefs.current["guia-casa"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <HouseGuideSection items={data.house_guide_items} introSection={houseGuideIntro} currentLanguage={currentLanguage} />
                 </section>
             )
@@ -493,7 +508,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         if (tabs.find(t => t.id === "consejos")) {
             const tipsIntro = data.sections.find(s => s.section_type === "tips")
             sections.push(
-                <section key="consejos" data-section-id="consejos" ref={(el) => { sectionRefs.current["consejos"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                <section key="consejos" data-section-id="consejos" ref={(el) => { sectionRefs.current["consejos"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <TipsSection tips={data.tips} introSection={tipsIntro} currentLanguage={currentLanguage} />
                 </section>
             )
@@ -503,7 +518,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         if (tabs.find(t => t.id === "compras")) {
             const shoppingIntro = data.sections.find(s => s.section_type === "shopping")
             sections.push(
-                <section key="compras" data-section-id="compras" ref={(el) => { sectionRefs.current["compras"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                <section key="compras" data-section-id="compras" ref={(el) => { sectionRefs.current["compras"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <ShoppingSection shopping={data.shopping} introSection={shoppingIntro} currentLanguage={currentLanguage} />
                 </section>
             )
@@ -513,7 +528,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         if (tabs.find(t => t.id === "playas")) {
             const beachesIntro = data.sections.find(s => s.section_type === "beaches")
             sections.push(
-                <section key="playas" data-section-id="playas" ref={(el) => { sectionRefs.current["playas"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                <section key="playas" data-section-id="playas" ref={(el) => { sectionRefs.current["playas"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <BeachesSection beaches={data.beaches} introSection={beachesIntro} currentLanguage={currentLanguage} />
                 </section>
             )
@@ -523,7 +538,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         if (tabs.find(t => t.id === "restaurantes")) {
             const restaurantsIntro = data.sections.find(s => s.section_type === "restaurants")
             sections.push(
-                <section key="restaurantes" data-section-id="restaurantes" ref={(el) => { sectionRefs.current["restaurantes"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                <section key="restaurantes" data-section-id="restaurantes" ref={(el) => { sectionRefs.current["restaurantes"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <RestaurantsSection restaurants={data.restaurants} introSection={restaurantsIntro} currentLanguage={currentLanguage} />
                 </section>
             )
@@ -533,7 +548,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         if (tabs.find(t => t.id === "actividades")) {
             const activitiesIntro = data.sections.find(s => s.section_type === "activities")
             sections.push(
-                <section key="actividades" data-section-id="actividades" ref={(el) => { sectionRefs.current["actividades"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                <section key="actividades" data-section-id="actividades" ref={(el) => { sectionRefs.current["actividades"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <ActivitiesSection activities={data.activities} introSection={activitiesIntro} currentLanguage={currentLanguage} />
                 </section>
             )
@@ -543,7 +558,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         if (tabs.find(t => t.id === "contacto") && data.contact_info) {
             const contactIntro = data.sections.find(s => s.section_type === "contact")
             sections.push(
-                <section key="contacto" data-section-id="contacto" ref={(el) => { sectionRefs.current["contacto"] = el }} className="scroll-mt-[140px] md:scroll-mt-[170px]">
+                <section key="contacto" data-section-id="contacto" ref={(el) => { sectionRefs.current["contacto"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <ContactSection contactInfo={data.contact_info} introSection={contactIntro} currentLanguage={currentLanguage} />
                 </section>
             )
@@ -577,6 +592,18 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
                 />
             </GuideHeader>
 
+            {/* Navegación inferior móvil (Estilo App) */}
+            <GuideBottomNav
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
+                googleMapsUrl={data?.guide?.latitude && data?.guide?.longitude
+                    ? `https://www.google.com/maps/dir/?api=1&destination=${data.guide.latitude},${data.guide.longitude}`
+                    : null
+                }
+                checkInUrl={booking?.check_in_url || null}
+                onCheckInClick={handleCheckInClick}
+            />
+
             {/* Layout con sidebar y contenido */}
             <div className="flex relative">
                 {/* Sidebar (desktop) y Sheet (móvil) */}
@@ -590,13 +617,24 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
                 {/* Contenido principal */}
                 <main className="flex-1 min-w-0">
-                    <div className="container mx-auto px-4 pt-6 pb-6">
-                        <div id="sections-container" className="space-y-12">
+                    <div className="container mx-auto px-4 md:px-6 pt-4 md:pt-6 pb-24">
+                        <div id="sections-container" className="space-y-12 md:space-y-16">
                             {renderAllSections()}
                         </div>
                     </div>
                 </main>
             </div>
-        </div>
+
+            {/* Diálogo de aviso de Check-in */}
+            {data && (
+                <CheckInNoticeDialog
+                    isOpen={isCheckInNoticeOpen}
+                    onOpenChange={setIsCheckInNoticeOpen}
+                    instructions={(data.property as any).check_in_instructions}
+                    onConfirm={handleConfirmCheckIn}
+                    currentLanguage={currentLanguage}
+                />
+            )}
+        </div >
     )
 }

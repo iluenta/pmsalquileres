@@ -24,6 +24,7 @@ export interface Property {
   created_at: string
   latitude?: number | null
   longitude?: number | null
+  check_in_instructions?: string | null
 }
 
 export interface Guide {
@@ -683,6 +684,7 @@ export interface CompleteGuideDataResponse {
     locality: string | null
     latitude: number | null
     longitude: number | null
+    check_in_instructions: string | null
   }
   guide: PropertyGuide
   sections: GuideSection[]

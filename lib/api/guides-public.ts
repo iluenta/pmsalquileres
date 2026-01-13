@@ -60,7 +60,7 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
     let propertyData: any = null
     const { data: propertyWithCoords, error: errorWithCoords } = await supabasePublic
       .from('properties')
-      .select('id, name, description, street, city, province, country, latitude, longitude')
+      .select('id, name, description, street, city, province, country, latitude, longitude, check_in_instructions')
       .eq('id', propertyId)
       .maybeSingle()
 
@@ -100,7 +100,8 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
       locality: guide.locality,
       // Coordenadas desde la tabla properties (único punto de verdad)
       latitude: propertyData?.latitude || null,
-      longitude: propertyData?.longitude || null
+      longitude: propertyData?.longitude || null,
+      check_in_instructions: propertyData?.check_in_instructions || null
     }
 
     console.log('[v0] Property info created from guide:', property)

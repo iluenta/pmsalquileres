@@ -220,7 +220,7 @@ export async function getCompleteGuideData(propertyId: string) {
     // Intentar primero con todos los campos posibles
     const { data: propertyWithAll, error: errorWithAll } = await supabase
       .from('properties')
-      .select('id, name, slug, street, number, city, province, postal_code, country, description, latitude, longitude')
+      .select('id, name, slug, street, number, city, province, postal_code, country, description, latitude, longitude, check_in_instructions')
       .eq('id', propertyId)
       .maybeSingle()
 
@@ -238,7 +238,7 @@ export async function getCompleteGuideData(propertyId: string) {
         // Intentar sin slug ni coordenadas
         const { data: propertyBasic, error: errorBasic } = await supabase
           .from('properties')
-          .select('id, name, street, number, city, province, postal_code, country, description')
+          .select('id, name, street, number, city, province, postal_code, country, description, check_in_instructions')
           .eq('id', propertyId)
           .maybeSingle()
 
@@ -341,7 +341,8 @@ export async function getCompleteGuideData(propertyId: string) {
         locality: guide.locality,
         // Coordenadas desde la tabla properties (único punto de verdad)
         latitude: property.latitude || null,
-        longitude: property.longitude || null
+        longitude: property.longitude || null,
+        check_in_instructions: property.check_in_instructions || null
       },
       guide,
       sections,

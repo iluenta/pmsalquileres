@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { LayoutDashboard, Building2, Calendar, Users, CreditCard, Settings, BarChart3, BookOpen, ShoppingCart, CalendarDays, Wrench, Wallet, TrendingUp, TrendingDown } from "lucide-react"
+import { useAuth } from "@/lib/auth/auth-context"
 
 const navigation = [
   {
@@ -15,66 +16,79 @@ const navigation = [
     name: "Propiedades",
     href: "/dashboard/properties",
     icon: Building2,
+    permission: "properties.view",
   },
   {
     name: "Reservas",
     href: "/dashboard/bookings",
     icon: Calendar,
+    permission: "bookings.view",
   },
   {
     name: "Calendario",
     href: "/dashboard/calendar",
     icon: CalendarDays,
+    permission: "bookings.view",
   },
   {
     name: "Canales de Venta",
     href: "/dashboard/sales-channels",
     icon: ShoppingCart,
+    permission: "config.manage",
   },
   {
     name: "Proveedores de Servicios",
     href: "/dashboard/service-providers",
     icon: Wrench,
+    permission: "config.manage",
   },
   {
     name: "Personas",
     href: "/dashboard/persons",
     icon: Users,
+    permission: "bookings.view",
   },
   {
     name: "Guías",
     href: "/dashboard/guides",
     icon: BookOpen,
+    permission: "guides.view",
   },
   {
     name: "Gastos",
     href: "/dashboard/expenses",
     icon: TrendingDown,
+    permission: "payments.view",
   },
   {
     name: "Ingresos",
     href: "/dashboard/incomes",
     icon: TrendingUp,
+    permission: "payments.view",
   },
   {
     name: "Cuentas de Tesorería",
     href: "/dashboard/treasury-accounts",
     icon: Wallet,
+    permission: "payments.view",
   },
   {
     name: "Reportes",
     href: "/dashboard/reports",
     icon: BarChart3,
+    permission: "reports.view",
   },
   {
     name: "Configuración",
     href: "/dashboard/configuration",
     icon: Settings,
+    permission: "config.manage",
   },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { hasPermission } = useAuth()
 
   return (
     <div className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border">
@@ -92,6 +106,11 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
+          // Filtrar por permisos
+          if (item.permission && !hasPermission(item.permission)) {
+            return null
+          }
+
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
           return (
             <Link

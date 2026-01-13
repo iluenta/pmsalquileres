@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useRef } from "react"
 import type { User } from "@supabase/supabase-js"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
@@ -18,6 +18,8 @@ interface UserInfo {
   language: string
   timezone: string
   date_format: string
+  roles: string[]
+  permissions: string[]
 }
 
 interface AuthContextType {
@@ -26,6 +28,7 @@ interface AuthContextType {
   loading: boolean
   signOut: () => Promise<void>
   refreshUserInfo: () => Promise<void>
+  hasPermission: (permission: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -34,7 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [loading, setLoading] = useState(true)
-  
+  const fetchingRef = useRef<string | null>(null)
+
   // Get Supabase client - will throw error in production if env vars missing
   // Error will be caught by error.tsx ErrorBoundary
   const supabase = getSupabaseBrowserClient()
@@ -45,13 +49,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
+    if (fetchingRef.current === userId) return
+    fetchingRef.current = userId
+
     try {
+      console.log(`[v0] Fetching user info for ${userId}...`)
       const { data, error } = await supabase.rpc("get_user_info", {
         p_user_id: userId,
       })
 
       if (error) {
-        console.error("[v0] Error fetching user info:", error)
+        console.error("[v0] Error fetching user info details:", error)
+        // Log literal error to see full object
         return
       }
 
@@ -60,6 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error("[v0] Error in fetchUserInfo:", error)
+    } finally {
+      fetchingRef.current = null
     }
   }
 
@@ -114,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserInfo(null)
       return
     }
-    
+
     try {
       await supabase.auth.signOut()
       setUser(null)
@@ -126,8 +137,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const hasPermission = (permission: string) => {
+    if (userInfo?.is_admin) return true
+    return userInfo?.permissions?.includes(permission) || false
+  }
+
   return (
-    <AuthContext.Provider value={{ user, userInfo, loading, signOut, refreshUserInfo }}>
+    <AuthContext.Provider value={{ user, userInfo, loading, signOut, refreshUserInfo, hasPermission }}>
       {children}
     </AuthContext.Provider>
   )

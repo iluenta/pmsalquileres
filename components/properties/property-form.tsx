@@ -23,6 +23,7 @@ import { PropertyFormLocation } from "./forms/property-form-location"
 import { PropertyFormCharacteristics } from "./forms/property-form-characteristics"
 import { PropertyFormPricing } from "./forms/property-form-pricing"
 import { PropertyFormChannels } from "./forms/property-form-channels"
+import { PropertyFormLanding } from "./forms/property-form-landing"
 import { PropertyImageGallery } from "./PropertyImageGallery"
 
 interface PropertyFormProps {
@@ -65,6 +66,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     check_in_time: property?.check_in_time || "15:00",
     check_out_time: property?.check_out_time || "11:00",
     check_in_instructions: property?.check_in_instructions || "",
+    landing_config: property?.landing_config || null,
     is_active: property?.is_active ?? true,
   })
 
@@ -302,6 +304,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     { value: "characteristics", label: "Características" },
     { value: "pricing", label: "Precios" },
     { value: "channels", label: "Canales" },
+    { value: "landing", label: "Landing" },
     { value: "gallery", label: "Galería" },
   ]
 
@@ -408,7 +411,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
         {/* Desktop Tabs */}
         <div className="hidden md:block">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 bg-muted p-1 rounded-lg h-auto">
+            <TabsList className="grid w-full grid-cols-7 bg-muted p-1 rounded-lg h-auto">
               {TABS.map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -515,6 +518,15 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
                 selectedChannels={selectedChannels}
                 loadingChannels={loadingChannels}
                 onChannelToggle={handleChannelToggle}
+                landingConfig={formData.landing_config}
+                onLandingConfigChange={(config) => handleFieldChange("landing_config", config)}
+              />
+            </TabsContent>
+
+            <TabsContent value="landing" className="space-y-6 mt-0">
+              <PropertyFormLanding
+                formData={formData}
+                onFieldChange={handleFieldChange}
               />
             </TabsContent>
 
@@ -603,6 +615,14 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
               selectedChannels={selectedChannels}
               loadingChannels={loadingChannels}
               onChannelToggle={handleChannelToggle}
+              landingConfig={formData.landing_config}
+              onLandingConfigChange={(config) => handleFieldChange("landing_config", config)}
+            />
+          )}
+          {mobileTab === "landing" && (
+            <PropertyFormLanding
+              formData={formData}
+              onFieldChange={handleFieldChange}
             />
           )}
           {mobileTab === "gallery" && (

@@ -43,104 +43,88 @@ export function LandingGallerySection({ images, propertyName }: LandingGallerySe
   }
 
   return (
-    <section id="galeria" className="w-full py-16 md:py-24 bg-neutral-50">
-      <div className="container mx-auto px-4">
+    <section id="galeria" className="py-20 lg:py-28 bg-white">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4">Galería</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+            Galería
+          </h2>
+          <p className="text-slate-600 text-lg">
             Descubre cada rincón de {propertyName} en detalle
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {/* Imagen principal */}
-          <div 
-            className={`md:col-span-2 relative rounded-lg overflow-hidden group bg-neutral-200 ${
-              imageOrientation === 'vertical' 
-                ? 'min-h-[400px] md:min-h-[500px]' 
-                : 'aspect-[3/2]'
-            }`}
-          >
+        {/* Featured Image */}
+        <div className={`relative mb-6 rounded-2xl overflow-hidden bg-slate-100 shadow-xl group ${imageOrientation === 'vertical' ? 'max-h-[70vh]' : ''
+          }`}>
+          <div className={imageOrientation === 'vertical' ? 'h-full aspect-square md:aspect-auto' : 'aspect-video'}>
             <Image
               src={images[currentIndex].image_url}
-              alt={images[currentIndex].title}
+              alt={images[currentIndex].title || propertyName}
               fill
-              className={`object-center ${
-                imageOrientation === 'vertical' 
-                  ? 'object-contain' 
-                  : 'object-cover'
-              }`}
-              sizes="(max-width: 768px) 100vw, 1200px"
-              priority={currentIndex === 0}
+              className={`transition-transform duration-500 group-hover:scale-105 ${imageOrientation === 'vertical' ? 'object-contain bg-slate-100' : 'object-cover'
+                }`}
+              priority
+              sizes="(max-width: 1280px) 100vw, 1200px"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition" />
-            
-            {/* Botones de navegación */}
-            {images.length > 1 && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white z-10 h-10 w-10"
-                  onClick={goToPrevious}
-                  aria-label="Imagen anterior"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white z-10 h-10 w-10"
-                  onClick={goToNext}
-                  aria-label="Imagen siguiente"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </Button>
-              </>
-            )}
-
-            {/* Contador */}
-            {images.length > 1 && (
-              <div className="absolute bottom-4 left-4 bg-black/60 px-4 py-2 rounded text-white text-sm font-medium">
-                {currentIndex + 1} / {images.length}
-              </div>
-            )}
-
-            {/* Título de la imagen */}
-            <div className="absolute bottom-4 right-4 bg-black/60 px-4 py-2 rounded text-white text-sm max-w-[60%]">
-              {images[currentIndex].title}
-            </div>
           </div>
 
-          {/* Miniaturas */}
+          {/* Navigation Arrows */}
           {images.length > 1 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:col-span-2">
-              {images.map((img, idx) => (
-                <button
-                  key={img.id}
-                  onClick={() => goToImage(idx)}
-                  className={`relative aspect-[3/2] rounded-lg overflow-hidden border-2 transition-all ${
-                    currentIndex === idx 
-                      ? "border-primary ring-2 ring-primary ring-offset-2" 
-                      : "border-neutral-300 hover:border-primary/50"
-                  }`}
-                  aria-label={`Ver ${img.title}`}
-                >
-                  <Image
-                    src={img.image_url}
-                    alt={img.title}
-                    fill
-                    className="object-cover object-center"
-                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                  />
-                  <span className="absolute inset-0 bg-black/0 hover:bg-black/40 transition flex items-center justify-center text-white text-xs font-semibold px-2 text-center">
-                    {img.title}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <>
+              <button
+                onClick={goToPrevious}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg transition-all hover:bg-white hover:scale-110 active:scale-95"
+                aria-label="Imagen anterior"
+              >
+                <ChevronLeft className="w-5 h-5 text-slate-700" />
+              </button>
+              <button
+                onClick={goToNext}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg transition-all hover:bg-white hover:scale-110 active:scale-95"
+                aria-label="Imagen siguiente"
+              >
+                <ChevronRight className="w-5 h-5 text-slate-700" />
+              </button>
+            </>
           )}
+
+          {/* Counter */}
+          <div className="absolute bottom-4 left-4 bg-slate-900/70 backdrop-blur-sm text-white text-sm font-medium px-4 py-2 rounded-lg">
+            {currentIndex + 1} / {images.length}
+          </div>
+
+          {/* Label */}
+          <div className="absolute bottom-4 right-4 bg-slate-900/70 backdrop-blur-sm text-white text-sm font-medium px-4 py-2 rounded-lg max-w-[60%] truncate">
+            {images[currentIndex].title || 'Vista General'}
+          </div>
         </div>
+
+        {/* Thumbnails */}
+        {images.length > 1 && (
+          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
+            {images.map((image, index) => (
+              <button
+                key={image.id}
+                onClick={() => goToImage(index)}
+                className={`relative aspect-square rounded-lg overflow-hidden transition-all duration-300 ${index === currentIndex
+                    ? 'ring-2 ring-teal-600 ring-offset-2 scale-105 z-10'
+                    : 'opacity-60 hover:opacity-100 hover:scale-[1.02]'
+                  }`}
+                aria-label={`Ver ${image.title}`}
+              >
+                <Image
+                  src={image.image_url}
+                  alt={image.title || propertyName}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 25vw, (max-width: 1024px) 15vw, 10vw"
+                />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

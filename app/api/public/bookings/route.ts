@@ -60,6 +60,22 @@ export async function POST(request: Request) {
 
     return NextResponse.json(booking, { status: 201 })
   } catch (error: any) {
+    const errorMsg = (error.message || '').toLowerCase()
+
+    // Si es un error de validación (solapamiento, fechas, mínimo de noches), retornar 400 sin loguear como error crítico
+    const isValidationError =
+      errorMsg.includes('solapan') ||
+      errorMsg.includes('disponibilidad') ||
+      errorMsg.includes('posterior') ||
+      errorMsg.includes('mínimo')
+
+    if (isValidationError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      )
+    }
+
     console.error('[api/public/bookings] Error:', error)
     return NextResponse.json(
       { error: error.message || 'Error al crear la reserva' },

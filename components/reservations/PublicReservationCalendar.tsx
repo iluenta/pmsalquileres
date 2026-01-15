@@ -18,6 +18,13 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
+  const formatDateForAPI = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   useEffect(() => {
     // Cargar disponibilidad para los próximos 6 meses
     const loadAvailability = async () => {
@@ -29,7 +36,8 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
         endDate.setMonth(endDate.getMonth() + 6) // 6 meses adelante
 
         const response = await fetch(
-          `/api/public/calendar/availability?propertyId=${propertyId}&startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`
+          `/api/public/calendar/availability?propertyId=${propertyId}&startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
+          { cache: 'no-store' }
         )
 
         if (!response.ok) {
@@ -44,7 +52,7 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
           if (!day.isAvailable) {
             // day.date puede ser una cadena ISO o un objeto Date
             const date = day.date instanceof Date ? day.date : new Date(day.date)
-            const dateKey = date.toISOString().split('T')[0]
+            const dateKey = formatDateForAPI(date)
             booked.add(dateKey)
           }
         })
@@ -70,7 +78,7 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
 
   const isDateBooked = (day: number) => {
     const checkDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
-    const dateKey = checkDate.toISOString().split('T')[0]
+    const dateKey = formatDateForAPI(checkDate)
     return bookedDates.has(dateKey)
   }
 
@@ -87,8 +95,26 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
     if (!selectedRange.start || (selectedRange.start && selectedRange.end)) {
       setSelectedRange({ start: clickedDate, end: null })
     } else if (clickedDate > selectedRange.start) {
-      setSelectedRange({ ...selectedRange, end: clickedDate })
-      onDateRangeSelect(selectedRange.start, clickedDate)
+      // Verificar si hay fechas reservadas entre el inicio y el fin seleccionado
+      let hasConflict = false
+      const tempDate = new Date(selectedRange.start)
+      tempDate.setDate(tempDate.getDate() + 1)
+
+      while (tempDate < clickedDate) {
+        if (bookedDates.has(formatDateForAPI(tempDate))) {
+          hasConflict = true
+          break
+        }
+        tempDate.setDate(tempDate.getDate() + 1)
+      }
+
+      if (hasConflict) {
+        // Si hay conflicto, reiniciar la selección con la fecha clickeada
+        setSelectedRange({ start: clickedDate, end: null })
+      } else {
+        setSelectedRange({ ...selectedRange, end: clickedDate })
+        onDateRangeSelect(selectedRange.start, clickedDate)
+      }
     } else {
       setSelectedRange({ start: clickedDate, end: null })
     }
@@ -152,20 +178,20 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
           <span className="text-gray-700">Reservado</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-primary/20 rounded" />
-          <span className="text-gray-700">Seleccionado</span>
+          <div className="w-4 h-4 bg-teal-50 border border-teal-200 rounded" />
+          <span className="text-slate-600">Seleccionado</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-primary rounded" />
-          <span className="text-gray-700">Entrada/Salida</span>
+          <div className="w-4 h-4 bg-teal-700 rounded" />
+          <span className="text-slate-600">Entrada/Salida</span>
         </div>
       </div>
 
       {/* Calendario */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {/* Encabezados de días */}
         {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, idx) => (
-          <div key={idx} className="text-center font-semibold text-sm text-gray-600 py-2">
+          <div key={idx} className="text-center font-bold text-xs text-slate-400 py-2 uppercase tracking-tighter">
             {day}
           </div>
         ))}
@@ -188,15 +214,14 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
               key={day}
               onClick={() => handleDateClick(day)}
               disabled={isBooked || isPast}
-              className={`p-2 rounded-lg font-medium text-sm transition ${
-                isBooked || isPast
-                  ? 'bg-red-100 text-red-600 cursor-not-allowed border border-red-300'
-                  : isDateStart(day) || isDateEnd(day)
-                  ? 'bg-primary text-white'
+              className={`aspect-square sm:p-2 rounded-lg font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-teal-600/20 ${isBooked || isPast
+                ? 'bg-rose-50 text-rose-300 cursor-not-allowed border border-rose-100'
+                : isDateStart(day) || isDateEnd(day)
+                  ? 'bg-teal-700 text-white shadow-lg shadow-teal-700/30'
                   : isDateInRange(day)
-                  ? 'bg-primary/20 text-primary'
-                  : 'hover:bg-neutral-100 text-foreground cursor-pointer'
-              }`}
+                    ? 'bg-teal-50 text-teal-700 font-bold'
+                    : 'hover:bg-slate-50 text-slate-700 cursor-pointer border border-transparent hover:border-slate-100'
+                }`}
               title={isBooked ? 'Esta fecha ya está reservada' : isPast ? 'Fecha pasada' : ''}
             >
               {day}

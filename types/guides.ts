@@ -25,6 +25,7 @@ export interface Property {
   latitude?: number | null
   longitude?: number | null
   check_in_instructions?: string | null
+  landing_config: any | null
 }
 
 export interface Guide {

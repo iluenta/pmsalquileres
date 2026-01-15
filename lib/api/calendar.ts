@@ -54,9 +54,9 @@ export async function getCalendarAvailability(
     }
 
     // Obtener todas las reservas en el rango
-    const startStr = startDate.toISOString().split('T')[0]
-    const endStr = endDate.toISOString().split('T')[0]
-    
+    const startStr = formatDateForAPI(startDate)
+    const endStr = formatDateForAPI(endDate)
+
     const { data: bookings, error } = await supabase
       .from('bookings')
       .select('*')
@@ -72,31 +72,31 @@ export async function getCalendarAvailability(
     // Obtener estados de reserva para filtrar canceladas
     const bookingStatusIds = [...new Set((bookings || []).map((b: any) => b.booking_status_id).filter(Boolean))]
     const bookingStatusesMap = new Map<string, { value: string }>()
-    
+
     if (bookingStatusIds.length > 0) {
       const { data: statuses } = await supabase
         .from('configuration_values')
         .select('id, value')
         .in('id', bookingStatusIds)
-      
-      ;(statuses || []).forEach((status: any) => {
-        bookingStatusesMap.set(status.id, { value: status.value })
-      })
+
+        ; (statuses || []).forEach((status: any) => {
+          bookingStatusesMap.set(status.id, { value: status.value })
+        })
     }
 
     // Obtener tipos de reserva
     const bookingTypeIds = [...new Set((bookings || []).map((b: any) => b.booking_type_id).filter(Boolean))]
     const bookingTypesMap = new Map<string, { value: string; label: string }>()
-    
+
     if (bookingTypeIds.length > 0) {
       const { data: types } = await supabase
         .from('configuration_values')
         .select('id, value, label')
         .in('id', bookingTypeIds)
-      
-      ;(types || []).forEach((type: any) => {
-        bookingTypesMap.set(type.id, { value: type.value, label: type.label })
-      })
+
+        ; (types || []).forEach((type: any) => {
+          bookingTypesMap.set(type.id, { value: type.value, label: type.label })
+        })
     }
 
     // Filtrar reservas canceladas (no deben aparecer como ocupadas)
@@ -113,80 +113,77 @@ export async function getCalendarAvailability(
     // Obtener personas para reservas comerciales
     const personIds = [...new Set((bookings || []).map((b: any) => b.person_id).filter(Boolean))]
     const personsMap = new Map<string, { first_name: string; last_name: string }>()
-    
+
     if (personIds.length > 0) {
       const { data: persons } = await supabase
         .from('persons')
         .select('id, first_name, last_name')
         .in('id', personIds)
-      
-      ;(persons || []).forEach((person: any) => {
-        personsMap.set(person.id, { first_name: person.first_name, last_name: person.last_name })
-      })
+
+        ; (persons || []).forEach((person: any) => {
+          personsMap.set(person.id, { first_name: person.first_name, last_name: person.last_name })
+        })
     }
 
     // Función auxiliar para obtener la clave de fecha en formato YYYY-MM-DD sin problemas de zona horaria
     const getDateKey = (date: Date): string => {
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
+      return formatDateForAPI(date)
     }
 
     // Crear mapa de reservas por fecha
     const bookingsByDate = new Map<string, any[]>()
-    
-    ;(activeBookings || []).forEach((booking: any) => {
-      // Obtener solo la parte de fecha (YYYY-MM-DD) de las cadenas
-      const checkInStr = booking.check_in_date.split('T')[0]
-      const checkOutStr = booking.check_out_date.split('T')[0]
-      
-      // Crear fechas en zona horaria local a medianoche
-      const [checkInYear, checkInMonth, checkInDay] = checkInStr.split('-').map(Number)
-      const [checkOutYear, checkOutMonth, checkOutDay] = checkOutStr.split('-').map(Number)
-      
-      const checkIn = new Date(checkInYear, checkInMonth - 1, checkInDay, 0, 0, 0, 0)
-      const checkOut = new Date(checkOutYear, checkOutMonth - 1, checkOutDay, 0, 0, 0, 0)
-      
-      const bookingType = booking.booking_type_id 
-        ? bookingTypesMap.get(booking.booking_type_id)
-        : null
-      
-      // Marcar días ocupados desde checkIn (inclusive) hasta checkOut (exclusivo)
-      // Si checkIn es 8 de marzo y checkOut es 18 de marzo, los días ocupados son 8-17
-      const current = new Date(checkIn)
-      
-      while (current < checkOut) {
-        const dateKey = getDateKey(current)
-        if (!bookingsByDate.has(dateKey)) {
-          bookingsByDate.set(dateKey, [])
+
+      ; (activeBookings || []).forEach((booking: any) => {
+        // Obtener solo la parte de fecha (YYYY-MM-DD) de las cadenas
+        const checkInStr = booking.check_in_date.split('T')[0]
+        const checkOutStr = booking.check_out_date.split('T')[0]
+
+        // Crear fechas en zona horaria local a medianoche
+        const [checkInYear, checkInMonth, checkInDay] = checkInStr.split('-').map(Number)
+        const [checkOutYear, checkOutMonth, checkOutDay] = checkOutStr.split('-').map(Number)
+
+        const checkIn = new Date(checkInYear, checkInMonth - 1, checkInDay, 0, 0, 0, 0)
+        const checkOut = new Date(checkOutYear, checkOutMonth - 1, checkOutDay, 0, 0, 0, 0)
+
+        const bookingType = booking.booking_type_id
+          ? bookingTypesMap.get(booking.booking_type_id)
+          : null
+
+        // Marcar días ocupados desde checkIn (inclusive) hasta checkOut (exclusivo)
+        // Si checkIn es 8 de marzo y checkOut es 18 de marzo, los días ocupados son 8-17
+        const current = new Date(checkIn)
+
+        while (current < checkOut) {
+          const dateKey = getDateKey(current)
+          if (!bookingsByDate.has(dateKey)) {
+            bookingsByDate.set(dateKey, [])
+          }
+
+          // Verificar si es el día de check-in comparando solo la fecha
+          const isCheckInDay = dateKey === checkInStr
+
+          bookingsByDate.get(dateKey)!.push({
+            ...booking,
+            bookingType: bookingType?.value || null,
+            isCheckIn: isCheckInDay,
+            isCheckOut: false, // checkOut es exclusivo, nunca se marca como check-out
+          })
+          current.setDate(current.getDate() + 1)
         }
-        
-        // Verificar si es el día de check-in comparando solo la fecha
-        const isCheckInDay = dateKey === checkInStr
-        
-        bookingsByDate.get(dateKey)!.push({
-          ...booking,
-          bookingType: bookingType?.value || null,
-          isCheckIn: isCheckInDay,
-          isCheckOut: false, // checkOut es exclusivo, nunca se marca como check-out
-        })
-        current.setDate(current.getDate() + 1)
-      }
-    })
+      })
 
     // Generar array de días
     const days: CalendarDay[] = []
     const current = new Date(startDate)
     current.setHours(0, 0, 0, 0)
-    
+
     const endDateNormalized = new Date(endDate)
     endDateNormalized.setHours(23, 59, 59, 999) // Incluir el último día
-    
+
     while (current <= endDateNormalized) {
       const dateKey = getDateKey(current)
       const dayBookings = bookingsByDate.get(dateKey) || []
-      
+
       if (dayBookings.length === 0) {
         days.push({
           date: new Date(current),
@@ -202,7 +199,7 @@ export async function getCalendarAvailability(
         const bookingTypeValue = firstBooking.bookingType as 'commercial' | 'closed_period' | null
         const person = firstBooking.person_id ? personsMap.get(firstBooking.person_id) : null
         const guestName = person ? `${person.first_name} ${person.last_name}` : undefined
-        
+
         days.push({
           date: new Date(current),
           isAvailable: false,
@@ -213,7 +210,7 @@ export async function getCalendarAvailability(
           guestName,
         })
       }
-      
+
       current.setDate(current.getDate() + 1)
       current.setHours(0, 0, 0, 0)
     }
@@ -223,6 +220,24 @@ export async function getCalendarAvailability(
     console.error('Error in getCalendarAvailability:', error)
     throw error
   }
+}
+
+/**
+ * Helper local-safe para formatear fechas a YYYY-MM-DD para el API/DB
+ */
+function formatDateForAPI(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Crea una fecha a medianoche local a partir de un string YYYY-MM-DD
+ */
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day, 0, 0, 0, 0)
 }
 
 /**
@@ -286,9 +301,9 @@ export async function checkAvailability(
 
     // Obtener todas las reservas que se solapan con el rango solicitado
     // Un solapamiento ocurre cuando: check_in_date < checkOut AND check_out_date > checkIn
-    const checkInStr = checkIn.toISOString().split('T')[0]
-    const checkOutStr = checkOut.toISOString().split('T')[0]
-    
+    const checkInStr = formatDateForAPI(checkIn)
+    const checkOutStr = formatDateForAPI(checkOut)
+
     const { data: bookings, error } = await supabase
       .from('bookings')
       .select('*')
@@ -305,16 +320,16 @@ export async function checkAvailability(
     // Obtener estados de reserva para filtrar canceladas
     const bookingStatusIds = [...new Set((bookings || []).map((b: any) => b.booking_status_id).filter(Boolean))]
     const bookingStatusesMap = new Map<string, { value: string }>()
-    
+
     if (bookingStatusIds.length > 0) {
       const { data: statuses } = await supabase
         .from('configuration_values')
         .select('id, value')
         .in('id', bookingStatusIds)
-      
-      ;(statuses || []).forEach((status: any) => {
-        bookingStatusesMap.set(status.id, { value: status.value })
-      })
+
+        ; (statuses || []).forEach((status: any) => {
+          bookingStatusesMap.set(status.id, { value: status.value })
+        })
     }
 
     // Filtrar reservas canceladas (no deben bloquear disponibilidad)
@@ -330,8 +345,10 @@ export async function checkAvailability(
 
     // Filtrar reservas que realmente se solapan
     const conflicts: AvailabilityConflict[] = []
-    const checkInDate = new Date(checkIn)
-    const checkOutDate = new Date(checkOut)
+
+    // Normalizar fechas de entrada a medianoche local para asegurar consistencia
+    const normalizedCheckIn = parseLocalDate(formatDateForAPI(checkIn))
+    const normalizedCheckOut = parseLocalDate(formatDateForAPI(checkOut))
 
     for (const booking of activeBookings) {
       // Excluir la reserva actual si se está editando
@@ -339,11 +356,12 @@ export async function checkAvailability(
         continue
       }
 
-      const bookingCheckIn = new Date(booking.check_in_date)
-      const bookingCheckOut = new Date(booking.check_out_date)
+      // Normalizar fechas de la reserva de la DB a medianoche local
+      const bookingCheckIn = parseLocalDate(booking.check_in_date.split('T')[0])
+      const bookingCheckOut = parseLocalDate(booking.check_out_date.split('T')[0])
 
       // Verificar solapamiento
-      if (datesOverlap(checkInDate, checkOutDate, bookingCheckIn, bookingCheckOut)) {
+      if (datesOverlap(normalizedCheckIn, normalizedCheckOut, bookingCheckIn, bookingCheckOut)) {
         // Obtener tipo de reserva para determinar el mensaje
         let conflictType: 'commercial' | 'closed_period' = 'commercial'
         let message = ""
@@ -368,7 +386,7 @@ export async function checkAvailability(
                 .eq('id', booking.person_id)
                 .single()
 
-              const guestName = person 
+              const guestName = person
                 ? `${person.first_name} ${person.last_name}`
                 : "Huésped desconocido"
 
@@ -386,7 +404,7 @@ export async function checkAvailability(
               .eq('id', booking.person_id)
               .single()
 
-            const guestName = person 
+            const guestName = person
               ? `${person.first_name} ${person.last_name}`
               : "Huésped desconocido"
 
@@ -497,9 +515,9 @@ export async function getNextAvailablePeriods(
     today.setHours(0, 0, 0, 0)
     const endDate = new Date(today)
     endDate.setDate(endDate.getDate() + maxDaysToSearch)
-    
-    const todayStr = today.toISOString().split('T')[0]
-    const endDateStr = endDate.toISOString().split('T')[0]
+
+    const todayStr = formatDateForAPI(today)
+    const endDateStr = formatDateForAPI(endDate)
 
     // Obtener todas las reservas que se solapan con el rango de búsqueda
     // Una reserva se solapa si: check_in_date <= endDate AND check_out_date >= today
@@ -530,29 +548,27 @@ export async function getNextAvailablePeriods(
     const uniqueBookings = Array.from(
       new Map(allBookings.map((b: any) => [b.id, b])).values()
     )
-    
+
     // Filtrar solo las que realmente se solapan con el rango
     const bookings = uniqueBookings.filter((booking: any) => {
-      const bookingStart = new Date(booking.check_in_date)
-      const bookingEnd = new Date(booking.check_out_date)
+      const bookingStart = parseLocalDate(booking.check_in_date.split('T')[0])
+      const bookingEnd = parseLocalDate(booking.check_out_date.split('T')[0])
       return bookingStart <= endDate && bookingEnd >= today
     })
 
     // Crear array de bloques ocupados (reservas comerciales y períodos cerrados)
     // Normalizar fechas para evitar problemas de hora
     const occupiedBlocks: Array<{ start: Date; end: Date }> = []
-    
-    ;(bookings || []).forEach((booking: any) => {
-      const start = new Date(booking.check_in_date)
-      start.setHours(0, 0, 0, 0)
-      const end = new Date(booking.check_out_date)
-      end.setHours(0, 0, 0, 0)
-      
-      // Solo incluir bloques que se solapan con el rango de búsqueda
-      if (end >= today && start <= endDate) {
-        occupiedBlocks.push({ start, end })
-      }
-    })
+
+      ; (bookings || []).forEach((booking: any) => {
+        const start = parseLocalDate(booking.check_in_date.split('T')[0])
+        const end = parseLocalDate(booking.check_out_date.split('T')[0])
+
+        // Solo incluir bloques que se solapan con el rango de búsqueda
+        if (end >= today && start <= endDate) {
+          occupiedBlocks.push({ start, end })
+        }
+      })
 
     // Ordenar bloques por fecha de inicio
     occupiedBlocks.sort((a, b) => a.start.getTime() - b.start.getTime())
@@ -590,7 +606,7 @@ export async function getNextAvailablePeriods(
       if (!nextBlock) {
         // No hay bloques que se solapen, verificar si hay espacio hasta el siguiente bloque o el final
         const nextBlockAfter = mergedBlocks.find(block => block.start >= currentDate)
-        
+
         let availableEnd: Date
         if (nextBlockAfter) {
           availableEnd = new Date(nextBlockAfter.start)
@@ -609,7 +625,7 @@ export async function getNextAvailablePeriods(
             nights: minNights
           })
           periodsFound++
-          
+
           // Mover al día siguiente al periodo encontrado para buscar el siguiente
           currentDate = new Date(proposedEnd)
         } else {

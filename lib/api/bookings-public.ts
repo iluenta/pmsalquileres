@@ -320,12 +320,12 @@ async function checkAvailabilityPublic(
     }
 
     // Obtener reservas que se solapan
-    const checkInStr = checkIn.toISOString().split('T')[0]
-    const checkOutStr = checkOut.toISOString().split('T')[0]
+    const checkInStr = formatDateForAPI(checkIn)
+    const checkOutStr = formatDateForAPI(checkOut)
 
     const { data: bookings, error } = await supabase
       .from('bookings')
-      .select('check_in_date, check_out_date')
+      .select('check_in_date, check_out_date, booking_status_id')
       .eq('property_id', propertyId)
       .eq('tenant_id', tenantId)
       .lt('check_in_date', checkOutStr)
@@ -336,15 +336,33 @@ async function checkAvailabilityPublic(
       throw error
     }
 
-    // Verificar solapamientos
-    const checkInDate = new Date(checkIn)
-    const checkOutDate = new Date(checkOut)
+    // Obtener los estados para filtrar canceladas
+    const statusIds = [...new Set((bookings || []).map((b: any) => b.booking_status_id).filter(Boolean))]
+    const statusMap = new Map()
+
+    if (statusIds.length > 0) {
+      const { data: statuses } = await supabase
+        .from('configuration_values')
+        .select('id, value')
+        .in('id', statusIds)
+
+      statuses?.forEach((s: any) => statusMap.set(s.id, s.value))
+    }
+
+    // Filtrar reservas que realmente se solapan y no están canceladas
+    const conflicts: any[] = []
+    const normalizedCheckIn = parseLocalDate(checkInStr)
+    const normalizedCheckOut = parseLocalDate(checkOutStr)
 
     for (const booking of bookings || []) {
-      const bookingCheckIn = new Date(booking.check_in_date)
-      const bookingCheckOut = new Date(booking.check_out_date)
+      // Ignorar si está cancelada
+      if (booking.booking_status_id && statusMap.get(booking.booking_status_id) === 'cancelled') {
+        continue
+      }
+      const bookingCheckIn = parseLocalDate(booking.check_in_date.split('T')[0])
+      const bookingCheckOut = parseLocalDate(booking.check_out_date.split('T')[0])
 
-      if (datesOverlap(checkInDate, checkOutDate, bookingCheckIn, bookingCheckOut)) {
+      if (datesOverlap(normalizedCheckIn, normalizedCheckOut, bookingCheckIn, bookingCheckOut)) {
         return {
           available: false,
           message: `Las fechas seleccionadas se solapan con una reserva existente del ${bookingCheckIn.toLocaleDateString('es-ES')} al ${bookingCheckOut.toLocaleDateString('es-ES')}`,
@@ -353,8 +371,17 @@ async function checkAvailabilityPublic(
     }
 
     return { available: true }
-  } catch (error) {
-    console.error('[bookings-public] Error in checkAvailabilityPublic:', error)
+  } catch (error: any) {
+    const errorMsg = (error.message || '').toLowerCase()
+    const isValidationError =
+      errorMsg.includes('solapan') ||
+      errorMsg.includes('disponibilidad') ||
+      errorMsg.includes('posterior') ||
+      errorMsg.includes('mínimo')
+
+    if (!isValidationError) {
+      console.error('[bookings-public] Error in checkAvailabilityPublic:', error)
+    }
     throw error
   }
 }
@@ -511,8 +538,17 @@ export async function createPublicBooking(
     }
 
     return booking as Booking
-  } catch (error) {
-    console.error('[bookings-public] Error in createPublicBooking:', error)
+  } catch (error: any) {
+    const errorMsg = (error.message || '').toLowerCase()
+    const isValidationError =
+      errorMsg.includes('solapan') ||
+      errorMsg.includes('disponibilidad') ||
+      errorMsg.includes('posterior') ||
+      errorMsg.includes('mínimo')
+
+    if (!isValidationError) {
+      console.error('[bookings-public] Error in createPublicBooking:', error)
+    }
     throw error
   }
 }
@@ -595,5 +631,20 @@ export async function validateBookingAccess(
     console.error('[bookings-public] Error in validateBookingAccess:', error)
     return { success: false, message: 'Ocurrió un error al validar tu acceso.' }
   }
+}
+
+/**
+ * Helpers local-safe para fechas
+ */
+function formatDateForAPI(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day, 0, 0, 0, 0)
 }
 

@@ -40,6 +40,8 @@ export async function getPropertyBySlugPublic(slug: string, includeInactive: boo
         max_guests,
         min_nights,
         base_price_per_night,
+        check_in_instructions,
+        landing_config,
         is_active,
         created_at,
         tenant_id

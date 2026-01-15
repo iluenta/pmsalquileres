@@ -25,6 +25,7 @@ export interface Property {
   min_nights: number | null // Número mínimo de noches para reservas comerciales
   base_price_per_night: number | null
   check_in_instructions: string | null
+  landing_config: any | null
   is_active: boolean
   created_at: string
 }
@@ -48,6 +49,7 @@ export interface CreatePropertyData {
   min_nights?: number | null
   base_price_per_night?: number | null
   check_in_instructions?: string | null
+  landing_config?: any | null
   is_active?: boolean
 }
 
@@ -70,6 +72,7 @@ export interface UpdatePropertyData {
   min_nights?: number | null
   base_price_per_night?: number | null
   check_in_instructions?: string | null
+  landing_config?: any | null
   is_active?: boolean
 }
 
@@ -100,6 +103,7 @@ export async function getProperties(): Promise<Property[]> {
       min_nights,
       base_price_per_night,
       check_in_instructions,
+      landing_config,
       is_active,
       created_at,
       property_type:configuration_values!properties_property_type_id_fkey(label, color)
@@ -179,6 +183,7 @@ export async function getProperty(propertyId: string): Promise<Property | null> 
       min_nights,
       base_price_per_night,
       check_in_instructions,
+      landing_config,
       is_active,
       created_at,
       property_type:configuration_values!properties_property_type_id_fkey(label, color)
@@ -260,6 +265,7 @@ export async function getPropertyById(propertyId: string, tenantId: string) {
       min_nights,
       base_price_per_night,
       check_in_instructions,
+      landing_config,
       is_active,
       created_at,
       property_type:configuration_values!properties_property_type_id_fkey(label, color)
@@ -427,6 +433,7 @@ export async function getPropertyBySlug(slug: string): Promise<Property | null> 
       min_nights,
       base_price_per_night,
       check_in_instructions,
+      landing_config,
       is_active,
       created_at,
       property_type:configuration_values!properties_property_type_id_fkey(label, color)

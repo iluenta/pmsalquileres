@@ -7,19 +7,27 @@ interface LandingCTASectionProps {
 
 export function LandingCTASection({ slug }: LandingCTASectionProps) {
   return (
-    <section className="w-full py-16 md:py-24 bg-gradient-to-r from-primary to-accent text-white">
-      <div className="container mx-auto px-4 text-center space-y-6">
-        <h2 className="font-serif text-3xl md:text-4xl font-bold">¿Listo para tu Escapada?</h2>
-        <p className="text-lg text-white/90 max-w-2xl mx-auto">
-          Reserva ahora y disfruta de tus vacaciones en el apartamento perfecto. Disponibilidad inmediata.
+    <section className="py-20 lg:py-28 bg-teal-600">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+          ¿Listo para tu escapada?
+        </h2>
+        <p className="text-teal-100 text-lg mb-8 max-w-xl mx-auto">
+          Reserva ahora y disfruta de una experiencia única. Disponibilidad inmediata para tus vacaciones soñadas.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-          <Button size="lg" variant="secondary" asChild>
-            <Link href={`/landing/${slug}/reservas`}>Reservar Ahora</Link>
-          </Button>
-          <Button size="lg" variant="outline" className="border-white hover:bg-white/20" asChild>
-            <Link href={`/guides/${slug}`}>Ver Guía del Huésped</Link>
-          </Button>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a
+            href="#precios"
+            className="w-full sm:w-auto bg-white text-teal-600 font-medium px-8 py-3.5 rounded-lg transition-all hover:bg-teal-50 hover:scale-105 active:scale-95 shadow-md flex items-center justify-center"
+          >
+            Reservar Ahora
+          </a>
+          <Link
+            href={`/guides/${slug}`}
+            className="w-full sm:w-auto bg-teal-500 text-white font-medium px-8 py-3.5 rounded-lg transition-all hover:bg-teal-400 hover:scale-105 active:scale-95 border border-teal-400"
+          >
+            Ver Guía del Huésped
+          </Link>
         </div>
       </div>
     </section>

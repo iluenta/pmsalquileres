@@ -13,56 +13,92 @@ export function LandingHeader({ slug }: LandingHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-neutral-200">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link href={`/landing/${slug}`} className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <span className="text-white font-bold text-lg">VT</span>
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link href={`/landing/${slug}`} className="flex items-center gap-2">
+            <div className="w-9 h-9 bg-teal-600 rounded-lg flex items-center justify-center shadow-sm">
+              <span className="text-white font-bold text-sm">VT</span>
+            </div>
+            <span className="text-slate-900 font-bold text-lg tracking-tight">
+              VeraTespera
+            </span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#características" className="text-slate-600 text-sm font-medium transition-colors hover:text-teal-600">
+              Características
+            </a>
+            <a href="#galeria" className="text-slate-600 text-sm font-medium transition-colors hover:text-teal-600">
+              Galería
+            </a>
+            <a href="#precios" className="text-slate-600 text-sm font-medium transition-colors hover:text-teal-600">
+              Precios
+            </a>
+            <a href="#ubicacion" className="text-slate-600 text-sm font-medium transition-colors hover:text-teal-600">
+              Ubicación
+            </a>
           </div>
-          <span className="font-serif text-xl font-bold text-primary hidden sm:inline">VeraTespera</span>
-        </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
-          <a href="#características" className="text-sm text-foreground hover:text-primary transition">Características</a>
-          <a href="#galeria" className="text-sm text-foreground hover:text-primary transition">Galería</a>
-          <a href="#precios" className="text-sm text-foreground hover:text-primary transition">Precios</a>
-          <a href="#ubicacion" className="text-sm text-foreground hover:text-primary transition">Ubicación</a>
-        </nav>
+          {/* Desktop CTAs */}
+          <div className="hidden md:flex items-center gap-3">
+            <Link
+              href={`/guides/${slug}`}
+              className="text-slate-600 text-sm font-medium px-4 py-2 rounded-lg transition-colors hover:text-teal-600 hover:bg-slate-50"
+            >
+              Guía del Huésped
+            </Link>
+            <a
+              href="#precios"
+              className="bg-teal-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-all hover:bg-teal-700 hover:scale-105 shadow-sm active:scale-95"
+            >
+              Reservar Ahora
+            </a>
+          </div>
 
-        <div className="hidden md:flex items-center gap-4">
-          <Button variant="outline" asChild>
-            <Link href={`/guides/${slug}`}>Guía del Huésped</Link>
-          </Button>
-          <Button asChild>
-            <Link href={`/landing/${slug}/reservas`}>Reservar Ahora</Link>
-          </Button>
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-2 text-slate-600 hover:text-slate-900"
+            aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
-
-        <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="md:hidden p-2"
-        >
-          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
       </div>
 
+      {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden border-t border-neutral-200 bg-white p-4 space-y-4">
-          <a href="#características" className="block text-sm text-foreground hover:text-primary">Características</a>
-          <a href="#galeria" className="block text-sm text-foreground hover:text-primary">Galería</a>
-          <a href="#precios" className="block text-sm text-foreground hover:text-primary">Precios</a>
-          <a href="#ubicacion" className="block text-sm text-foreground hover:text-primary">Ubicación</a>
-          <div className="flex gap-2 pt-4">
-            <Button variant="outline" asChild className="flex-1">
-              <Link href={`/guides/${slug}`}>Guía</Link>
-            </Button>
-            <Button asChild className="flex-1">
-              <Link href={`/landing/${slug}/reservas`}>Reservar</Link>
-            </Button>
+        <div className="md:hidden bg-white border-t border-slate-100 shadow-xl animate-in slide-in-from-top duration-300">
+          <div className="px-4 py-6 space-y-4">
+            <div className="space-y-1">
+              <a href="#características" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-slate-600 text-base font-medium rounded-md hover:text-teal-600 hover:bg-slate-50">Características</a>
+              <a href="#galeria" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-slate-600 text-base font-medium rounded-md hover:text-teal-600 hover:bg-slate-50">Galería</a>
+              <a href="#precios" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-slate-600 text-base font-medium rounded-md hover:text-teal-600 hover:bg-slate-50">Precios</a>
+              <a href="#ubicacion" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-slate-600 text-base font-medium rounded-md hover:text-teal-600 hover:bg-slate-50">Ubicación</a>
+            </div>
+            <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
+              <Link
+                href={`/guides/${slug}`}
+                onClick={() => setIsMenuOpen(false)}
+                className="w-full text-center text-slate-600 text-base font-medium py-3 rounded-lg border border-slate-200 hover:bg-slate-50"
+              >
+                Guía del Huésped
+              </Link>
+              <a
+                href="#precios"
+                onClick={() => setIsMenuOpen(false)}
+                className="w-full bg-teal-600 text-white text-center text-base font-medium py-3 rounded-lg hover:bg-teal-700 active:scale-[0.98] transition-all"
+              >
+                Reservar Ahora
+              </a>
+            </div>
           </div>
         </div>
       )}
-    </header>
+    </nav>
   )
 }
 

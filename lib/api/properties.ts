@@ -5,9 +5,9 @@ export interface Property {
   id: string
   property_code: string
   name: string
-  slug?: string // Slug único para URLs de guías públicas (opcional hasta que se ejecute el script SQL)
+  slug?: string
   description: string | null
-  image_url: string | null // URL de la imagen principal de la propiedad
+  image_url: string | null
   property_type_id: string | null
   property_type?: {
     label: string
@@ -22,7 +22,7 @@ export interface Property {
   bedrooms: number | null
   bathrooms: number | null
   max_guests: number | null
-  min_nights: number | null // Número mínimo de noches para reservas comerciales
+  min_nights: number | null
   base_price_per_night: number | null
   check_in_instructions: string | null
   landing_config: any | null
@@ -33,9 +33,9 @@ export interface Property {
 export interface CreatePropertyData {
   property_code: string
   name: string
-  slug?: string // Opcional, se genera automáticamente si no se proporciona
+  slug?: string
   description?: string | null
-  image_url?: string | null // URL de la imagen principal de la propiedad
+  image_url?: string | null
   property_type_id?: string | null
   street?: string | null
   number?: string | null
@@ -56,9 +56,9 @@ export interface CreatePropertyData {
 export interface UpdatePropertyData {
   property_code?: string
   name?: string
-  slug?: string // Opcional, se valida unicidad si se proporciona
+  slug?: string
   description?: string | null
-  image_url?: string | null // URL de la imagen principal de la propiedad
+  image_url?: string | null
   property_type_id?: string | null
   street?: string | null
   number?: string | null
@@ -76,11 +76,10 @@ export interface UpdatePropertyData {
   is_active?: boolean
 }
 
-export async function getProperties(): Promise<Property[]> {
+export async function getProperties(tenantId: string): Promise<Property[]> {
   const supabase = await getSupabaseServerClient()
 
-  // Seleccionar campos explícitamente para evitar errores si slug o image_url no existen todavía
-  const { data, error } = await supabase
+  let query = supabase
     .from("properties")
     .select(
       `
@@ -109,44 +108,24 @@ export async function getProperties(): Promise<Property[]> {
       property_type:configuration_values!properties_property_type_id_fkey(label, color)
     `,
     )
-    .order("created_at", { ascending: false })
+    .eq("tenant_id", tenantId)
+
+  const { data, error } = await query.order("created_at", { ascending: false })
 
   if (error) {
     console.error("[v0] Error fetching properties:", error)
-    // Si el error es porque slug o image_url no existen, intentar sin ellos
+    // Fallback logic kept for compatibility with older schema if migration is pending
     if (error.message?.includes('slug') || error.message?.includes('image_url') || error.code === '42703') {
-      console.log("[v0] Slug or image_url column not found, fetching without them")
-      const { data: dataWithoutOptional, error: errorWithoutOptional } = await supabase
+      const { data: dataWithoutOptional } = await supabase
         .from("properties")
-        .select(
-          `
-          id,
-          property_code,
-          name,
-          description,
-          property_type_id,
-          street,
-          number,
-          city,
-          province,
-          postal_code,
-          country,
-          bedrooms,
-          bathrooms,
-          max_guests,
-          min_nights,
-          base_price_per_night,
-          is_active,
-          created_at,
+        .select(`
+          id, property_code, name, description, property_type_id, street, number, 
+          city, province, postal_code, country, bedrooms, bathrooms, 
+          max_guests, min_nights, base_price_per_night, is_active, created_at,
           property_type:configuration_values!properties_property_type_id_fkey(label, color)
-        `,
-        )
+        `)
+        .eq("tenant_id", tenantId)
         .order("created_at", { ascending: false })
-
-      if (errorWithoutOptional) {
-        console.error("[v0] Error fetching properties without optional columns:", errorWithoutOptional)
-        return []
-      }
 
       return (dataWithoutOptional || []) as Property[]
     }
@@ -156,10 +135,9 @@ export async function getProperties(): Promise<Property[]> {
   return data || []
 }
 
-export async function getProperty(propertyId: string): Promise<Property | null> {
+export async function getPropertyById(propertyId: string, tenantId: string): Promise<Property | null> {
   const supabase = await getSupabaseServerClient()
 
-  // Seleccionar campos explícitamente
   const { data, error } = await supabase
     .from("properties")
     .select(
@@ -190,44 +168,23 @@ export async function getProperty(propertyId: string): Promise<Property | null> 
     `,
     )
     .eq("id", propertyId)
-    .single()
+    .eq("tenant_id", tenantId)
+    .maybeSingle()
 
   if (error) {
     console.error("[v0] Error fetching property:", error)
-    // Si el error es porque slug o image_url no existen, intentar sin ellos
     if (error.message?.includes('slug') || error.message?.includes('image_url') || error.code === '42703') {
-      const { data: dataWithoutOptional, error: errorWithoutOptional } = await supabase
+      const { data: dataWithoutOptional } = await supabase
         .from("properties")
-        .select(
-          `
-          id,
-          property_code,
-          name,
-          description,
-          property_type_id,
-          street,
-          number,
-          city,
-          province,
-          postal_code,
-          country,
-          bedrooms,
-          bathrooms,
-          max_guests,
-          min_nights,
-          base_price_per_night,
-          is_active,
-          created_at,
+        .select(`
+          id, property_code, name, description, property_type_id, street, number,
+          city, province, postal_code, country, bedrooms, bathrooms,
+          max_guests, min_nights, base_price_per_night, is_active, created_at,
           property_type:configuration_values!properties_property_type_id_fkey(label, color)
-        `,
-        )
+        `)
         .eq("id", propertyId)
-        .single()
-
-      if (errorWithoutOptional) {
-        console.error("[v0] Error fetching property without optional columns:", errorWithoutOptional)
-        return null
-      }
+        .eq("tenant_id", tenantId)
+        .maybeSingle()
 
       return dataWithoutOptional as Property | null
     }
@@ -237,115 +194,28 @@ export async function getProperty(propertyId: string): Promise<Property | null> 
   return data
 }
 
-export async function getPropertyById(propertyId: string, tenantId: string) {
-  const supabase = await getSupabaseServerClient()
-
-  // Seleccionar campos explícitamente
-  const { data, error } = await supabase
-    .from("properties")
-    .select(
-      `
-      id,
-      property_code,
-      name,
-      slug,
-      description,
-      image_url,
-      property_type_id,
-      street,
-      number,
-      city,
-      province,
-      postal_code,
-      country,
-      bedrooms,
-
-      bathrooms,
-      max_guests,
-      min_nights,
-      base_price_per_night,
-      check_in_instructions,
-      landing_config,
-      is_active,
-      created_at,
-      property_type:configuration_values!properties_property_type_id_fkey(label, color)
-    `,
-    )
-    .eq("id", propertyId)
-    .eq("tenant_id", tenantId)
-    .single()
-
-  if (error) {
-    console.error("[v0] Error fetching property:", error)
-    // Si el error es porque slug o image_url no existen, intentar sin ellos
-    if (error.message?.includes('slug') || error.message?.includes('image_url') || error.code === '42703') {
-      const { data: dataWithoutOptional, error: errorWithoutOptional } = await supabase
-        .from("properties")
-        .select(
-          `
-          id,
-          property_code,
-          name,
-          description,
-          property_type_id,
-          street,
-          number,
-          city,
-          province,
-          postal_code,
-          country,
-          bedrooms,
-          bathrooms,
-          max_guests,
-          min_nights,
-          base_price_per_night,
-          is_active,
-          created_at,
-          property_type:configuration_values!properties_property_type_id_fkey(label, color)
-        `,
-        )
-        .eq("id", propertyId)
-        .eq("tenant_id", tenantId)
-        .single()
-
-      if (errorWithoutOptional) {
-        console.error("[v0] Error fetching property without optional columns:", errorWithoutOptional)
-        return null
-      }
-
-      return dataWithoutOptional
-    }
-    return null
-  }
-
-  return data
-}
 
 export async function getPropertyTypes(tenantId: string) {
   const supabase = await getSupabaseServerClient()
 
-  // Get property type configuration using the stable code
   const { data: configType } = await supabase
     .from("configuration_types")
     .select("id, name")
     .eq("tenant_id", tenantId)
     .eq("code", CONFIG_CODES.PROPERTY_TYPE)
-    .single()
+    .maybeSingle()
 
   let finalConfigTypeId: string
 
   if (!configType) {
-    console.warn("[v0] No property type configuration found with code:", CONFIG_CODES.PROPERTY_TYPE, "for tenant:", tenantId)
-    // Fallback to name-based search for legacy support
     const { data: legacyConfigType } = await supabase
       .from("configuration_types")
       .select("id, name")
       .eq("tenant_id", tenantId)
       .or("name.eq.Tipo de Propiedad,name.eq.property_type,name.eq.Tipos de Propiedades,name.eq.property_types")
-      .single()
+      .maybeSingle()
 
     if (!legacyConfigType) {
-      console.error("[v0] No property type configuration found for tenant:", tenantId)
       return []
     }
     finalConfigTypeId = legacyConfigType.id
@@ -365,51 +235,26 @@ export async function getPropertyTypes(tenantId: string) {
     return []
   }
 
-  // Si tenemos datos y la columna is_default existe, ordenar manualmente
-  // para poner los valores por defecto primero
   if (data && data.length > 0 && 'is_default' in (data[0] || {})) {
     return data.sort((a: any, b: any) => {
-      // Primero por is_default (true primero)
       if (a.is_default && !b.is_default) return -1
       if (!a.is_default && b.is_default) return 1
-      // Luego por sort_order
       return (a.sort_order || 0) - (b.sort_order || 0)
     })
   }
 
-  console.log("[v0] Found property types:", data?.length || 0)
   return data || []
 }
 
-/**
- * Obtiene una propiedad por su slug usando el cliente público (sin autenticación)
- * Para uso en páginas públicas
- * @param slug Slug de la propiedad
- * @returns Propiedad encontrada o null
- */
-/**
- * @deprecated Usar getPropertyBySlugPublic de lib/api/properties-public.ts en su lugar
- * Esta función se mantiene solo para compatibilidad
- */
 export async function getPropertyBySlugPublic(slug: string): Promise<Property | null> {
-  // Re-exportar la función limpia desde properties-public
   const { getPropertyBySlugPublic: getPropertyBySlugPublicClean } = await import('./properties-public')
   return getPropertyBySlugPublicClean(slug)
 }
 
-/**
- * Obtiene una propiedad por su slug (requiere autenticación)
- * Para uso en páginas privadas del dashboard
- * @param slug Slug de la propiedad
- * @returns Propiedad encontrada o null
- */
-export async function getPropertyBySlug(slug: string): Promise<Property | null> {
+export async function getPropertyBySlug(slug: string, tenantId: string): Promise<Property | null> {
   const supabase = await getSupabaseServerClient()
-
-  // Normalizar el slug a minúsculas para la búsqueda (los slugs se guardan en minúsculas)
   const normalizedSlug = slug.toLowerCase().trim()
 
-  // Verificar primero si la columna slug existe
   const { data, error } = await supabase
     .from("properties")
     .select(
@@ -440,14 +285,10 @@ export async function getPropertyBySlug(slug: string): Promise<Property | null> 
     `,
     )
     .eq("slug", normalizedSlug)
+    .eq("tenant_id", tenantId)
     .maybeSingle()
 
   if (error) {
-    // Si el error es porque la columna slug o image_url no existe, retornar null
-    if (error.message?.includes('slug') || error.message?.includes('image_url') || error.code === '42703') {
-      console.log("[v0] Slug or image_url column does not exist yet. Please run the migration script.")
-      return null
-    }
     console.error("[v0] Error fetching property by slug:", error)
     return null
   }
@@ -455,14 +296,9 @@ export async function getPropertyBySlug(slug: string): Promise<Property | null> 
   return data
 }
 
-/**
- * Valida si un slug es único
- * @param slug Slug a validar
- * @param excludePropertyId ID de propiedad a excluir (para actualizaciones)
- * @returns true si el slug es único, false si ya existe
- */
 export async function validateSlugUniqueness(
   slug: string,
+  tenantId: string,
   excludePropertyId?: string
 ): Promise<boolean> {
   const supabase = await getSupabaseServerClient()
@@ -471,6 +307,7 @@ export async function validateSlugUniqueness(
     .from("properties")
     .select("id")
     .eq("slug", slug)
+    .eq("tenant_id", tenantId)
     .limit(1)
 
   if (excludePropertyId) {
@@ -487,23 +324,16 @@ export async function validateSlugUniqueness(
   return !data || data.length === 0
 }
 
-/**
- * Crea una nueva propiedad
- * @param data Datos de la propiedad
- * @param tenantId ID del tenant
- * @returns Propiedad creada o null
- */
 export async function createProperty(
   data: CreatePropertyData,
   tenantId: string
 ): Promise<Property | null> {
   const supabase = await getSupabaseServerClient()
 
-  // El slug se generará automáticamente por el trigger si no se proporciona
   const propertyData = {
     ...data,
     tenant_id: tenantId,
-    slug: data.slug || null, // Si no se proporciona, el trigger lo generará
+    slug: data.slug || null,
   }
 
   const { data: property, error } = await supabase
@@ -515,7 +345,7 @@ export async function createProperty(
       property_type:configuration_values!properties_property_type_id_fkey(label, color)
     `,
     )
-    .single()
+    .maybeSingle()
 
   if (error) {
     console.error("[v0] Error creating property:", error)
@@ -525,13 +355,6 @@ export async function createProperty(
   return property
 }
 
-/**
- * Actualiza una propiedad existente
- * @param propertyId ID de la propiedad
- * @param data Datos a actualizar
- * @param tenantId ID del tenant
- * @returns Propiedad actualizada o null
- */
 export async function updateProperty(
   propertyId: string,
   data: UpdatePropertyData,
@@ -539,9 +362,8 @@ export async function updateProperty(
 ): Promise<Property | null> {
   const supabase = await getSupabaseServerClient()
 
-  // Si se proporciona un slug, validar unicidad
   if (data.slug) {
-    const isUnique = await validateSlugUniqueness(data.slug, propertyId)
+    const isUnique = await validateSlugUniqueness(data.slug, tenantId, propertyId)
     if (!isUnique) {
       throw new Error("El slug ya está en uso por otra propiedad")
     }
@@ -558,7 +380,7 @@ export async function updateProperty(
       property_type:configuration_values!properties_property_type_id_fkey(label, color)
     `,
     )
-    .single()
+    .maybeSingle()
 
   if (error) {
     console.error("[v0] Error updating property:", error)

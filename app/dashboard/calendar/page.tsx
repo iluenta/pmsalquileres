@@ -26,7 +26,7 @@ export default async function CalendarPage() {
   const tenantId = userInfo[0].tenant_id
 
   // Obtener propiedades activas
-  const allProperties = await getProperties()
+  const allProperties = await getProperties(tenantId)
   const properties = allProperties.filter((p) => p.is_active)
 
   return (

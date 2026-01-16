@@ -29,22 +29,29 @@ export function useGuideData(propertyId: string): UseGuideDataReturn {
     try {
       setLoading(true)
       setError(null)
-      
-      console.log('Fetching guide data for property:', propertyId)
-      let guideData = await getCompleteGuideData(propertyId)
 
-      // Fallback a cliente público si no hay sesión o la guía es pública
-      if (!guideData) {
-        console.log('Falling back to public guide fetcher')
-        guideData = await getCompleteGuideDataPublic(propertyId) as any
+      console.log('Fetching guide data via secure API for property:', propertyId)
+
+      // Intentar obtener el token de sesión de las cookies
+      const cookieName = `guide_guest_${propertyId}_session`
+      const cookies = document.cookie.split(';')
+      const sessionField = cookies.find(c => c.trim().startsWith(`${cookieName}=`))
+      const sessionToken = sessionField ? sessionField.split('=')[1].trim() : ''
+
+      const response = await fetch(`/api/public/guides/data?propertyId=${propertyId}&session=${sessionToken}`)
+
+      if (!response.ok) {
+        throw new Error(`Error en el servidor: ${response.status}`)
       }
-      
-      if (guideData) {
+
+      const guideData = await response.json()
+
+      if (guideData && !guideData.error) {
         console.log('Guide data loaded successfully:', guideData)
         setData(guideData)
       } else {
         console.log('No guide data found for property:', propertyId)
-        setError('No guide found for this property')
+        setError(guideData?.error || 'No guide found for this property')
       }
     } catch (err) {
       console.error('Error fetching guide data:', err)

@@ -51,24 +51,24 @@ export function LandingHero({ property, slug, coverImageUrl }: LandingHeroProps)
         </div>
 
         {/* Headline */}
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white mb-4 tracking-tight animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight leading-[1.1] animate-in fade-in slide-in-from-bottom-4 duration-700">
           {property.name}
         </h1>
-        <p className="text-xl sm:text-2xl text-white/80 mb-8 font-light max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-          {property.description?.split('.')[0] || 'Propiedad superchula en Vera'}
+        <p className="text-lg sm:text-2xl text-white/80 mb-10 font-light max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+          {property.description?.split('.')[0] || 'Propiedad exclusiva en Vera'}
         </p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
           <a
             href="#precios"
-            className="w-full sm:w-auto bg-teal-600 text-white font-medium px-8 py-3.5 rounded-lg transition-all hover:bg-teal-700 hover:scale-105 shadow-lg active:scale-95 flex items-center justify-center"
+            className="w-full sm:w-auto bg-teal-600 text-white font-semibold px-10 py-4 rounded-xl transition-all hover:bg-teal-700 hover:scale-105 shadow-xl active:scale-95 flex items-center justify-center text-lg"
           >
             Reservar Ahora
           </a>
           <a
             href="#características"
-            className="w-full sm:w-auto bg-white/10 backdrop-blur-sm border border-white/30 text-white font-medium px-8 py-3.5 rounded-lg transition-all hover:bg-white/20 hover:scale-105 active:scale-95"
+            className="w-full sm:w-auto bg-white/10 backdrop-blur-md border border-white/30 text-white font-medium px-10 py-4 rounded-xl transition-all hover:bg-white/20 hover:scale-105 active:scale-95 text-lg"
           >
             Ver Detalles
           </a>

@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { CONFIG_CODES } from '@/lib/constants/config'
+import { calculateBatchBookingPaymentInfo } from "@/lib/api/movements"
 
 // Helper para obtener person_type 'guest'
 async function getGuestPersonTypeId(tenantId: string): Promise<string | null> {
@@ -74,160 +75,127 @@ export interface PropertyOccupancy {
 
 export async function getDashboardStats(tenantId: string, year?: number | null): Promise<DashboardStats> {
   const supabase = await getSupabaseServerClient()
+  const today = new Date().toISOString().split("T")[0]
 
-  // Total properties (no se filtra por año)
+  // 1. Total active properties
   const { count: totalProperties } = await supabase
     .from("properties")
     .select("*", { count: "exact", head: true })
     .eq("tenant_id", tenantId)
     .eq("is_active", true)
 
-  // Active bookings (current and future) - aplicar filtro de año si existe
-  const today = new Date().toISOString().split("T")[0]
-  let activeBookingsQuery = supabase
-    .from("bookings")
-    .select("*", { count: "exact", head: true })
-    .eq("tenant_id", tenantId)
-    .gte("check_out_date", today)
-
-  if (year !== null && year !== undefined) {
-    const yearStart = `${year}-01-01`
-    const yearEnd = `${year}-12-31`
-    activeBookingsQuery = activeBookingsQuery.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
-  }
-
-  const { count: activeBookings } = await activeBookingsQuery
-
-  // Total guests (unique persons with bookings) - aplicar filtro de año si existe
-  const guestPersonTypeId = await getGuestPersonTypeId(tenantId)
-
-  let guestsQuery = guestPersonTypeId
-    ? supabase
-      .from("persons")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("person_type", guestPersonTypeId)
-      .eq("is_active", true)
-    : null
-
-  // Si hay filtro de año, necesitamos contar solo personas con reservas en ese año
-  if (year !== null && year !== undefined && guestPersonTypeId) {
-    const yearStart = `${year}-01-01`
-    const yearEnd = `${year}-12-31`
-    const { data: bookingsInYear } = await supabase
-      .from("bookings")
-      .select("person_id")
-      .eq("tenant_id", tenantId)
-      .lte('check_in_date', yearEnd)
-      .gte('check_out_date', yearStart)
-
-    const personIds = [...new Set((bookingsInYear || []).map((b: any) => b.person_id).filter(Boolean))]
-
-    if (personIds.length > 0) {
-      guestsQuery = supabase
-        .from("persons")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenantId)
-        .eq("person_type", guestPersonTypeId)
-        .eq("is_active", true)
-        .in("id", personIds)
-    } else {
-      guestsQuery = { count: 0 }
-    }
-  }
-
-  const { count: totalGuests } = guestsQuery
-    ? await guestsQuery
-    : { count: 0 }
-
-  // Monthly revenue - aplicar filtro de año si existe
+  // 2. Monthly revenue (from payments)
   let revenueStartDate: string
   let revenueEndDate: string
-
   if (year !== null && year !== undefined) {
     revenueStartDate = `${year}-01-01`
     revenueEndDate = `${year}-12-31`
   } else {
-    // Si no hay filtro de año, usar el mes actual
     revenueStartDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0]
     revenueEndDate = new Date().toISOString().split("T")[0]
   }
 
-  let paymentsQuery = supabase
+  const { data: paymentsData } = await supabase
     .from("payments")
     .select("amount")
     .eq("tenant_id", tenantId)
     .gte("payment_date", revenueStartDate)
     .lte("payment_date", revenueEndDate)
 
-  const { data: paymentsData } = await paymentsQuery
   const monthlyRevenue = paymentsData?.reduce((sum: number, payment: any) => sum + Number(payment.amount), 0) || 0
 
-  // Occupancy rate - aplicar filtro de año si existe
-  let occupancyQuery = supabase
+  // 3. Consolidated Bookings Query
+  // Get ALL bookings that are relevant for THIS period (for occupancy, guest count, active status, and pending payments)
+  let bookingsQuery = supabase
     .from("bookings")
-    .select("check_in_date, check_out_date")
+    .select("id, check_in_date, check_out_date, total_amount, net_amount, person_id, booking_status_id, channel_id")
     .eq("tenant_id", tenantId)
-    .gte("check_out_date", today)
 
   if (year !== null && year !== undefined) {
     const yearStart = `${year}-01-01`
     const yearEnd = `${year}-12-31`
-    occupancyQuery = occupancyQuery.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
+    bookingsQuery = bookingsQuery.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
+  } else {
+    // Current window: anything that ends today or in the future
+    bookingsQuery = bookingsQuery.gte("check_out_date", today)
   }
 
-  const { data: bookingsData } = await occupancyQuery
+  const { data: bookingsData, error: bookingsError } = await bookingsQuery
 
-  // Calcular días para ocupación
+  if (bookingsError) {
+    console.error('Error fetching bookings for dashboard stats:', bookingsError)
+  }
+
+  const bookings = bookingsData || []
+
+  // 4. Calculate Stats from Bookings Data in memory
+  // Get payment info for all bookings to calculate pending payments
+  const paymentInfos = bookings.length > 0
+    ? await calculateBatchBookingPaymentInfo(
+      bookings.map((b: any) => ({
+        id: b.id,
+        total_amount: b.total_amount,
+        net_amount: b.net_amount,
+        channel_id: b.channel_id
+      })),
+      tenantId
+    )
+    : {}
+
+  const guestIds = new Set<string>()
+  let activeBookingsCount = 0
+  let totalBookedDays = 0
+  let pendingPaymentsSum = 0
+
+  // We might need to filter out cancelled bookings for some stats
+  // For simplicity and matching current logic, we'll iterate
+  bookings.forEach((booking: any) => {
+    // Active bookings (in current context)
+    if (booking.check_out_date >= today) {
+      activeBookingsCount++
+    }
+
+    // Guests count
+    if (booking.person_id) {
+      guestIds.add(booking.person_id)
+    }
+
+    // Occupancy (calculate days in period)
+    const checkIn = new Date(booking.check_in_date)
+    const checkOut = new Date(booking.check_out_date)
+    const days = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+    totalBookedDays += days
+
+    // Pending Payments
+    const paymentInfo = paymentInfos[booking.id]
+    const pending = paymentInfo?.pending_amount || 0
+    if (pending > 0) {
+      // Current logic filters pending payments by "active" check_out_date too
+      if (booking.check_out_date >= today) {
+        pendingPaymentsSum += pending
+      }
+    }
+  })
+
+  // 5. Calculate Rates
   let daysInPeriod: number
   if (year !== null && year !== undefined) {
-    // Si hay filtro de año, usar días del año (365 o 366)
     const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
     daysInPeriod = isLeapYear ? 366 : 365
   } else {
-    // Si no hay filtro, usar días del mes actual
     daysInPeriod = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
   }
 
   const totalPossibleDays = (totalProperties || 1) * daysInPeriod
-  const bookedDays =
-    bookingsData?.reduce((sum: number, booking: any) => {
-      const checkIn = new Date(booking.check_in_date)
-      const checkOut = new Date(booking.check_out_date)
-      const days = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
-      return sum + days
-    }, 0) || 0
-
-  const occupancyRate = totalPossibleDays > 0 ? (bookedDays / totalPossibleDays) * 100 : 0
-
-  // Pending payments - aplicar filtro de año si existe
-  let pendingPaymentsQuery = supabase
-    .from("bookings")
-    .select("total_amount, paid_amount")
-    .eq("tenant_id", tenantId)
-    .gte("check_out_date", today)
-
-  if (year !== null && year !== undefined) {
-    const yearStart = `${year}-01-01`
-    const yearEnd = `${year}-12-31`
-    pendingPaymentsQuery = pendingPaymentsQuery.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
-  }
-
-  const { data: bookingsWithPending } = await pendingPaymentsQuery
-
-  const pendingPayments =
-    bookingsWithPending?.reduce((sum: number, booking: any) => {
-      const pending = Number(booking.total_amount) - Number(booking.paid_amount || 0)
-      return sum + (pending > 0 ? pending : 0)
-    }, 0) || 0
+  const occupancyRate = totalPossibleDays > 0 ? (totalBookedDays / totalPossibleDays) * 100 : 0
 
   return {
     totalProperties: totalProperties || 0,
-    activeBookings: activeBookings || 0,
-    totalGuests: totalGuests || 0,
+    activeBookings: activeBookingsCount,
+    totalGuests: guestIds.size,
     monthlyRevenue,
     occupancyRate: Math.round(occupancyRate),
-    pendingPayments,
+    pendingPayments: pendingPaymentsSum,
   }
 }
 
@@ -276,7 +244,9 @@ export async function getRecentBookings(tenantId: string, limit = 5, year?: numb
 
 export async function getPropertyOccupancy(tenantId: string, limit = 5, year?: number | null): Promise<PropertyOccupancy[]> {
   const supabase = await getSupabaseServerClient()
+  const today = new Date().toISOString().split("T")[0]
 
+  // 1. Get properties
   const { data: properties } = await supabase
     .from("properties")
     .select("id, name")
@@ -284,11 +254,35 @@ export async function getPropertyOccupancy(tenantId: string, limit = 5, year?: n
     .eq("is_active", true)
     .limit(limit)
 
-  if (!properties) return []
+  if (!properties || properties.length === 0) return []
 
-  const today = new Date().toISOString().split("T")[0]
+  const propertyIds = properties.map((p: any) => p.id)
 
-  // Calcular días del período
+  // 2. Batch fetch bookings for all these properties
+  let bookingsQuery = supabase
+    .from("bookings")
+    .select("property_id, check_in_date, check_out_date")
+    .eq("tenant_id", tenantId)
+    .in("property_id", propertyIds)
+    .gte("check_out_date", today)
+
+  if (year !== null && year !== undefined) {
+    const yearStart = `${year}-01-01`
+    const yearEnd = `${year}-12-31`
+    bookingsQuery = bookingsQuery.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
+  }
+
+  const { data: allBookings } = await bookingsQuery
+
+  // 3. Group bookings by property
+  const bookingsByProperty = new Map<string, any[]>()
+  allBookings?.forEach((booking: any) => {
+    const list = bookingsByProperty.get(booking.property_id) || []
+    list.push(booking)
+    bookingsByProperty.set(booking.property_id, list)
+  })
+
+  // 4. Calculate days in period
   let daysInPeriod: number
   if (year !== null && year !== undefined) {
     const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
@@ -297,40 +291,24 @@ export async function getPropertyOccupancy(tenantId: string, limit = 5, year?: n
     daysInPeriod = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
   }
 
-  const occupancyData = await Promise.all(
-    properties.map(async (property: any) => {
-      let bookingsQuery = supabase
-        .from("bookings")
-        .select("check_in_date, check_out_date")
-        .eq("property_id", property.id)
-        .gte("check_out_date", today)
+  // 5. Calculate occupancy for each property
+  const occupancyData = properties.map((property: any) => {
+    const propertyBookings = bookingsByProperty.get(property.id) || []
+    const bookedDays = propertyBookings.reduce((sum: number, booking: any) => {
+      const checkIn = new Date(booking.check_in_date)
+      const checkOut = new Date(booking.check_out_date)
+      const days = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+      return sum + days
+    }, 0)
 
-      // Aplicar filtro de año si se proporciona
-      if (year !== null && year !== undefined) {
-        const yearStart = `${year}-01-01`
-        const yearEnd = `${year}-12-31`
-        bookingsQuery = bookingsQuery.lte('check_in_date', yearEnd).gte('check_out_date', yearStart)
-      }
+    const occupancyRate = daysInPeriod > 0 ? (bookedDays / daysInPeriod) * 100 : 0
 
-      const { data: bookings } = await bookingsQuery
+    return {
+      property_name: property.name,
+      occupancy_rate: Math.round(occupancyRate),
+      total_bookings: propertyBookings.length,
+    }
+  })
 
-      const bookedDays =
-        bookings?.reduce((sum: number, booking: any) => {
-          const checkIn = new Date(booking.check_in_date)
-          const checkOut = new Date(booking.check_out_date)
-          const days = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
-          return sum + days
-        }, 0) || 0
-
-      const occupancyRate = daysInPeriod > 0 ? (bookedDays / daysInPeriod) * 100 : 0
-
-      return {
-        property_name: property.name,
-        occupancy_rate: Math.round(occupancyRate),
-        total_bookings: bookings?.length || 0,
-      }
-    }),
-  )
-
-  return occupancyData.sort((a, b) => b.occupancy_rate - a.occupancy_rate)
+  return occupancyData.sort((a: any, b: any) => b.occupancy_rate - a.occupancy_rate)
 }

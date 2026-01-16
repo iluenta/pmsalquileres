@@ -25,7 +25,7 @@ export async function GET() {
     const tenantId = userInfo[0].tenant_id
 
     // Buscar el tipo de configuración "Método de Pago"
-    const configTypes = await getConfigurationTypes(tenantId)
+    const configTypes = await getConfigurationTypes(tenantId, { includeCounts: false })
     const paymentMethodConfig = configTypes.find(
       (type) =>
         type.name === "payment_method" ||

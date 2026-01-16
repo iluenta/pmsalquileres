@@ -5,7 +5,8 @@ import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { CONFIG_CODES } from '@/lib/constants/config'
 import type { CreatePersonData, Booking, Person } from '@/types/bookings'
 import { getPropertyTenantId } from './properties-public'
-import { getOwnSalesChannel } from './sales-channels'
+import { getOwnSalesChannel } from "./sales-channels"
+import { calculateStayPrice } from "../utils/pricing-engine"
 import { datesOverlap, calculateNights } from '@/lib/utils/calendar'
 import { calculateBookingAmounts } from '@/lib/utils/booking-calculations'
 
@@ -145,13 +146,55 @@ async function getPublicConfigurations(propertyId: string, tenantId: string): Pr
 }
 
 /**
- * Busca o crea un huésped basado en email y teléfono
+ * Obtiene información de contacto de la propiedad (host o support)
+ */
+async function getPropertyContactInfo(propertyId: string): Promise<string> {
+  try {
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return 'administración'
+
+    // Obtener el ID de la guía asociada a la propiedad
+    const { data: guide } = await supabase
+      .from('property_guides')
+      .select('id')
+      .eq('property_id', propertyId)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    if (!guide) return 'administración'
+
+    // Obtener info de contacto de la guía
+    const { data: contact } = await supabase
+      .from('guide_contact_info')
+      .select('host_names, phone, support_person_name, support_person_phone')
+      .eq('guide_id', guide.id)
+      .maybeSingle()
+
+    if (!contact) return 'administración'
+
+    const name = contact.support_person_name || contact.host_names || 'administración'
+    const phone = contact.support_person_phone || contact.phone
+
+    if (phone) {
+      return `${name} (${phone})`
+    }
+    return name
+  } catch (error) {
+    console.error('[bookings-public] Error fetching contact info:', error)
+    return 'administración'
+  }
+}
+
+/**
+ * Busca o crea un huésped basándose en sus datos principales.
+ * Implementa una lógica estricta para evitar duplicados o asignaciones incorrectas.
  * Usa el cliente del servidor para evitar problemas de RLS
  */
 async function findOrCreateGuest(
   data: CreatePersonData,
   tenantId: string,
-  guestTypeId: string
+  guestTypeId: string,
+  contactInfo: string // New param
 ): Promise<Person | null> {
   try {
     if (!guestTypeId) {
@@ -163,69 +206,121 @@ async function findOrCreateGuest(
       throw new Error('No se pudo conectar con la base de datos')
     }
 
-    // Buscar huésped existente por email o teléfono
-    let existingPerson: Person | null = null
+    // Normalización de datos
+    const inputEmail = data.email?.toLowerCase().trim() || null
+    const inputPhone = data.phone?.trim() || null
+    const inputFirstName = data.first_name?.trim() || ""
+    const inputLastName = data.last_name?.trim() || ""
 
-    if (data.email) {
-      const { data: emailContact } = await supabase
+    // 1. Buscar matches por todos los criterios posibles
+    const matchResults = await Promise.all([
+      // Match por Email
+      inputEmail ? supabase
         .from('person_contact_infos')
         .select('person_id')
         .eq('contact_type', 'email')
-        .eq('contact_value', data.email.toLowerCase().trim())
+        .eq('contact_value', inputEmail)
         .eq('is_active', true)
-        .maybeSingle()
+        .eq('tenant_id', tenantId) : Promise.resolve({ data: [] }),
 
-      if (emailContact) {
-        const { data: person } = await supabase
-          .from('persons')
-          .select('*')
-          .eq('id', emailContact.person_id)
-          .eq('tenant_id', tenantId)
-          .maybeSingle()
-
-        if (person) {
-          existingPerson = person as Person
-        }
-      }
-    }
-
-    // Si no se encontró por email, buscar por teléfono
-    if (!existingPerson && data.phone) {
-      const { data: phoneContact } = await supabase
+      // Match por Teléfono
+      inputPhone ? supabase
         .from('person_contact_infos')
         .select('person_id')
         .eq('contact_type', 'phone')
-        .eq('contact_value', data.phone.trim())
+        .eq('contact_value', inputPhone)
         .eq('is_active', true)
-        .maybeSingle()
+        .eq('tenant_id', tenantId) : Promise.resolve({ data: [] }),
 
-      if (phoneContact) {
-        const { data: person } = await supabase
-          .from('persons')
-          .select('*')
-          .eq('id', phoneContact.person_id)
-          .eq('tenant_id', tenantId)
-          .maybeSingle()
+      // Match por Nombre y Apellidos
+      supabase
+        .from('persons')
+        .select('id')
+        .eq('first_name', inputFirstName)
+        .eq('last_name', inputLastName)
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+    ])
 
-        if (person) {
-          existingPerson = person as Person
+    // Recolectar todos los IDs únicos encontrados
+    const matchedPersonIds = new Set<string>()
+    matchResults.forEach(res => {
+      if ('data' in res && res.data) {
+        if (Array.isArray(res.data)) {
+          res.data.forEach((p: any) => matchedPersonIds.add(p.person_id || p.id))
+        } else if (res.data) {
+          matchedPersonIds.add((res.data as any).person_id || (res.data as any).id)
         }
+      }
+    })
+
+    // Caso A: Múltiples personas coinciden con diferentes campos -> Conflicto crítico
+    if (matchedPersonIds.size > 1) {
+      throw new Error(`Existe una ambigüedad con los datos proporcionados. Por favor, contacte con administración ${contactInfo ? `en ${contactInfo} ` : ''}para resolver el conflicto.`)
+    }
+
+    // Caso B: Una persona coincide con al menos uno de los tres criterios
+    if (matchedPersonIds.size === 1) {
+      const personId = Array.from(matchedPersonIds)[0]
+
+      // Obtener datos completos de la persona y sus contactos para validación estricta
+      const { data: person } = await supabase
+        .from('persons')
+        .select('*, person_contact_infos(*)')
+        .eq('id', personId)
+        .single()
+
+      if (person) {
+        const dbFirstName = person.first_name?.trim() || ""
+        const dbLastName = person.last_name?.trim() || ""
+        const dbContacts = person.person_contact_infos || []
+
+        const dbEmail = dbContacts.find((c: any) => c.contact_type === 'email' && c.is_active)?.contact_value?.toLowerCase().trim() || null
+        const dbPhone = dbContacts.find((c: any) => c.contact_type === 'phone' && c.is_active)?.contact_value?.trim() || null
+
+        // VALIDACIÓN ESTRICTA (REGLA DEL USUARIO)
+        const nameMatches = inputFirstName === dbFirstName && inputLastName === dbLastName
+        const emailMatches = !inputEmail || !dbEmail || inputEmail === dbEmail
+        const phoneMatches = !inputPhone || !dbPhone || inputPhone === dbPhone
+
+        // Si el nombre coincide pero el email o teléfono no (y existen en DB)
+        if (nameMatches && (!emailMatches || !phoneMatches)) {
+          throw new Error(`Ya existe una persona con ese nombre pero con otros datos de contacto. Por favor contacte con ${contactInfo || 'administración'} para verificar sus datos.`)
+        }
+
+        // Si el email coincide pero el nombre o teléfono no
+        if (inputEmail && inputEmail === dbEmail) {
+          if (!nameMatches) {
+            throw new Error(`Este email ya está registrado a nombre de otra persona. Contacte con ${contactInfo || 'nosotros'} si cree que esto es un error.`)
+          }
+          if (inputPhone && dbPhone && inputPhone !== dbPhone) {
+            throw new Error(`Este email ya está registrado con un número de teléfono diferente. Contacte con ${contactInfo || 'nosotros'} para actualizar sus datos.`)
+          }
+        }
+
+        // Si el teléfono coincide pero el nombre o email no
+        if (inputPhone && inputPhone === dbPhone) {
+          if (!nameMatches) {
+            throw new Error(`Este número de teléfono ya está registrado a nombre de otra persona. Contacte con ${contactInfo || 'nosotros'} para resolverlo.`)
+          }
+          if (inputEmail && dbEmail && inputEmail !== dbEmail) {
+            throw new Error(`Este número de teléfono ya está registrado con un email diferente. Contacte con ${contactInfo || 'nosotros'} para verificar su identidad.`)
+          }
+        }
+
+        // Si llegamos aquí y hubo algún match, significa que todos los campos presentes son compatibles
+        return person as Person
       }
     }
 
-    // Si existe, retornarlo
-    if (existingPerson) {
-      return existingPerson
-    }
-
-    // Crear nuevo huésped usando el cliente del servidor
+    // Caso C: Ninguna persona coincide -> Crear nuevo huésped
     const { data: newPerson, error: personError } = await supabase
       .from('persons')
       .insert({
         tenant_id: tenantId,
         person_type: guestTypeId,
-        first_name: data.first_name,
-        last_name: data.last_name,
+        first_name: inputFirstName,
+        last_name: inputLastName,
         is_active: true,
       })
       .select()
@@ -236,25 +331,25 @@ async function findOrCreateGuest(
       throw personError || new Error('Error al crear la persona')
     }
 
-    // Crear contactos
+    // Crear contactos del nuevo huésped
     const contactInserts: any[] = []
-    if (data.email) {
+    if (inputEmail) {
       contactInserts.push({
         tenant_id: tenantId,
         person_id: newPerson.id,
         contact_type: 'email',
-        contact_value: data.email.toLowerCase().trim(),
+        contact_value: inputEmail,
         is_primary: true,
         is_active: true,
       })
     }
-    if (data.phone) {
+    if (inputPhone) {
       contactInserts.push({
         tenant_id: tenantId,
         person_id: newPerson.id,
         contact_type: 'phone',
-        contact_value: data.phone.trim(),
-        is_primary: !data.email,
+        contact_value: inputPhone,
+        is_primary: !inputEmail,
         is_active: true,
       })
     }
@@ -266,12 +361,19 @@ async function findOrCreateGuest(
 
       if (contactsError) {
         console.error('[bookings-public] Error creating contacts:', contactsError)
-        // No lanzar error, la persona ya se creó
       }
     }
 
     return newPerson as Person
   } catch (error) {
+    if (error instanceof Error && (
+      error.message.includes('ya está registrado') ||
+      error.message.includes('Ya existe una persona') ||
+      error.message.includes('ambigüedad')
+    )) {
+      // Es un error de validación esperado
+      throw error
+    }
     console.error('[bookings-public] Error in findOrCreateGuest:', error)
     throw error
   }
@@ -426,6 +528,50 @@ export async function createPublicBooking(
       throw new Error(availabilityResult.message || 'Las fechas seleccionadas no están disponibles')
     }
 
+    // 1.5. Validate Price using Pricing Engine
+    // Fetch pricing periods for the property
+    const supabase = await getSupabaseServerClient() // Re-initialize supabase client here if not already done
+    if (!supabase) {
+      throw new Error('No se pudo conectar con la base de datos')
+    }
+
+    const { data: pricingPeriods, error: pricingError } = await supabase
+      .from("property_pricing")
+      .select("*")
+      .eq("property_id", bookingData.property_id)
+
+    if (pricingError) {
+      console.error("Error fetching pricing for validation:", pricingError)
+    }
+
+    // Obtener datos de la propiedad para base_price y max_guests
+    const { data: propertyData } = await supabase
+      .from("properties")
+      .select("base_price_per_night, max_guests")
+      .eq("id", bookingData.property_id)
+      .single()
+
+    // Validar usando el pricing engine
+    const result = calculateStayPrice({
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      numberOfGuests: bookingData.number_of_guests,
+      baseGuests: propertyData?.max_guests || 4,
+      basePrice: propertyData?.base_price_per_night || 0,
+      pricingPeriods: pricingPeriods || []
+    })
+
+    if (!result.isValid) {
+      throw new Error(result.errorMessage || "Estancia no válida")
+    }
+
+    // Si el precio enviado difiere significativamente, usar el calculado por seguridad
+    const diff = Math.abs(result.totalPrice - bookingData.total_amount)
+    if (diff > 0.1) {
+      console.warn(`[Security] Price mismatch detected: Client sent ${bookingData.total_amount}, calculated ${result.totalPrice}. Overriding for security.`)
+      bookingData.total_amount = result.totalPrice
+    }
+
     // Obtener configuraciones usando el cliente del servidor
     const configurations = await getPublicConfigurations(bookingData.property_id, tenantId)
     const guestTypeId = configurations.guestPersonTypeId
@@ -436,17 +582,20 @@ export async function createPublicBooking(
       throw new Error('No se pudo obtener el tipo de persona "guest". Por favor, verifica la configuración del sistema.')
     }
 
+    // Obtener información de contacto de la propiedad para mensajes de error
+    const contactInfo = await getPropertyContactInfo(bookingData.property_id)
+
     // Crear o obtener huésped
-    const guest = await findOrCreateGuest(bookingData.guest, tenantId, guestTypeId)
+    const guest = await findOrCreateGuest(bookingData.guest, tenantId, guestTypeId, contactInfo)
     if (!guest) {
       throw new Error('No se pudo crear u obtener el huésped')
     }
 
     // Usar el cliente del servidor para crear la reserva
-    const supabase = await getSupabaseServerClient()
-    if (!supabase) {
-      throw new Error('No se pudo conectar con la base de datos')
-    }
+    // const supabase = await getSupabaseServerClient() // This line was moved up
+    // if (!supabase) {
+    //   throw new Error('No se pudo conectar con la base de datos')
+    // }
 
     // Obtener el canal propio para este tenant
     const ownChannel = await getOwnSalesChannel(tenantId)
@@ -544,7 +693,11 @@ export async function createPublicBooking(
       errorMsg.includes('solapan') ||
       errorMsg.includes('disponibilidad') ||
       errorMsg.includes('posterior') ||
-      errorMsg.includes('mínimo')
+      errorMsg.includes('mínimo') ||
+      errorMsg.includes('estancia no válida') || // Added for pricing engine validation
+      errorMsg.includes('ya está registrado') || // Added for guest identification
+      errorMsg.includes('ya existe una persona') || // Added for guest identification
+      errorMsg.includes('ambigüedad') // Added for guest identification
 
     if (!isValidationError) {
       console.error('[bookings-public] Error in createPublicBooking:', error)

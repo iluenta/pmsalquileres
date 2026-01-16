@@ -103,7 +103,7 @@ export function ServiceProviderCard({ provider, onDelete }: ServiceProviderCardP
           ) : (
             <div className="h-12 w-12 rounded bg-muted flex items-center justify-center flex-shrink-0">
               <span className="text-lg font-semibold text-muted-foreground">
-                {provider.person.full_name.charAt(0).toUpperCase()}
+                {(provider.person.full_name || "S").charAt(0).toUpperCase()}
               </span>
             </div>
           )}

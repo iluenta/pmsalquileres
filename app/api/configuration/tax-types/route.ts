@@ -24,9 +24,9 @@ export async function GET() {
       return NextResponse.json({ error: "User info not found" }, { status: 404 })
     }
 
-    const types = await getConfigurationTypes(userInfo.tenant_id)
+    const types = await getConfigurationTypes(userInfo.tenant_id, { includeCounts: false })
     const taxTypeConfig = types.find(t => t.name === 'tax_type' || t.name === 'Tipo de Impuesto')
-    
+
     if (!taxTypeConfig) {
       return NextResponse.json([])
     }

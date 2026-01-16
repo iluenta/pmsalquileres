@@ -3,7 +3,7 @@
 
 import { getSupabaseServerClient } from '@/lib/supabase/server'
 import { CONFIG_CODES } from '@/lib/constants/config'
-import { calculateBookingPaymentInfo } from '@/lib/api/movements'
+import { calculateBookingPaymentInfo, calculateBatchBookingPaymentInfo } from '@/lib/api/movements'
 import type {
   Booking,
   BookingWithDetails,
@@ -525,41 +525,30 @@ export async function getBookings(tenantId: string, year?: number | null): Promi
     const statusesMap = new Map((statuses || []).map((s: any) => [s.id, s]))
     const bookingTypesMap = new Map((bookingTypes || []).map((bt: any) => [bt.id, bt]))
 
-    // Calcular paid_amount y pending_amount para cada reserva
-    // Usar Promise.allSettled para manejar errores individuales sin fallar toda la operación
-    const bookingsWithPaymentsResults = await Promise.allSettled(
-      bookings.map(async (booking: any) => {
-        const paymentInfo = await calculateBookingPaymentInfo(booking.id, tenantId)
-        return {
-          ...booking,
-          paid_amount: paymentInfo.paid_amount,
-          pending_amount: paymentInfo.pending_amount,
-          property: propertiesMap.get(booking.property_id) || null,
-          person: personsMap.get(booking.person_id) || null,
-          channel: booking.channel_id ? channelsMap.get(booking.channel_id) || null : null,
-          booking_status: booking.booking_status_id ? statusesMap.get(booking.booking_status_id) || null : null,
-          booking_type: booking.booking_type_id ? bookingTypesMap.get(booking.booking_type_id) || null : null,
-        }
-      })
+    // Calcular paid_amount y pending_amount para cada reserva en lote para evitar N+1
+    const paymentInfos = await calculateBatchBookingPaymentInfo(
+      bookings.map((b: any) => ({
+        id: b.id,
+        total_amount: b.total_amount,
+        net_amount: b.net_amount,
+        channel_id: b.channel_id
+      })),
+      tenantId
     )
 
-    // Filtrar solo los resultados exitosos y usar valores por defecto para los que fallaron
-    const bookingsWithPayments = bookingsWithPaymentsResults.map((result, index) => {
-      if (result.status === 'fulfilled') {
-        return result.value
-      } else {
-        // Si falló el cálculo, usar valores por defecto pero mantener la reserva
-        const booking = bookings[index]
-        return {
-          ...booking,
-          paid_amount: 0,
-          pending_amount: booking.channel_id ? (booking.net_amount || 0) : booking.total_amount,
-          property: propertiesMap.get(booking.property_id) || null,
-          person: personsMap.get(booking.person_id) || null,
-          channel: booking.channel_id ? channelsMap.get(booking.channel_id) || null : null,
-          booking_status: booking.booking_status_id ? statusesMap.get(booking.booking_status_id) || null : null,
-          booking_type: booking.booking_type_id ? bookingTypesMap.get(booking.booking_type_id) || null : null,
-        }
+    // Combinar datos
+    const bookingsWithPayments = bookings.map((booking: any) => {
+      const paymentInfo = paymentInfos[booking.id] || { paid_amount: 0, pending_amount: (booking.channel_id ? (booking.net_amount || 0) : booking.total_amount) }
+
+      return {
+        ...booking,
+        paid_amount: paymentInfo.paid_amount,
+        pending_amount: paymentInfo.pending_amount,
+        property: propertiesMap.get(booking.property_id) || null,
+        person: personsMap.get(booking.person_id) || null,
+        channel: booking.channel_id ? channelsMap.get(booking.channel_id) || null : null,
+        booking_status: booking.booking_status_id ? statusesMap.get(booking.booking_status_id) || null : null,
+        booking_type: booking.booking_type_id ? bookingTypesMap.get(booking.booking_type_id) || null : null,
       }
     })
 

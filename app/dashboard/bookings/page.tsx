@@ -29,18 +29,18 @@ export default async function BookingsPage() {
   }
 
   const tenantId = userInfo[0].tenant_id
-  
+
   // Obtener año seleccionado desde cookies (si existe)
   const cookieStore = await cookies()
   const selectedYearCookie = cookieStore.get("selected-season-year")
   const selectedYear = selectedYearCookie?.value && selectedYearCookie.value !== "all"
-    ? parseInt(selectedYearCookie.value, 10) 
+    ? parseInt(selectedYearCookie.value, 10)
     : null // null significa "Todos"
-  
+
   // Obtener datos en paralelo
   const [bookings, properties, configurationTypes] = await Promise.all([
     getBookings(tenantId, selectedYear),
-    getProperties(),
+    getProperties(tenantId),
     getConfigurationTypes(tenantId),
   ])
 

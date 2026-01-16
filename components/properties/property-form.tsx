@@ -68,6 +68,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
     check_in_instructions: property?.check_in_instructions || "",
     landing_config: property?.landing_config || null,
     is_active: property?.is_active ?? true,
+    pricing_periods: [] as any[], // New state for pricing periods
   })
 
   const [imagePreview, setImagePreview] = useState<string | null>(property?.image_url || null)
@@ -112,24 +113,57 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
 
   // Cargar canales activos de la propiedad si está editando
   useEffect(() => {
-    const loadPropertyChannels = async () => {
+    const loadPropertyData = async () => {
       if (!property?.id) {
         setSelectedChannels([])
+        // Initial base period for new property
+        setFormData(prev => ({
+          ...prev,
+          pricing_periods: [{
+            is_base: true,
+            season_name: "Precios básicos",
+            price_night: 0,
+            min_nights: 1
+          }]
+        }))
         return
       }
 
       try {
-        const response = await fetch(`/api/properties/${property.id}/sales-channels`)
-        if (response.ok) {
-          const data = await response.json()
-          setSelectedChannels(data.channelIds || [])
+        // Load channels and pricing in parallel
+        const [channelsRes, pricingRes] = await Promise.all([
+          fetch(`/api/properties/${property.id}/sales-channels`),
+          fetch(`/api/properties/${property.id}/pricing`)
+        ])
+
+        if (channelsRes.ok) {
+          const channelsData = await channelsRes.json()
+          setSelectedChannels(channelsData.channelIds || [])
+        }
+
+        if (pricingRes.ok) {
+          const pricingData = await pricingRes.json()
+          if (pricingData && pricingData.length > 0) {
+            setFormData(prev => ({ ...prev, pricing_periods: pricingData }))
+          } else {
+            // Fallback if no pricing data but property exists
+            setFormData(prev => ({
+              ...prev,
+              pricing_periods: [{
+                is_base: true,
+                season_name: "Precios básicos",
+                price_night: property.base_price_per_night || 0,
+                min_nights: property.min_nights || 1
+              }]
+            }))
+          }
         }
       } catch (error) {
-        console.error("Error loading property channels:", error)
+        console.error("Error loading property extra data:", error)
       }
     }
-    loadPropertyChannels()
-  }, [property?.id])
+    loadPropertyData()
+  }, [property?.id, property?.base_price_per_night, property?.min_nights])
 
   // Generar slug automáticamente cuando cambia el nombre (con debounce)
   useEffect(() => {
@@ -212,8 +246,9 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
       const normalizedSlug = generateSlug(formData.slug.trim())
 
       // Limpiar campos UUID vacíos (convertir "" a null)
+      const { pricing_periods, ...restFormData } = formData
       const dataToSave = {
-        ...formData,
+        ...restFormData,
         slug: normalizedSlug,
         property_type_id: formData.property_type_id || null,
         tenant_id: tenantId,
@@ -250,22 +285,27 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
         })
       }
 
-      // Guardar canales de venta activos
+      // Guardar canales de venta activos y precios
       if (propertyId) {
+        const tenantIdValue = tenantId
         try {
-          const response = await fetch(`/api/properties/${propertyId}/sales-channels`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ channelIds: selectedChannels }),
-          })
-
-          if (!response.ok) {
-            console.error("Error saving property channels")
-            // No lanzar error, solo loguear
-          }
+          await Promise.all([
+            fetch(`/api/properties/${propertyId}/sales-channels`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ channelIds: selectedChannels }),
+            }),
+            fetch(`/api/properties/${propertyId}/pricing`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                pricingPeriods: formData.pricing_periods,
+                tenantId: tenantIdValue
+              }),
+            })
+          ])
         } catch (error) {
-          console.error("Error saving property channels:", error)
-          // No lanzar error, solo loguear
+          console.error("Error saving property pricing or channels:", error)
         }
       }
 
@@ -507,6 +547,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
                   check_in_time: formData.check_in_time,
                   check_out_time: formData.check_out_time,
                   check_in_instructions: formData.check_in_instructions,
+                  pricing_periods: formData.pricing_periods, // Pass pricing periods
                 }}
                 onFieldChange={handleFieldChange}
               />
@@ -605,6 +646,7 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
                 check_in_time: formData.check_in_time,
                 check_out_time: formData.check_out_time,
                 check_in_instructions: formData.check_in_instructions,
+                pricing_periods: formData.pricing_periods,
               }}
               onFieldChange={handleFieldChange}
             />

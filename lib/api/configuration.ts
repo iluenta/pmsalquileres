@@ -22,7 +22,10 @@ export interface ConfigurationValue {
   is_default?: boolean
 }
 
-export async function getConfigurationTypes(tenantId: string): Promise<ConfigurationType[]> {
+export async function getConfigurationTypes(
+  tenantId: string,
+  options: { includeCounts?: boolean } = { includeCounts: true }
+): Promise<ConfigurationType[]> {
   const supabase = await getSupabaseServerClient()
 
   const { data, error } = await supabase
@@ -34,6 +37,13 @@ export async function getConfigurationTypes(tenantId: string): Promise<Configura
   if (error) {
     console.error("[v0] Error fetching configuration types:", error)
     return []
+  }
+
+  if (!options.includeCounts) {
+    return (data || []).map((type: any) => ({
+      ...type,
+      values_count: 0,
+    }))
   }
 
   // Get count of values for each type

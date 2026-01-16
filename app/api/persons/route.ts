@@ -29,10 +29,15 @@ export async function GET(request: Request) {
     const personType = searchParams.get("personType") || undefined
     const search = searchParams.get("search") || undefined
 
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : 50
+    const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!, 10) : 0
+
     const persons = await getPersons(tenantId, {
       includeInactive,
       personType,
       search,
+      limit,
+      offset,
     })
 
     return NextResponse.json(persons)

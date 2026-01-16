@@ -28,7 +28,7 @@ export default async function NewBookingPage() {
   const tenantId = userInfo[0].tenant_id
 
   // Obtener propiedades activas
-  const allProperties = await getProperties()
+  const allProperties = await getProperties(tenantId)
   const properties = allProperties.filter((p) => p.is_active)
 
   // Obtener estados de reserva
@@ -56,11 +56,11 @@ export default async function NewBookingPage() {
         check_in_date: data.check_in_date,
         check_out_date: data.check_out_date,
       })
-      
+
       // Asegurar que tenemos los campos requeridos para CreateBookingData
       // Normalizar booking_type_id: convertir cadena vacía a null para la validación
       const normalizedBookingTypeId = data.booking_type_id && typeof data.booking_type_id === 'string' && data.booking_type_id.trim() !== "" ? data.booking_type_id.trim() : null
-      
+
       if (!normalizedBookingTypeId) {
         throw new Error("Faltan campos requeridos: El tipo de reserva es obligatorio.")
       }
@@ -74,10 +74,10 @@ export default async function NewBookingPage() {
           .select('value')
           .eq('id', normalizedBookingTypeId)
           .single()
-        
+
         isClosedPeriod = bookingType?.value === 'closed_period'
       }
-      
+
       // Validaciones comunes (siempre requeridas)
       if (!data.property_id) {
         throw new Error("Faltan campos requeridos: La propiedad es obligatoria.")

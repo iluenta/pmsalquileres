@@ -119,6 +119,9 @@ export function GuideLogin({
             if (result.success) {
                 setCookie(`guide_guest_${propertyId}_firstName`, firstName, 15)
                 setCookie(`guide_guest_${propertyId}_lastName`, lastName, 15)
+                if (result.token) {
+                    setCookie(`guide_guest_${propertyId}_session`, result.token, 15)
+                }
                 onLoginSuccess(result.booking)
             } else {
                 deleteGuideCookies(propertyId)
@@ -135,102 +138,113 @@ export function GuideLogin({
 
     return (
         <div
-            className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 transition-colors duration-500"
+            className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden transition-colors duration-700"
             style={{
+                backgroundColor: 'var(--guide-secondary)',
                 ['--guide-primary' as any]: config.primary,
                 ['--guide-secondary' as any]: config.secondary,
                 ['--guide-primary-rgb' as any]: hexToRgb(config.primary)
             }}
         >
-            {/* Language Selector Above Card */}
-            <div className="w-full max-w-md flex justify-end mb-4">
-                {onLanguageChange && (
-                    <LanguageSelector
-                        currentLanguage={currentLanguage}
-                        onLanguageChange={onLanguageChange}
-                    />
-                )}
-            </div>
+            {/* Background Decorative Elements */}
+            <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full blur-[120px] opacity-20 pointer-events-none" style={{ backgroundColor: 'var(--guide-primary)' }} />
+            <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] rounded-full blur-[100px] opacity-20 pointer-events-none" style={{ backgroundColor: 'var(--guide-primary)' }} />
 
-            <Card className="w-full max-w-md shadow-xl border-t-4" style={{ borderTopColor: 'var(--guide-primary)' }}>
-                <CardHeader className="text-center pb-2">
-                    <div
-                        className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4"
-                        style={{ backgroundColor: 'var(--guide-secondary)' }}
-                    >
-                        <Lock className="h-6 w-6" style={{ color: 'var(--guide-primary)' }} />
-                    </div>
-                    <CardTitle className="text-2xl font-bold text-gray-900">{t.login_title}</CardTitle>
-                    {propertyName && (
-                        <CardDescription className="font-medium" style={{ color: 'var(--guide-primary)' }}>
-                            {propertyName}
-                        </CardDescription>
+            <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in duration-700">
+                {/* Language Selector */}
+                <div className="flex justify-end mb-6">
+                    {onLanguageChange && (
+                        <LanguageSelector
+                            currentLanguage={currentLanguage}
+                            onLanguageChange={onLanguageChange}
+                        />
                     )}
-                </CardHeader>
-                <CardContent>
-                    <p className="text-gray-600 text-sm text-center mb-8">
-                        {t.login_desc}
-                    </p>
+                </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="firstName">{t.first_name}</Label>
-                            <Input
-                                id="firstName"
-                                placeholder={t.first_name_placeholder}
-                                value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                required
-                                className="h-12 focus-visible:ring-[var(--guide-primary)]"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="lastName">{t.last_name}</Label>
-                            <Input
-                                id="lastName"
-                                placeholder={t.last_name_placeholder}
-                                value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
-                                required
-                                className="h-12 focus-visible:ring-[var(--guide-primary)]"
-                            />
-                        </div>
-
-                        {error && (
-                            <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>{error}</AlertDescription>
-                            </Alert>
-                        )}
-
-                        <Button
-                            type="submit"
-                            className="w-full h-12 text-white font-bold text-lg shadow-md transition-all active:scale-[0.98]"
-                            disabled={loading}
-                            style={{
-                                backgroundColor: 'var(--guide-primary)',
-                                '--hover-bg': `rgba(var(--guide-primary-rgb), 0.9)`
-                            } as any}
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    {t.validating}
-                                </>
-                            ) : (
-                                t.login_button
+                <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-white/40 overflow-hidden">
+                    <div className="p-8 sm:p-10 pt-12">
+                        {/* Header */}
+                        <div className="text-center mb-10">
+                            <div
+                                className="mx-auto w-20 h-20 rounded-3xl flex items-center justify-center mb-8 shadow-2xl rotate-3"
+                                style={{ backgroundColor: 'var(--guide-primary)' }}
+                            >
+                                <Lock className="h-8 w-8 text-white" />
+                            </div>
+                            <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">
+                                {t.login_title}
+                            </h1>
+                            {propertyName && (
+                                <p className="text-xl font-bold tracking-tight" style={{ color: 'var(--guide-primary)' }}>
+                                    {propertyName}
+                                </p>
                             )}
-                        </Button>
-                    </form>
+                        </div>
 
-                    <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-                        <p className="text-xs text-gray-400 italic">
-                            {t.login_footer}
+                        <p className="text-slate-500 text-center mb-10 leading-relaxed font-medium px-4">
+                            {t.login_desc}
                         </p>
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="space-y-3">
+                                <Label htmlFor="firstName" className="text-sm font-bold text-slate-700 ml-1">{t.first_name}</Label>
+                                <Input
+                                    id="firstName"
+                                    placeholder={t.first_name_placeholder}
+                                    value={firstName}
+                                    onChange={(e) => setFirstName(e.target.value)}
+                                    required
+                                    className="h-14 bg-slate-50/50 border-slate-200 rounded-2xl focus-visible:ring-[var(--guide-primary)] focus-visible:ring-offset-2 transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-3">
+                                <Label htmlFor="lastName" className="text-sm font-bold text-slate-700 ml-1">{t.last_name}</Label>
+                                <Input
+                                    id="lastName"
+                                    placeholder={t.last_name_placeholder}
+                                    value={lastName}
+                                    onChange={(e) => setLastName(e.target.value)}
+                                    required
+                                    className="h-14 bg-slate-50/50 border-slate-200 rounded-2xl focus-visible:ring-[var(--guide-primary)] focus-visible:ring-offset-2 transition-all"
+                                />
+                            </div>
+
+                            {error && (
+                                <Alert className="bg-red-50 border-red-100 text-red-700 rounded-2xl animate-in slide-in-from-top-2">
+                                    <AlertCircle className="h-5 w-5" />
+                                    <AlertDescription className="font-medium">{error}</AlertDescription>
+                                </Alert>
+                            )}
+
+                            <Button
+                                type="submit"
+                                className="w-full h-15 text-white font-black text-lg rounded-2xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] py-8"
+                                disabled={loading}
+                                style={{
+                                    backgroundColor: 'var(--guide-primary)',
+                                    boxShadow: `0 20px 40px -12px rgba(var(--guide-primary-rgb), 0.3)`
+                                } as any}
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="mr-3 h-6 w-6 animate-spin" />
+                                        {t.validating}
+                                    </>
+                                ) : (
+                                    t.login_button
+                                )}
+                            </Button>
+                        </form>
+
+                        <div className="mt-12 pt-8 border-t border-slate-100 text-center">
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                                {t.login_footer}
+                            </p>
+                        </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     )
 }

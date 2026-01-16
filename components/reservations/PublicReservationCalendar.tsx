@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import type { CalendarDay } from '@/lib/api/calendar'
 
 interface PublicReservationCalendarProps {
   propertyId: string
@@ -15,6 +14,7 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
     start: null,
     end: null
   })
+  const [hoveredDate, setHoveredDate] = useState<Date | null>(null)
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
@@ -26,14 +26,13 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
   }
 
   useEffect(() => {
-    // Cargar disponibilidad para los próximos 6 meses
     const loadAvailability = async () => {
       try {
         setLoading(true)
         const startDate = new Date()
-        startDate.setDate(1) // Primer día del mes actual
+        startDate.setDate(1)
         const endDate = new Date()
-        endDate.setMonth(endDate.getMonth() + 6) // 6 meses adelante
+        endDate.setMonth(endDate.getMonth() + 12) // Cargar 12 meses por seguridad
 
         const response = await fetch(
           `/api/public/calendar/availability?propertyId=${propertyId}&startDate=${formatDateForAPI(startDate)}&endDate=${formatDateForAPI(endDate)}`,
@@ -47,11 +46,11 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
         const daysData = await response.json()
         const booked = new Set<string>()
 
-        // Convertir las fechas de cadena a objetos Date (JSON serializa Date como string)
         daysData.forEach((day: any) => {
           if (!day.isAvailable) {
-            // day.date puede ser una cadena ISO o un objeto Date
             const date = day.date instanceof Date ? day.date : new Date(day.date)
+            // Normalizar a medianoche para evitar problemas de zona horaria
+            date.setHours(0, 0, 0, 0)
             const dateKey = formatDateForAPI(date)
             booked.add(dateKey)
           }
@@ -68,34 +67,51 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
     loadAvailability()
   }, [propertyId])
 
-  const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+  const generateCalendarDays = (date: Date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+
+    // Primer día del mes actual
+    const firstDayOfMonth = new Date(year, month, 1)
+
+    // Obtener el día de la semana (0=Dom, 1=Lun, ..., 6=Sáb)
+    // Convertir a 0=Lun, ..., 6=Dom
+    const dayOfWeek = (firstDayOfMonth.getDay() + 6) % 7
+
+    // Retroceder hasta el lunes de esa semana
+    const startDate = new Date(firstDayOfMonth)
+    startDate.setDate(startDate.getDate() - dayOfWeek)
+
+    const days: Date[] = []
+    const tempDate = new Date(startDate)
+
+    // Generar siempre 42 días (6 semanas) para mantener altura constante
+    for (let i = 0; i < 42; i++) {
+      days.push(new Date(tempDate))
+      tempDate.setDate(tempDate.getDate() + 1)
+    }
+
+    return days
   }
 
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
+  const isBooked = (date: Date) => {
+    return bookedDates.has(formatDateForAPI(date))
   }
 
-  const isDateBooked = (day: number) => {
-    const checkDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
-    const dateKey = formatDateForAPI(checkDate)
-    return bookedDates.has(dateKey)
-  }
+  const handleDateClick = (clickedDate: Date) => {
+    clickedDate.setHours(0, 0, 0, 0)
 
-  const handleDateClick = (day: number) => {
-    if (isDateBooked(day)) return
+    if (isBooked(clickedDate)) return
 
-    const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // No permitir fechas pasadas
     if (clickedDate < today) return
 
     if (!selectedRange.start || (selectedRange.start && selectedRange.end)) {
       setSelectedRange({ start: clickedDate, end: null })
     } else if (clickedDate > selectedRange.start) {
-      // Verificar si hay fechas reservadas entre el inicio y el fin seleccionado
+      // Verificar conflictos
       let hasConflict = false
       const tempDate = new Date(selectedRange.start)
       tempDate.setDate(tempDate.getDate() + 1)
@@ -109,7 +125,6 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
       }
 
       if (hasConflict) {
-        // Si hay conflicto, reiniciar la selección con la fecha clickeada
         setSelectedRange({ start: clickedDate, end: null })
       } else {
         setSelectedRange({ ...selectedRange, end: clickedDate })
@@ -120,29 +135,29 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
     }
   }
 
-  const isDateInRange = (day: number) => {
-    if (!selectedRange.start || !selectedRange.end) return false
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
-    return date >= selectedRange.start && date <= selectedRange.end
+  const isInRange = (date: Date) => {
+    if (selectedRange.start && selectedRange.end) {
+      return date >= selectedRange.start && date <= selectedRange.end
+    }
+    // Previsualización durante el hover si ya hay fecha de inicio
+    if (selectedRange.start && !selectedRange.end && hoveredDate && hoveredDate > selectedRange.start) {
+      return date >= selectedRange.start && date <= hoveredDate
+    }
+    return false
   }
 
-  const isDateStart = (day: number) => {
+  const isStart = (date: Date) => {
     if (!selectedRange.start) return false
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
     return date.toDateString() === selectedRange.start.toDateString()
   }
 
-  const isDateEnd = (day: number) => {
+  const isEnd = (date: Date) => {
     if (!selectedRange.end) return false
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
     return date.toDateString() === selectedRange.end.toDateString()
   }
 
   const monthName = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-  const daysInMonth = getDaysInMonth(currentDate)
-  const firstDay = getFirstDayOfMonth(currentDate)
-  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
-  const emptyDays = Array.from({ length: firstDay }, (_, i) => i)
+  const calendarDays = generateCalendarDays(currentDate)
 
   if (loading) {
     return (
@@ -162,7 +177,12 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <h3 className="font-semibold text-lg capitalize">{monthName}</h3>
+        <div className="text-center">
+          <h3 className="font-semibold text-lg capitalize">{monthName}</h3>
+          {selectedRange.start && !selectedRange.end && (
+            <p className="text-xs text-teal-600 font-medium animate-pulse">Seleccione fecha de salida</p>
+          )}
+        </div>
         <button
           onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
           className="p-2 hover:bg-neutral-100 rounded-lg"
@@ -196,35 +216,37 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
           </div>
         ))}
 
-        {/* Días vacíos al inicio */}
-        {emptyDays.map((_, idx) => (
-          <div key={`empty-${idx}`} />
-        ))}
-
-        {/* Días del mes */}
-        {days.map((day) => {
-          const checkDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
+        {/* Días del calendario */}
+        {calendarDays.map((date, idx) => {
           const today = new Date()
           today.setHours(0, 0, 0, 0)
-          const isPast = checkDate < today
-          const isBooked = isDateBooked(day)
+          const isPast = date < today
+          const booked = isBooked(date)
+          const isCurrentMonth = date.getMonth() === currentDate.getMonth()
+          const start = isStart(date)
+          const end = isEnd(date)
+          const range = isInRange(date)
 
           return (
             <button
-              key={day}
-              onClick={() => handleDateClick(day)}
-              disabled={isBooked || isPast}
-              className={`aspect-square sm:p-2 rounded-lg font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-teal-600/20 ${isBooked || isPast
+              key={idx}
+              onClick={() => handleDateClick(date)}
+              onMouseEnter={() => setHoveredDate(date)}
+              onMouseLeave={() => setHoveredDate(null)}
+              disabled={booked || isPast}
+              className={`aspect-square sm:p-2 rounded-lg font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-teal-600/20 ${booked || isPast
                 ? 'bg-rose-50 text-rose-300 cursor-not-allowed border border-rose-100'
-                : isDateStart(day) || isDateEnd(day)
-                  ? 'bg-teal-700 text-white shadow-lg shadow-teal-700/30'
-                  : isDateInRange(day)
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'hover:bg-slate-50 text-slate-700 cursor-pointer border border-transparent hover:border-slate-100'
+                : start || end
+                  ? 'bg-teal-700 text-white shadow-lg shadow-teal-700/30 z-10'
+                  : range
+                    ? selectedRange.end ? 'bg-teal-50 text-teal-700 font-bold' : 'bg-teal-50/50 text-teal-600/70 border border-dashed border-teal-200'
+                    : !isCurrentMonth
+                      ? 'text-slate-300 hover:bg-slate-50 cursor-pointer border border-transparent'
+                      : 'hover:bg-slate-50 text-slate-700 cursor-pointer border border-transparent hover:border-slate-100'
                 }`}
-              title={isBooked ? 'Esta fecha ya está reservada' : isPast ? 'Fecha pasada' : ''}
+              title={booked ? 'Esta fecha ya está reservada' : isPast ? 'Fecha pasada' : ''}
             >
-              {day}
+              {date.getDate()}
             </button>
           )
         })}
@@ -240,4 +262,3 @@ export function PublicReservationCalendar({ propertyId, onDateRangeSelect }: Pub
     </div>
   )
 }
-

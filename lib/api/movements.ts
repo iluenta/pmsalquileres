@@ -17,16 +17,12 @@ import type { ConfigurationValue } from '@/lib/api/configuration'
 // Re-exporting for compatibility or local use if needed
 export { calculateExpenseItemTotal, calculateMovementTotal }
 
-// Calcular importe pagado de una reserva (suma de movimientos de ingreso)
-export async function calculateBookingPaidAmount(
-  bookingId: string,
-  tenantId: string
-): Promise<number> {
+// Obtener el ID del tipo de movimiento "Ingreso"
+export async function getIncomeMovementTypeId(tenantId: string): Promise<string | null> {
   try {
     const supabase = await getSupabaseServerClient()
-    if (!supabase) return 0
+    if (!supabase) return null
 
-    // Obtener el tipo de movimiento "MOVEMENT_TYPE" usando el código estable
     const { data: movementTypeConfig } = await supabase
       .from('configuration_types')
       .select('id')
@@ -37,14 +33,13 @@ export async function calculateBookingPaidAmount(
     let configTypeId: string | null = movementTypeConfig?.id || null
 
     if (!configTypeId) {
-      // Fallback legacy
       const { data: legacy } = await supabase
         .from('configuration_types')
         .select('id')
         .eq('tenant_id', tenantId)
         .or('name.eq.movement_type,name.eq.Tipo de Movimiento')
         .maybeSingle()
-      if (!legacy) return 0
+      if (!legacy) return null
       configTypeId = legacy.id
     }
 
@@ -56,7 +51,24 @@ export async function calculateBookingPaidAmount(
       .eq('is_active', true)
       .maybeSingle()
 
-    if (!incomeValue) return 0
+    return incomeValue?.id || null
+  } catch (error) {
+    console.error('Error in getIncomeMovementTypeId:', error)
+    return null
+  }
+}
+
+// Calcular importe pagado de una reserva (suma de movimientos de ingreso)
+export async function calculateBookingPaidAmount(
+  bookingId: string,
+  tenantId: string
+): Promise<number> {
+  try {
+    const incomeTypeId = await getIncomeMovementTypeId(tenantId)
+    if (!incomeTypeId) return 0
+
+    const supabase = await getSupabaseServerClient()
+    if (!supabase) return 0
 
     // Sumar todos los movimientos de ingreso asociados a la reserva
     const { data: movements, error } = await supabase
@@ -64,7 +76,7 @@ export async function calculateBookingPaidAmount(
       .select('amount')
       .eq('tenant_id', tenantId)
       .eq('booking_id', bookingId)
-      .eq('movement_type_id', incomeValue.id)
+      .eq('movement_type_id', incomeTypeId)
 
     if (error) {
       console.error('Error calculating paid amount:', error)
@@ -78,7 +90,65 @@ export async function calculateBookingPaidAmount(
   }
 }
 
-// Calcular información de pago de una reserva
+// Calcular información de pago para un lote de reservas (Optimización para evitar N+1)
+export async function calculateBatchBookingPaymentInfo(
+  bookings: Array<{ id: string, total_amount: number, net_amount: number | null, channel_id: string | null }>,
+  tenantId: string
+): Promise<Record<string, BookingPaymentInfo>> {
+  try {
+    const incomeTypeId = await getIncomeMovementTypeId(tenantId)
+    const supabase = await getSupabaseServerClient()
+    if (!supabase || !incomeTypeId) {
+      return bookings.reduce((acc, b) => ({ ...acc, [b.id]: { paid_amount: 0, pending_amount: 0, total_to_pay: 0 } }), {})
+    }
+
+    const bookingIds = bookings.map(b => b.id)
+
+    // Obtener todos los movimientos de ingreso para este lote de reservas
+    const { data: movements, error } = await supabase
+      .from('movements')
+      .select('booking_id, amount')
+      .eq('tenant_id', tenantId)
+      .in('booking_id', bookingIds)
+      .eq('movement_type_id', incomeTypeId)
+
+    if (error) {
+      console.error('Error in calculateBatchBookingPaymentInfo fetching movements:', error)
+      return bookings.reduce((acc, b) => ({ ...acc, [b.id]: { paid_amount: 0, pending_amount: 0, total_to_pay: 0 } }), {})
+    }
+
+    // Agrupar pagos por reserva
+    const paymentsMap = new Map<string, number>()
+    movements?.forEach((m: { booking_id: string, amount: number }) => {
+      const current = paymentsMap.get(m.booking_id) || 0
+      paymentsMap.set(m.booking_id, current + Number(m.amount || 0))
+    })
+
+    // Construir resultado final
+    const result: Record<string, BookingPaymentInfo> = {}
+    bookings.forEach(booking => {
+      const totalToPay = booking.channel_id
+        ? Number(booking.net_amount || 0)
+        : Number(booking.total_amount || 0)
+
+      const paidAmount = paymentsMap.get(booking.id) || 0
+      const pendingAmount = Math.max(0, totalToPay - paidAmount)
+
+      result[booking.id] = {
+        paid_amount: paidAmount,
+        pending_amount: pendingAmount,
+        total_to_pay: totalToPay,
+      }
+    })
+
+    return result
+  } catch (error) {
+    console.error('Error in calculateBatchBookingPaymentInfo:', error)
+    return bookings.reduce((acc, b) => ({ ...acc, [b.id]: { paid_amount: 0, pending_amount: 0, total_to_pay: 0 } }), {})
+  }
+}
+
+// Calcular información de pago de una reserva (Usa el lote para consistencia)
 export async function calculateBookingPaymentInfo(
   bookingId: string,
   tenantId: string
@@ -92,40 +162,21 @@ export async function calculateBookingPaymentInfo(
     // Obtener la reserva
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
-      .select('total_amount, net_amount, channel_id')
+      .select('id, total_amount, net_amount, channel_id')
       .eq('id', bookingId)
       .eq('tenant_id', tenantId)
-      .single()
+      .maybeSingle()
 
     if (bookingError || !booking) {
-      // Si la reserva no existe (error PGRST116), es un caso válido (puede haber sido eliminada)
-      // No loguear como error, solo retornar valores por defecto
-      if (bookingError?.code === 'PGRST116' || bookingError?.message?.includes('0 rows')) {
-        // Reserva no encontrada - caso válido, no es un error
+      if (bookingError?.code === 'PGRST116' || !booking) {
         return { paid_amount: 0, pending_amount: 0, total_to_pay: 0 }
       }
-      // Otros errores sí se loguean
-      console.error('Error fetching booking:', bookingError)
+      console.error('Error fetching booking in calculateBookingPaymentInfo:', bookingError)
       return { paid_amount: 0, pending_amount: 0, total_to_pay: 0 }
     }
 
-    // Determinar el total a pagar
-    // Si tiene canal: net_amount, si no: total_amount
-    const totalToPay = booking.channel_id
-      ? Number(booking.net_amount || 0)
-      : Number(booking.total_amount || 0)
-
-    // Calcular importe pagado
-    const paidAmount = await calculateBookingPaidAmount(bookingId, tenantId)
-
-    // Calcular pendiente
-    const pendingAmount = Math.max(0, totalToPay - paidAmount)
-
-    return {
-      paid_amount: paidAmount,
-      pending_amount: pendingAmount,
-      total_to_pay: totalToPay,
-    }
+    const batchResult = await calculateBatchBookingPaymentInfo([booking], tenantId)
+    return batchResult[bookingId]
   } catch (error) {
     console.error('Error in calculateBookingPaymentInfo:', error)
     return { paid_amount: 0, pending_amount: 0, total_to_pay: 0 }

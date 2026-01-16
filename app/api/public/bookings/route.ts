@@ -67,7 +67,10 @@ export async function POST(request: Request) {
       errorMsg.includes('solapan') ||
       errorMsg.includes('disponibilidad') ||
       errorMsg.includes('posterior') ||
-      errorMsg.includes('mínimo')
+      errorMsg.includes('mínimo') ||
+      errorMsg.includes('ya está registrado') ||
+      errorMsg.includes('ya existe una persona') ||
+      errorMsg.includes('ambigüedad')
 
     if (isValidationError) {
       return NextResponse.json(

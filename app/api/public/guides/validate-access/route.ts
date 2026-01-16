@@ -16,10 +16,10 @@ export async function POST(request: Request) {
     const validationResult = validateAccessSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: 'Datos inválidos', 
-          details: validationResult.error.errors 
+          error: 'Datos inválidos',
+          details: validationResult.error.errors
         },
         { status: 400 }
       )
@@ -30,15 +30,24 @@ export async function POST(request: Request) {
     console.log('[api/public/guides/validate-access] Validando acceso:', { propertyId, firstName, lastName })
 
     // Permitir acceso genérico con usuario "GUEST" o "INVITADO"
-    const isGenericUser = firstName.toUpperCase() === 'GUEST' || firstName.toUpperCase() === 'INVITADO' || 
-                         lastName.toUpperCase() === 'GUEST' || lastName.toUpperCase() === 'INVITADO'
-    
+    const isGenericUser = firstName.toUpperCase() === 'GUEST' || firstName.toUpperCase() === 'INVITADO' ||
+      lastName.toUpperCase() === 'GUEST' || lastName.toUpperCase() === 'INVITADO'
+
     if (isGenericUser) {
       console.log('[api/public/guides/validate-access] Acceso genérico detectado')
-      // Retornar un booking genérico para permitir acceso
+
+      const { signGuideToken } = await import('@/lib/api/guide-auth')
+      const token = signGuideToken({
+        bookingId: 'generic-access',
+        propertyId: propertyId,
+        firstName: 'Invitado',
+        lastName: 'Genérico',
+      })
+
       return NextResponse.json({
         success: true,
         status: 'generic',
+        token,
         booking: {
           id: 'generic-access',
           property_id: propertyId,
@@ -46,7 +55,7 @@ export async function POST(request: Request) {
           check_out_date: null,
           persons: {
             first_name: 'Invitado',
-            last_name: 'Genérico'
+            lastName: 'Genérico'
           }
         }
       }, { status: 200 })
@@ -93,7 +102,7 @@ export async function POST(request: Request) {
       .ilike('first_name', `${firstName}%`)
       .ilike('last_name', `${lastName}%`)
       .eq('is_active', true)
-    
+
     console.log('[api/public/guides/validate-access] Personas encontradas:', persons?.length || 0, persons)
 
     if (personsError) {
@@ -122,7 +131,7 @@ export async function POST(request: Request) {
       .eq('property_id', propertyId)
       .in('person_id', personIds)
       .order('check_in_date', { ascending: false })
-    
+
     console.log('[api/public/guides/validate-access] Reservas encontradas:', bookings?.length || 0)
 
     if (bookingsError) {
@@ -169,10 +178,26 @@ export async function POST(request: Request) {
       windowEnd.setDate(windowEnd.getDate() + 1)
 
       if (today >= windowStart && today <= windowEnd) {
+        // Generar token de sesión seguro
+        const { signGuideToken } = await import('@/lib/api/guide-auth')
+        const token = signGuideToken({
+          bookingId: booking.id,
+          propertyId: booking.property_id,
+          firstName: booking.persons?.first_name || '',
+          lastName: booking.persons?.last_name || '',
+        })
+
         return NextResponse.json({
           success: true,
           status: 'active',
-          booking: booking
+          token,
+          booking: {
+            id: booking.id,
+            property_id: booking.property_id,
+            check_in_date: booking.check_in_date,
+            check_out_date: booking.check_out_date,
+            persons: booking.persons
+          }
         }, { status: 200 })
       }
     }
@@ -186,9 +211,9 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('[api/public/guides/validate-access] Error:', error)
     return NextResponse.json(
-      { 
+      {
         success: false,
-        message: error.message || 'Ocurrió un error al validar tu acceso.' 
+        message: error.message || 'Ocurrió un error al validar tu acceso.'
       },
       { status: 500 }
     )

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from 'lucide-react'
 
@@ -11,33 +11,47 @@ interface LandingHeaderProps {
 
 export function LandingHeader({ slug }: LandingHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+        ? 'bg-white/90 backdrop-blur-md border-b border-slate-100 py-2'
+        : 'bg-transparent py-4'
+        }`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href={`/landing/${slug}`} className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-teal-600 rounded-lg flex items-center justify-center shadow-sm">
+            <div className={`w-9 h-9 flex items-center justify-center rounded-lg shadow-sm transition-colors ${scrolled ? 'bg-teal-600' : 'bg-white/20 backdrop-blur-sm'}`}>
               <span className="text-white font-bold text-sm">VT</span>
             </div>
-            <span className="text-slate-900 font-bold text-lg tracking-tight">
+            <span className={`font-bold text-lg tracking-tight transition-colors ${scrolled ? 'text-slate-900' : 'text-white'}`}>
               VeraTespera
             </span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#características" className="text-slate-600 text-sm font-medium transition-colors hover:text-teal-600">
+            <a href="#características" className={`text-sm font-medium transition-colors hover:text-teal-600 ${scrolled ? 'text-slate-600' : 'text-white/90'}`}>
               Características
             </a>
-            <a href="#galeria" className="text-slate-600 text-sm font-medium transition-colors hover:text-teal-600">
+            <a href="#galeria" className={`text-sm font-medium transition-colors hover:text-teal-600 ${scrolled ? 'text-slate-600' : 'text-white/90'}`}>
               Galería
             </a>
-            <a href="#precios" className="text-slate-600 text-sm font-medium transition-colors hover:text-teal-600">
+            <a href="#precios" className={`text-sm font-medium transition-colors hover:text-teal-600 ${scrolled ? 'text-slate-600' : 'text-white/90'}`}>
               Precios
             </a>
-            <a href="#ubicacion" className="text-slate-600 text-sm font-medium transition-colors hover:text-teal-600">
+            <a href="#ubicacion" className={`text-sm font-medium transition-colors hover:text-teal-600 ${scrolled ? 'text-slate-600' : 'text-white/90'}`}>
               Ubicación
             </a>
           </div>
@@ -46,7 +60,7 @@ export function LandingHeader({ slug }: LandingHeaderProps) {
           <div className="hidden md:flex items-center gap-3">
             <Link
               href={`/guides/${slug}`}
-              className="text-slate-600 text-sm font-medium px-4 py-2 rounded-lg transition-colors hover:text-teal-600 hover:bg-slate-50"
+              className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${scrolled ? 'text-slate-600 hover:text-teal-600 hover:bg-slate-50' : 'text-white/90 hover:text-white hover:bg-white/10'}`}
             >
               Guía del Huésped
             </Link>
@@ -61,7 +75,7 @@ export function LandingHeader({ slug }: LandingHeaderProps) {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 text-slate-600 hover:text-slate-900"
+            className={`md:hidden p-2 transition-colors ${scrolled || isMenuOpen ? 'text-slate-600' : 'text-white'}`}
             aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
           >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}

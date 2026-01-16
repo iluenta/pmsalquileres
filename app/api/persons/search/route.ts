@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     let finalPersonType = personType
     if (category === "guest" && !personType) {
       try {
-        const configTypes = await getConfigurationTypes(tenantId)
+        const configTypes = await getConfigurationTypes(tenantId, { includeCounts: false })
         const personTypeConfig = configTypes.find(
           (type) =>
             type.name === "person_type" ||
@@ -66,6 +66,9 @@ export async function GET(request: Request) {
       }
     }
 
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : 50
+    const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!, 10) : 0
+
     const persons = await getPersons(tenantId, {
       includeInactive: false, // Solo activos para búsqueda
       personType: finalPersonType,
@@ -74,6 +77,9 @@ export async function GET(request: Request) {
       searchEmail,
       searchPhone,
       isActive: isActive !== null ? isActive : true,
+      limit,
+      offset,
+      enriched: false, // No necesitamos contactos/direcciones para el listado de búsqueda
     })
 
     return NextResponse.json(persons)

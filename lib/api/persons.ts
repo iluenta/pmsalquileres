@@ -39,22 +39,55 @@ export async function getPersons(
     searchEmail?: string
     searchPhone?: string
     isActive?: boolean | null // null = todos, true = solo activos, false = solo inactivos
+    limit?: number
+    offset?: number
+    enriched?: boolean // true = incluir contactos y direcciones (por defecto true)
   }
 ): Promise<PersonWithDetails[]> {
   try {
     const supabase = await getSupabaseServerClient()
     if (!supabase) return []
 
+    // 1. Filtrado por Email o Teléfono a nivel de BD si se solicitan
+    let filteredPersonIds: string[] | null = null
+
+    if (options?.searchEmail || options?.searchPhone) {
+      let contactQuery = supabase
+        .from('person_contact_infos')
+        .select('person_id')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+
+      if (options.searchEmail) {
+        contactQuery = contactQuery.ilike('contact_value', `%${options.searchEmail}%`).eq('contact_type', 'email')
+      } else if (options.searchPhone) {
+        // Limpiar espacios para búsqueda de teléfono
+        const phonePattern = `%${options.searchPhone.replace(/\s/g, '')}%`
+        contactQuery = contactQuery.ilike('contact_value', phonePattern).eq('contact_type', 'phone')
+      }
+
+      const { data: contacts } = await contactQuery
+      filteredPersonIds = (contacts || []).map((c: any) => c.person_id)
+
+      // Si se buscó por contacto y no hay resultados, retornar vacío de inmediato
+      if (!filteredPersonIds || filteredPersonIds.length === 0) return []
+    }
+
+    // 2. Query principal de personas
     let query = supabase
       .from('persons')
       .select('*')
       .eq('tenant_id', tenantId)
 
+    // Filtro de IDs resultante de búsqueda por contactos
+    if (filteredPersonIds && filteredPersonIds.length > 0) {
+      query = query.in('id', filteredPersonIds)
+    }
+
     // Filtro de estado
     if (options?.isActive !== null && options?.isActive !== undefined) {
       query = query.eq('is_active', options.isActive)
     } else if (!options?.includeInactive) {
-      // Por defecto, solo activos si no se especifica includeInactive
       query = query.eq('is_active', true)
     }
 
@@ -62,13 +95,12 @@ export async function getPersons(
       query = query.eq('person_type', options.personType)
     }
 
-    // Búsqueda general (retrocompatibilidad)
+    // Búsqueda general o específica por nombre/documento
     if (options?.search) {
       const searchPattern = `%${options.search}%`
       query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},full_name.ilike.${searchPattern},document_number.ilike.${searchPattern}`)
     }
 
-    // Búsquedas específicas
     if (options?.searchName) {
       const searchPattern = `%${options.searchName}%`
       query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},full_name.ilike.${searchPattern}`)
@@ -77,6 +109,12 @@ export async function getPersons(
     if (options?.searchDocument) {
       const searchPattern = `%${options.searchDocument}%`
       query = query.ilike('document_number', searchPattern)
+    }
+
+    // Aplicar paginación
+    if (options?.limit !== undefined) {
+      const offset = options.offset || 0
+      query = query.range(offset, offset + options.limit - 1)
     }
 
     const { data: persons, error } = await query
@@ -91,7 +129,11 @@ export async function getPersons(
       return []
     }
 
-    // Obtener tipos de persona
+    // 3. Enriquecimiento de datos (solo si se solicita o por defecto)
+    const isEnriched = options?.enriched !== false
+    const personIds = persons.map((p: any) => p.id)
+
+    // Obtener tipos de persona (siempre necesario para mostrar el label)
     const personTypeIds = [...new Set(persons.map((p: any) => p.person_type).filter(Boolean))]
     const personTypesMap = new Map<string, ConfigurationValue>()
     if (personTypeIds.length > 0) {
@@ -105,40 +147,43 @@ export async function getPersons(
         })
     }
 
-    // Obtener contactos de todas las personas
-    const personIds = persons.map((p: any) => p.id)
-    const { data: allContacts } = await supabase
-      .from('person_contact_infos')
-      .select('*')
-      .in('person_id', personIds)
-      .eq('tenant_id', tenantId)
-      .eq('is_active', true)
-
-    // Obtener direcciones de todas las personas
-    const { data: allAddresses } = await supabase
-      .from('person_fiscal_addresses')
-      .select('*')
-      .in('person_id', personIds)
-      .eq('tenant_id', tenantId)
-      .eq('is_active', true)
-
-    // Crear maps de contactos y direcciones por persona
+    // Obtener contactos y direcciones solo si es "enriched"
     const contactsByPerson = new Map<string, PersonContactInfo[]>()
-      ; (allContacts || []).forEach((contact: any) => {
-        const existing = contactsByPerson.get(contact.person_id) || []
-        existing.push(contact)
-        contactsByPerson.set(contact.person_id, existing)
-      })
-
     const addressesByPerson = new Map<string, PersonFiscalAddress[]>()
-      ; (allAddresses || []).forEach((address: any) => {
-        const existing = addressesByPerson.get(address.person_id) || []
-        existing.push(address)
-        addressesByPerson.set(address.person_id, existing)
-      })
+
+    if (isEnriched) {
+      const [{ data: allContacts }, { data: allAddresses }] = await Promise.all([
+        supabase
+          .from('person_contact_infos')
+          .select('*')
+          .in('person_id', personIds)
+          .eq('tenant_id', tenantId)
+          .eq('is_active', true)
+          .order('is_primary', { ascending: false }),
+        supabase
+          .from('person_fiscal_addresses')
+          .select('*')
+          .in('person_id', personIds)
+          .eq('tenant_id', tenantId)
+          .eq('is_active', true)
+          .order('is_primary', { ascending: false })
+      ])
+
+        ; (allContacts || []).forEach((contact: any) => {
+          const existing = contactsByPerson.get(contact.person_id) || []
+          existing.push(contact)
+          contactsByPerson.set(contact.person_id, existing)
+        })
+
+        ; (allAddresses || []).forEach((address: any) => {
+          const existing = addressesByPerson.get(address.person_id) || []
+          existing.push(address)
+          addressesByPerson.set(address.person_id, existing)
+        })
+    }
 
     // Combinar datos
-    let result = persons.map((person: any) => {
+    return persons.map((person: any) => {
       const contacts = contactsByPerson.get(person.id) || []
       const addresses = addressesByPerson.get(person.id) || []
       const { email, phone } = extractEmailAndPhoneFromContacts(contacts)
@@ -152,24 +197,6 @@ export async function getPersons(
         phone,
       }
     })
-
-    // Filtrar por email si se especifica
-    if (options?.searchEmail) {
-      const emailPattern = options.searchEmail.toLowerCase()
-      result = result.filter((person: PersonWithDetails) =>
-        person.email?.toLowerCase().includes(emailPattern)
-      )
-    }
-
-    // Filtrar por teléfono si se especifica
-    if (options?.searchPhone) {
-      const phonePattern = options.searchPhone.replace(/\s/g, '')
-      result = result.filter((person: PersonWithDetails) =>
-        person.phone?.replace(/\s/g, '').includes(phonePattern)
-      )
-    }
-
-    return result
   } catch (error) {
     console.error('Error in getPersons:', error)
     return []

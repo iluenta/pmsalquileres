@@ -41,7 +41,7 @@ export default async function EditBookingPage({
   }
 
   // Obtener propiedades activas
-  const allProperties = await getProperties()
+  const allProperties = await getProperties(tenantId)
   const properties = allProperties.filter((p) => p.is_active)
 
   // Obtener estados de reserva

@@ -28,7 +28,7 @@ export async function GET() {
     const tenantId = userInfo[0].tenant_id
 
     // Obtener tipos de configuración
-    const configTypes = await getConfigurationTypes(tenantId)
+    const configTypes = await getConfigurationTypes(tenantId, { includeCounts: false })
     const bookingTypeConfig = configTypes.find(
       (t) =>
         t.name === "Tipo de Reserva" ||

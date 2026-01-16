@@ -35,7 +35,7 @@ export default async function ReportsPage() {
 
   // Obtener propiedades y canales para los filtros
   const [allProperties, allChannels] = await Promise.all([
-    getProperties(),
+    getProperties(tenantId),
     getSalesChannels(tenantId),
   ])
 

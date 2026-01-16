@@ -25,7 +25,8 @@ export default async function PropertiesPage() {
     redirect("/login")
   }
 
-  const properties = await getProperties()
+  const tenantId = userInfo[0].tenant_id
+  const properties = await getProperties(tenantId)
 
   return (
     <div className="space-y-6">

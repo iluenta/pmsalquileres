@@ -117,7 +117,16 @@ export function PublicCheckoutForm({
       setSubmitted(true)
     } catch (error: any) {
       const msg = error.message || ''
-      if (!msg.includes('solapan') && !msg.includes('disponibilidad') && !msg.includes('posterior')) {
+      // Suppress console.error for known validation errors to avoid dev overlays
+      const isKnownValidationError =
+        msg.includes('solapan') ||
+        msg.includes('disponibilidad') ||
+        msg.includes('posterior') ||
+        msg.includes('ya está registrado') ||
+        msg.includes('ya existe una persona') ||
+        msg.includes('ambigüedad')
+
+      if (!isKnownValidationError) {
         console.error('Error creating booking:', error)
       }
       setErrorMessage(msg || 'Error al crear la reserva. Por favor, intenta de nuevo.')

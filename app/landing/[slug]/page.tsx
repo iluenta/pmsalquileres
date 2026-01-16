@@ -117,15 +117,15 @@ export default async function LandingPage({ params }: PageProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {displayHighlights.map((highlight: any, idx: number) => {
               const Icon = iconMap[highlight.icon] || Info
               return (
-                <div key={idx} className="bg-white rounded-xl p-6 border border-slate-200/80 transition-shadow hover:shadow-md">
-                  <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center mb-4">
-                    <Icon className="w-6 h-6 text-teal-600" />
+                <div key={idx} className="bg-white rounded-3xl p-8 border border-slate-200/60 transition-all hover:shadow-xl hover:-translate-y-1 group">
+                  <div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-teal-600 transition-colors duration-300">
+                    <Icon className="w-7 h-7 text-teal-600 group-hover:text-white transition-colors duration-300" />
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{highlight.title}</h3>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3">{highlight.title}</h3>
                   <p className="text-slate-600 text-sm leading-relaxed">{highlight.description}</p>
                 </div>
               )
@@ -147,68 +147,68 @@ export default async function LandingPage({ params }: PageProps) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {property.bedrooms && property.bedrooms > 0 && (
-              <div className="bg-white rounded-xl p-8 border border-slate-200/80 transition-shadow hover:shadow-md">
-                <div className="w-14 h-14 bg-teal-50 rounded-xl flex items-center justify-center mb-5">
-                  <BedDouble className="w-7 h-7 text-teal-600" />
+              <div className="bg-slate-50 rounded-[2.5rem] p-8 sm:p-10 border border-slate-200/50 transition-all hover:bg-white hover:shadow-2xl hover:border-teal-100 group">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-sm group-hover:scale-110 transition-transform">
+                  <BedDouble className="w-8 h-8 text-teal-600" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">
                   {property.bedrooms} {property.bedrooms === 1 ? 'Habitación' : 'Habitaciones'}
                 </h3>
-                <p className="text-slate-600 mb-5">
+                <p className="text-slate-600 mb-8 leading-relaxed">
                   {spaceDesc.rooms}
                 </p>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2 text-slate-700 text-sm">
-                    <div className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3 text-slate-700 font-medium">
+                    <div className="w-2 h-2 bg-teal-500 rounded-full" />
                     Camas premium
                   </li>
-                  <li className="flex items-center gap-2 text-slate-700 text-sm">
-                    <div className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
+                  <li className="flex items-center gap-3 text-slate-700 font-medium">
+                    <div className="w-2 h-2 bg-teal-500 rounded-full" />
                     Armarios espaciosos
                   </li>
                 </ul>
               </div>
             )}
             {property.bathrooms && property.bathrooms > 0 && (
-              <div className="bg-white rounded-xl p-8 border border-slate-200/80 transition-shadow hover:shadow-md">
-                <div className="w-14 h-14 bg-teal-50 rounded-xl flex items-center justify-center mb-5">
-                  <Bath className="w-7 h-7 text-teal-600" />
+              <div className="bg-slate-50 rounded-[2.5rem] p-8 sm:p-10 border border-slate-200/50 transition-all hover:bg-white hover:shadow-2xl hover:border-teal-100 group">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-sm group-hover:scale-110 transition-transform">
+                  <Bath className="w-8 h-8 text-teal-600" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">
                   {property.bathrooms} {property.bathrooms === 1 ? 'Baño' : 'Baños'}
                 </h3>
-                <p className="text-slate-600 mb-5">
+                <p className="text-slate-600 mb-8 leading-relaxed">
                   {spaceDesc.bathrooms}
                 </p>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2 text-slate-700 text-sm">
-                    <div className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
-                    Artículos de aseo incluidos
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-3 text-slate-700 font-medium">
+                    <div className="w-2 h-2 bg-teal-500 rounded-full" />
+                    Artículos de aseo
                   </li>
-                  <li className="flex items-center gap-2 text-slate-700 text-sm">
-                    <div className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
+                  <li className="flex items-center gap-3 text-slate-700 font-medium">
+                    <div className="w-2 h-2 bg-teal-500 rounded-full" />
                     Toallas premium
                   </li>
                 </ul>
               </div>
             )}
-            <div className="bg-white rounded-xl p-8 border border-slate-200/80 transition-shadow hover:shadow-md">
-              <div className="w-14 h-14 bg-teal-50 rounded-xl flex items-center justify-center mb-5">
-                <ChefHat className="w-7 h-7 text-teal-600" />
+            <div className="bg-slate-50 rounded-[2.5rem] p-8 sm:p-10 border border-slate-200/50 transition-all hover:bg-white hover:shadow-2xl hover:border-teal-100 group sm:col-span-2 lg:col-span-1">
+              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-sm group-hover:scale-110 transition-transform">
+                <ChefHat className="w-8 h-8 text-teal-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Cocina Completa</h3>
-              <p className="text-slate-600 mb-5">
+              <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">Cocina Completa</h3>
+              <p className="text-slate-600 mb-8 leading-relaxed">
                 {spaceDesc.kitchen}
               </p>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-slate-700 text-sm">
-                  <div className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
-                  Electrodomésticos modernos
+              <ul className="space-y-3">
+                <li className="flex items-center gap-3 text-slate-700 font-medium">
+                  <div className="w-2 h-2 bg-teal-500 rounded-full" />
+                  Electrodomésticos
                 </li>
-                <li className="flex items-center gap-2 text-slate-700 text-sm">
-                  <div className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
+                <li className="flex items-center gap-3 text-slate-700 font-medium">
+                  <div className="w-2 h-2 bg-teal-500 rounded-full" />
                   Utensilios de cocina
                 </li>
               </ul>
@@ -224,13 +224,34 @@ export default async function LandingPage({ params }: PageProps) {
 
       {/* Location Section */}
       {address && (
-        <section id="ubicacion" className="w-full py-16 md:py-24">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4">Ubicación</h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">
-                {address}
-              </p>
+        <section id="ubicacion" className="w-full py-20 lg:py-28 bg-white overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-slate-900 rounded-[3rem] p-10 sm:p-20 relative overflow-hidden shadow-2xl">
+              {/* Abstract decorative elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl" />
+
+              <div className="relative z-10 text-center max-w-3xl mx-auto">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-teal-500/10 rounded-full text-teal-400 text-sm font-bold uppercase tracking-widest mb-8 border border-teal-500/20">
+                  <MapPin className="w-4 h-4" />
+                  <span>Ubicación Privilegiada</span>
+                </div>
+                <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6 tracking-tight">Vera Playa, Almería</h2>
+                <p className="text-slate-400 text-xl mb-10 leading-relaxed font-light">
+                  {address}
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto bg-white text-slate-900 font-bold px-10 py-4 rounded-2xl transition-all hover:bg-slate-100 hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center gap-2"
+                  >
+                    Ver en Google Maps
+                    <Info className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </section>

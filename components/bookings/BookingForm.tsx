@@ -21,6 +21,7 @@ import type { Booking, BookingWithDetails, Person, CreateBookingData, UpdateBook
 import type { Property } from "@/lib/api/properties"
 import type { ConfigurationValue } from "@/lib/api/configuration"
 import { calculateBookingAmounts, recalculateNetAmount } from "@/lib/utils/booking-calculations"
+import { calculateStayPrice, PricingPeriod } from "@/lib/utils/pricing-engine"
 
 interface BookingFormProps {
   booking?: Booking | BookingWithDetails
@@ -105,6 +106,23 @@ export function BookingForm({
     tax_percentage: number | null
   }>>([])
   const [propertyChannels, setPropertyChannels] = useState<string[]>([])
+  const [pricingPeriods, setPricingPeriods] = useState<PricingPeriod[]>([])
+  const [isCalculatingPrice, setIsCalculatingPrice] = useState(false)
+
+  const selectedProperty = properties.find(p => p.id === formData.property_id)
+  const selectedBookingType = bookingTypes.find(bt => bt.id === formData.booking_type_id)
+  const selectedBookingStatus = bookingStatuses.find(bs => bs.id === formData.booking_status_id)
+
+  const calculateNights = (): number => {
+    if (!formData.check_in_date || !formData.check_out_date) return 0
+    const checkIn = new Date(formData.check_in_date)
+    const checkOut = new Date(formData.check_out_date)
+    const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
+  }
+
+  const nights = calculateNights()
 
   // Determinar si es período cerrado
   const isClosedPeriod = formData.booking_type_id && bookingTypes.find(bt => bt.id === formData.booking_type_id)?.value === 'closed_period'
@@ -178,26 +196,37 @@ export function BookingForm({
     loadChannels()
   }, [])
 
-  // Cargar canales activos de la propiedad seleccionada
+  // Cargar canales activos y precios de la propiedad seleccionada
   useEffect(() => {
-    const loadPropertyChannels = async () => {
+    const loadPropertyDetails = async () => {
       if (!formData.property_id) {
         setPropertyChannels([])
+        setPricingPeriods([])
         return
       }
 
       try {
-        const response = await fetch(`/api/properties/${formData.property_id}/sales-channels`)
-        if (response.ok) {
-          const data = await response.json()
-          setPropertyChannels(data.channelIds || [])
+        const [channelsRes, pricingRes] = await Promise.all([
+          fetch(`/api/properties/${formData.property_id}/sales-channels`),
+          fetch(`/api/properties/${formData.property_id}/pricing`)
+        ])
+
+        if (channelsRes.ok) {
+          const channelsData = await channelsRes.json()
+          setPropertyChannels(channelsData.channelIds || [])
+        }
+
+        if (pricingRes.ok) {
+          const pricingData = await pricingRes.json()
+          setPricingPeriods(pricingData || [])
         }
       } catch (error) {
-        console.error("Error loading property channels:", error)
+        console.error("Error loading property details:", error)
         setPropertyChannels([])
+        setPricingPeriods([])
       }
     }
-    loadPropertyChannels()
+    loadPropertyDetails()
   }, [formData.property_id])
 
   // Filtrar canales según la propiedad
@@ -245,6 +274,37 @@ export function BookingForm({
       })
     }
   }, [formData.channel_id])
+
+  // Recalcular precio sugerido automáticamente
+  useEffect(() => {
+    // Solo si es una reserva comercial y tenemos los datos necesarios
+    if (!isClosedPeriod && formData.property_id && formData.check_in_date && formData.check_out_date && pricingPeriods.length > 0) {
+      // Evitar sobreescribir si el usuario ha modificado el total manualmente y no es la carga inicial o cambio de fechas crítico
+      // Por ahora, para simplificar, calculamos y si es distinto sugerimos o actualizamos si es nuevo
+
+      const checkIn = new Date(formData.check_in_date)
+      const checkOut = new Date(formData.check_out_date)
+      const nights = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+
+      if (nights > 0) {
+        const result = calculateStayPrice({
+          checkIn,
+          checkOut,
+          numberOfGuests: formData.number_of_guests,
+          baseGuests: selectedProperty?.max_guests || 4,
+          pricingPeriods
+        })
+
+        if (result.isValid) {
+          // Si el total_amount es 0 o si acabamos de cambiar fechas/propiedad (y no era una carga de edición)
+          const isNewBooking = !booking
+          if (isNewBooking && (formData.total_amount === 0 || initialValuesRef.current.totalAmount === 0)) {
+            setFormData(prev => ({ ...prev, total_amount: result.totalPrice }))
+          }
+        }
+      }
+    }
+  }, [formData.property_id, formData.check_in_date, formData.check_out_date, formData.number_of_guests, pricingPeriods, isClosedPeriod, selectedProperty, booking])
 
   // Calcular comisiones e impuestos SOLO cuando cambia el total_amount o el canal
   // NO recalcular al cargar una reserva existente
@@ -440,7 +500,6 @@ export function BookingForm({
         newErrors.number_of_guests = "El número de huéspedes es obligatorio y debe ser al menos 1"
       } else if (formData.property_id) {
         // Validar que no exceda el máximo de huéspedes de la propiedad
-        const selectedProperty = properties.find(p => p.id === formData.property_id)
         if (selectedProperty?.max_guests && formData.number_of_guests > selectedProperty.max_guests) {
           newErrors.number_of_guests = `El número de huéspedes no puede ser superior a ${selectedProperty.max_guests} (máximo configurado para esta propiedad)`
         }
@@ -473,14 +532,6 @@ export function BookingForm({
     return Object.keys(newErrors).length === 0
   }
 
-  const calculateNights = (): number => {
-    if (!formData.check_in_date || !formData.check_out_date) return 0
-    const checkIn = new Date(formData.check_in_date)
-    const checkOut = new Date(formData.check_out_date)
-    const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -629,10 +680,6 @@ export function BookingForm({
     }
   }
 
-  const nights = calculateNights()
-  const selectedProperty = properties.find(p => p.id === formData.property_id)
-  const selectedBookingType = bookingTypes.find(bt => bt.id === formData.booking_type_id)
-  const selectedBookingStatus = bookingStatuses.find(bs => bs.id === formData.booking_status_id)
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/20 to-background p-4 md:p-6 lg:p-8">
@@ -964,7 +1011,6 @@ export function BookingForm({
                       type="number"
                       min="1"
                       max={formData.property_id ? (() => {
-                        const selectedProperty = properties.find(p => p.id === formData.property_id)
                         return selectedProperty?.max_guests || undefined
                       })() : undefined}
                       value={formData.number_of_guests}
@@ -975,7 +1021,6 @@ export function BookingForm({
                           number_of_guests: newValue,
                         })
                         if (formData.property_id) {
-                          const selectedProperty = properties.find(p => p.id === formData.property_id)
                           if (selectedProperty?.max_guests && newValue > selectedProperty.max_guests) {
                             setErrors(prev => ({
                               ...prev,
@@ -992,7 +1037,6 @@ export function BookingForm({
                       }}
                       onBlur={() => {
                         if (formData.property_id) {
-                          const selectedProperty = properties.find(p => p.id === formData.property_id)
                           if (selectedProperty?.max_guests && formData.number_of_guests > selectedProperty.max_guests) {
                             setErrors(prev => ({
                               ...prev,
@@ -1007,7 +1051,6 @@ export function BookingForm({
                       <p className="text-sm text-destructive">{errors.number_of_guests}</p>
                     )}
                     {formData.property_id && (() => {
-                      const selectedProperty = properties.find(p => p.id === formData.property_id)
                       return selectedProperty?.max_guests ? (
                         <p className="text-xs text-muted-foreground">
                           Máximo {selectedProperty.max_guests} huéspedes

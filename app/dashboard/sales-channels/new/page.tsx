@@ -1,77 +1,46 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
 import { SalesChannelForm } from "@/components/sales-channels/SalesChannelForm"
-import { createSalesChannel } from "@/lib/api/sales-channels"
-import type { CreateSalesChannelData, UpdateSalesChannelData } from "@/types/sales-channels"
+import { handleCreateSalesChannelAction } from "./actions"
+import type { CreateSalesChannelData } from "@/types/sales-channels"
 
+/**
+ * Page to create a new sales channel.
+ * Recreated after purging corrupted file.
+ */
 export default async function NewSalesChannelPage() {
-  const supabase = await getSupabaseServerClient()
+    const supabase = await getSupabaseServerClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    const {
+        data: { user },
+    } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect("/login")
-  }
-
-  const { data: userInfo } = await supabase.rpc("get_user_info", {
-    p_user_id: user.id,
-  })
-
-  if (!userInfo || userInfo.length === 0) {
-    redirect("/login")
-  }
-
-  const tenantId = userInfo[0].tenant_id
-
-  const handleSave = async (data: CreateSalesChannelData | UpdateSalesChannelData): Promise<boolean> => {
-    "use server"
-    // Asegurar que tenemos los campos requeridos para CreateSalesChannelData
-    // Solo full_name es requerido según CreateSalesChannelData
-    if (!data.full_name || data.full_name.trim() === "") {
-      throw new Error("El nombre del canal de venta es obligatorio")
+    if (!user) {
+        redirect("/login")
     }
-    const createData: CreateSalesChannelData = {
-      full_name: data.full_name.trim(),
-      document_type: data.document_type || null,
-      document_number: data.document_number || null,
-      email: data.email?.trim() || null,
-      phone: data.phone?.trim() || null,
-      logo_url: data.logo_url?.trim() || null,
-      sales_commission: data.sales_commission ?? 0,
-      collection_commission: data.collection_commission ?? 0,
-      apply_tax: data.apply_tax ?? false,
-      tax_type_id: data.tax_type_id || null,
-      notes: data.notes?.trim() || null,
-      is_active: data.is_active ?? true,
-    }
-    const result = await createSalesChannel(createData, tenantId)
-    return result !== null
-  }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/sales-channels">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Nuevo Canal de Venta</h1>
-          <p className="text-muted-foreground">
-            Crea un nuevo canal de venta (Booking, Airbnb, propio, etc.)
-          </p>
+    const { data: userInfo } = await supabase.rpc("get_user_info", {
+        p_user_id: user.id,
+    })
+
+    if (!userInfo || userInfo.length === 0) {
+        redirect("/login")
+    }
+
+    const tenantId = userInfo[0].tenant_id
+
+    if (!tenantId) {
+        redirect("/login")
+    }
+
+    return (
+        <div className="h-full">
+            <SalesChannelForm
+                tenantId={tenantId}
+                onSave={(data) => handleCreateSalesChannelAction(data as CreateSalesChannelData, tenantId)}
+                title="Nuevo Canal de Venta"
+                subtitle="Registra un nuevo portal o canal directo para tus reservas"
+            />
         </div>
-      </div>
-
-      <SalesChannelForm tenantId={tenantId} onSave={handleSave} />
-    </div>
-  )
+    )
 }
-

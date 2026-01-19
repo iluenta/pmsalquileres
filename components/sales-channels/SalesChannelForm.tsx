@@ -9,647 +9,457 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Save, Upload, X } from "lucide-react"
+import { Loader2, Save, Upload, X, Globe, Percent, CheckCircle2, Building2, ShieldCheck, Mail, Phone, Calculator, ArrowLeft } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 import type { SalesChannelWithDetails, CreateSalesChannelData, UpdateSalesChannelData } from "@/types/sales-channels"
 import type { ConfigurationValue } from "@/lib/api/configuration"
 
 interface SalesChannelFormProps {
-  channel?: SalesChannelWithDetails
-  tenantId: string
-  onSave?: (data: CreateSalesChannelData | UpdateSalesChannelData) => Promise<boolean>
+    channel?: SalesChannelWithDetails
+    tenantId: string
+    onSave?: (data: CreateSalesChannelData | UpdateSalesChannelData) => Promise<boolean>
+    title: string
+    subtitle: string
 }
 
 export function SalesChannelForm({
-  channel,
-  tenantId,
-  onSave,
+    channel,
+    tenantId,
+    onSave,
+    title,
+    subtitle,
 }: SalesChannelFormProps) {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
-  const [uploadingLogo, setUploadingLogo] = useState(false)
+    const router = useRouter()
+    const { toast } = useToast()
+    const [loading, setLoading] = useState(false)
+    const [uploadingLogo, setUploadingLogo] = useState(false)
+    const [isDirty, setIsDirty] = useState(false)
 
-  const [formData, setFormData] = useState({
-    full_name: channel?.person.full_name ?? "",
-    document_type: channel?.person.document_type ?? "",
-    document_number: channel?.person.document_number ?? "",
-    email: channel?.person.email ?? "",
-    phone: channel?.person.phone ?? "",
-    logo_url: channel?.logo_url ?? "",
-    sales_commission: channel?.sales_commission ?? 0,
-    collection_commission: channel?.collection_commission ?? 0,
-    apply_tax: channel?.apply_tax ?? false,
-    tax_type_id: channel?.tax_type_id ?? "",
-    notes: channel?.person.notes ?? "",
-    is_active: channel?.is_active ?? true,
-    is_own_channel: channel?.is_own_channel ?? false,
-  })
+    const [formData, setFormData] = useState({
+        full_name: channel?.person.full_name ?? "",
+        document_type: channel?.person.document_type ?? "",
+        document_number: channel?.person.document_number ?? "",
+        email: channel?.person.email ?? "",
+        phone: channel?.person.phone ?? "",
+        logo_url: channel?.logo_url ?? "",
+        sales_commission: channel?.sales_commission ?? 0,
+        collection_commission: channel?.collection_commission ?? 0,
+        apply_tax: channel?.apply_tax ?? false,
+        tax_type_id: channel?.tax_type_id ?? "",
+        notes: channel?.person.notes ?? "",
+        is_active: channel?.is_active ?? true,
+        is_own_channel: channel?.is_own_channel ?? false,
+    })
 
-  const [taxTypes, setTaxTypes] = useState<ConfigurationValue[]>([])
-  const [loadingTaxTypes, setLoadingTaxTypes] = useState(false)
+    const [taxTypes, setTaxTypes] = useState<ConfigurationValue[]>([])
+    const [loadingTaxTypes, setLoadingTaxTypes] = useState(false)
 
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [logoPreview, setLogoPreview] = useState<string | null>(formData.logo_url || null)
+    const [errors, setErrors] = useState<Record<string, string>>({})
+    const [logoPreview, setLogoPreview] = useState<string | null>(formData.logo_url || null)
 
-  // Cargar tipos de impuesto
-  useEffect(() => {
-    const loadTaxTypes = async () => {
-      setLoadingTaxTypes(true)
-      try {
-        const response = await fetch("/api/configuration/tax-types")
-        if (response.ok) {
-          const data = await response.json()
-          setTaxTypes(data)
-          
-          // Aplicar valor por defecto si no hay channel y apply_tax está activo
-          if (!channel && formData.apply_tax && !formData.tax_type_id && data.length > 0) {
-            const defaultTaxType = data.find((t: ConfigurationValue) => t.is_default === true)
-            if (defaultTaxType) {
-              setFormData(prev => ({ ...prev, tax_type_id: defaultTaxType.id }))
+    useEffect(() => {
+        const loadTaxTypes = async () => {
+            setLoadingTaxTypes(true)
+            try {
+                const response = await fetch("/api/configuration/tax-types")
+                if (response.ok) {
+                    const data = await response.json()
+                    setTaxTypes(data)
+                    if (!channel && formData.apply_tax && !formData.tax_type_id && data.length > 0) {
+                        const defaultTaxType = data.find((t: ConfigurationValue) => t.is_default === true)
+                        if (defaultTaxType) setFormData(prev => ({ ...prev, tax_type_id: defaultTaxType.id }))
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading tax types:", error)
+            } finally {
+                setLoadingTaxTypes(false)
             }
-          }
         }
-      } catch (error) {
-        console.error("Error loading tax types:", error)
-      } finally {
-        setLoadingTaxTypes(false)
-      }
-    }
-    loadTaxTypes()
-  }, [channel])
+        loadTaxTypes()
+    }, [channel])
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) {
-      console.log("[SalesChannelForm] handleLogoUpload: No file selected")
-      return
+    const handleFieldChange = (field: string, value: any) => {
+        setFormData(prev => ({ ...prev, [field]: value }))
+        setIsDirty(true)
     }
 
-    console.log("[SalesChannelForm] handleLogoUpload: File selected", {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-    })
-
-    // Validar tipo
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"]
-    if (!allowedTypes.includes(file.type)) {
-      console.log("[SalesChannelForm] handleLogoUpload: Invalid file type", file.type)
-      toast({
-        title: "Error",
-        description: "Solo se permiten imágenes (JPEG, PNG, WebP, GIF)",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Validar tamaño (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      console.log("[SalesChannelForm] handleLogoUpload: File too large", file.size)
-      toast({
-        title: "Error",
-        description: "El archivo es demasiado grande. Máximo 5MB",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setUploadingLogo(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-
-      console.log("[SalesChannelForm] handleLogoUpload: Uploading file to /api/upload/logo")
-      const response = await fetch("/api/upload/logo", {
-        method: "POST",
-        body: formData,
-      })
-
-      console.log("[SalesChannelForm] handleLogoUpload: Response status", response.status, response.ok)
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        console.error("[SalesChannelForm] handleLogoUpload: Upload failed", errorData)
-        throw new Error(errorData.error || "Error al subir el logo")
-      }
-
-      const responseData = await response.json()
-      console.log("[SalesChannelForm] handleLogoUpload: Upload success", responseData)
-      
-      const { url } = responseData
-      if (!url) {
-        console.error("[SalesChannelForm] handleLogoUpload: No URL in response", responseData)
-        throw new Error("No se recibió la URL del logo")
-      }
-
-      console.log("[SalesChannelForm] handleLogoUpload: Setting logo_url to", url)
-      setFormData((prev) => {
-        const updated = { ...prev, logo_url: url }
-        console.log("[SalesChannelForm] handleLogoUpload: Updated formData", updated)
-        return updated
-      })
-      setLogoPreview(url)
-
-      toast({
-        title: "Logo subido",
-        description: "El logo se ha subido correctamente",
-      })
-    } catch (error: any) {
-      console.error("[SalesChannelForm] handleLogoUpload: Error", error)
-      toast({
-        title: "Error",
-        description: error.message || "Error al subir el logo",
-        variant: "destructive",
-      })
-    } finally {
-      setUploadingLogo(false)
-    }
-  }
-
-  const handleRemoveLogo = () => {
-    setFormData({ ...formData, logo_url: "" })
-    setLogoPreview(null)
-  }
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.full_name?.trim()) {
-      newErrors.full_name = "El nombre del canal es obligatorio"
-    }
-
-    if (formData.sales_commission < 0 || formData.sales_commission > 100) {
-      newErrors.sales_commission = "La comisión de venta debe estar entre 0 y 100"
-    }
-
-    if (formData.collection_commission < 0 || formData.collection_commission > 100) {
-      newErrors.collection_commission = "La comisión de cobro debe estar entre 0 y 100"
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "El email no es válido"
-    }
-
-    if (formData.apply_tax && !formData.tax_type_id) {
-      newErrors.tax_type_id = "Debe seleccionar un tipo de impuesto si aplica IVA"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    console.log("[SalesChannelForm] handleSubmit: Starting submit", {
-      channel: channel?.id,
-      formData,
-    })
-
-    if (!validateForm()) {
-      console.log("[SalesChannelForm] handleSubmit: Validation failed")
-      toast({
-        title: "Error de validación",
-        description: "Por favor, corrige los errores en el formulario",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const channelData = {
-        full_name: formData.full_name?.trim() || "",
-        document_type: formData.document_type?.trim() || null,
-        document_number: formData.document_number?.trim() || null,
-        email: formData.email?.trim() || null,
-        phone: formData.phone?.trim() || null,
-        logo_url: formData.logo_url?.trim() || null,
-        sales_commission: formData.sales_commission ?? 0,
-        collection_commission: formData.collection_commission ?? 0,
-        apply_tax: formData.apply_tax ?? false,
-        tax_type_id: formData.apply_tax && formData.tax_type_id ? formData.tax_type_id : null,
-        notes: formData.notes?.trim() || null,
-        is_active: formData.is_active ?? true,
-        is_own_channel: formData.is_own_channel ?? false,
-      }
-
-      console.log("[SalesChannelForm] handleSubmit: Prepared channelData", channelData)
-
-      if (onSave) {
-        const success = await onSave(channelData)
-        if (success) {
-          toast({
-            title: channel ? "Canal actualizado" : "Canal creado",
-            description: `El canal de venta ha sido ${channel ? "actualizado" : "creado"} correctamente`,
-          })
-          router.push("/dashboard/sales-channels")
-          router.refresh()
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setUploadingLogo(true)
+        try {
+            const data = new FormData()
+            data.append("file", file)
+            const response = await fetch("/api/upload/logo", { method: "POST", body: data })
+            if (!response.ok) throw new Error("Error al subir el logo")
+            const { url } = await response.json()
+            setFormData((prev) => ({ ...prev, logo_url: url }))
+            setLogoPreview(url)
+            setIsDirty(true)
+            toast({ title: "Logo subido" })
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" })
+        } finally {
+            setUploadingLogo(false)
         }
-      } else {
-        // Llamar a la API directamente
-        const url = channel
-          ? `/api/sales-channels/${channel.id}`
-          : "/api/sales-channels"
-        const method = channel ? "PUT" : "POST"
-
-        console.log("[SalesChannelForm] handleSubmit: Calling API", {
-          url,
-          method,
-          channelData,
-        })
-
-        const response = await fetch(url, {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(channelData),
-        })
-
-        console.log("[SalesChannelForm] handleSubmit: API response", {
-          status: response.status,
-          ok: response.ok,
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          console.error("[SalesChannelForm] handleSubmit: API error", errorData)
-          throw new Error(errorData.error || "Error al guardar el canal")
-        }
-
-        const responseData = await response.json().catch(() => null)
-        console.log("[SalesChannelForm] handleSubmit: API success", responseData)
-
-        toast({
-          title: channel ? "Canal actualizado" : "Canal creado",
-          description: `El canal de venta ha sido ${channel ? "actualizado" : "creado"} correctamente`,
-        })
-        router.push("/dashboard/sales-channels")
-        router.refresh()
-      }
-    } catch (error: any) {
-      console.error("Error saving sales channel:", error)
-      
-      let errorMessage = "Error al guardar el canal"
-      
-      if (error?.message) {
-        errorMessage = error.message
-      } else if (error?.error?.message) {
-        errorMessage = error.error.message
-      } else if (error?.error) {
-        errorMessage = typeof error.error === 'string' ? error.error : JSON.stringify(error.error)
-      } else if (typeof error === 'string') {
-        errorMessage = error
-      } else if (error?.details) {
-        errorMessage = error.details
-      } else if (error?.hint) {
-        errorMessage = error.hint
-      }
-      
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
     }
-  }
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Información del Canal</CardTitle>
-          <CardDescription>Datos básicos del canal de venta</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="full_name">
-              Nombre del Canal <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="full_name"
-              value={formData.full_name ?? ""}
-              onChange={(e) =>
-                setFormData({ ...formData, full_name: e.target.value })
-              }
-              placeholder="Ej: Booking.com, Airbnb, Propio"
-            />
-            {errors.full_name && (
-              <p className="text-sm text-red-500">{errors.full_name}</p>
-            )}
-          </div>
+    const handleRemoveLogo = () => {
+        setFormData({ ...formData, logo_url: "" })
+        setLogoPreview(null)
+        setIsDirty(true)
+    }
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="document_type">Tipo de Documento</Label>
-              <Input
-                id="document_type"
-                value={formData.document_type ?? ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, document_type: e.target.value })
-                }
-                placeholder="CIF, NIF, etc."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="document_number">Número de Documento</Label>
-              <Input
-                id="document_number"
-                value={formData.document_number ?? ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, document_number: e.target.value })
-                }
-              />
-            </div>
-          </div>
+    const validateForm = (): boolean => {
+        const newErrors: Record<string, string> = {}
+        if (!formData.full_name?.trim()) newErrors.full_name = "El nombre es obligatorio"
+        setErrors(newErrors)
+        return Object.keys(newErrors).length === 0
+    }
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email ?? ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                placeholder="email@ejemplo.com"
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Teléfono</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone ?? ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                placeholder="+34 600 000 000"
-              />
-            </div>
-          </div>
+    const handleSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault()
+        if (!validateForm()) return
+        setLoading(true)
+        try {
+            const channelData = {
+                full_name: formData.full_name?.trim() || "",
+                document_type: formData.document_type?.trim() || null,
+                document_number: formData.document_number?.trim() || null,
+                email: formData.email?.trim() || null,
+                phone: formData.phone?.trim() || null,
+                logo_url: formData.logo_url?.trim() || null,
+                sales_commission: formData.sales_commission ?? 0,
+                collection_commission: formData.collection_commission ?? 0,
+                apply_tax: formData.apply_tax ?? false,
+                tax_type_id: formData.apply_tax && formData.tax_type_id ? formData.tax_type_id : null,
+                notes: formData.notes?.trim() || null,
+                is_active: formData.is_active ?? true,
+                is_own_channel: formData.is_own_channel ?? false,
+            }
 
-          <div className="space-y-2">
-            <Label htmlFor="logo">Logo del Canal</Label>
-            <div className="flex items-center gap-4">
-              {logoPreview && (
-                <div className="relative h-20 w-20 border rounded">
-                  <Image
-                    src={logoPreview}
-                    alt="Logo preview"
-                    fill
-                    className="object-contain p-2"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                    onClick={handleRemoveLogo}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-              <div className="flex-1">
-                <Input
-                  id="logo"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  disabled={uploadingLogo}
-                  className="cursor-pointer"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Formatos: JPEG, PNG, WebP, GIF. Máximo 5MB
-                </p>
-              </div>
-            </div>
-            {uploadingLogo && (
-              <p className="text-sm text-gray-500">Subiendo logo...</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Comisiones e Impuestos</CardTitle>
-          <CardDescription>Configuración de comisiones y tasas</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="sales_commission">
-                Comisión de Venta (%) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="sales_commission"
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value={formData.sales_commission ?? 0}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    sales_commission: parseFloat(e.target.value) || 0,
-                  })
-                }
-              />
-              {errors.sales_commission && (
-                <p className="text-sm text-red-500">{errors.sales_commission}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="collection_commission">
-                Comisión de Cobro (%) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="collection_commission"
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value={formData.collection_commission ?? 0}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    collection_commission: parseFloat(e.target.value) || 0,
-                  })
-                }
-              />
-              {errors.collection_commission && (
-                <p className="text-sm text-red-500">{errors.collection_commission}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 pt-4 border-t">
-            <Checkbox
-              id="apply_tax"
-              checked={formData.apply_tax}
-              onCheckedChange={(checked) => {
-                // Si se activa apply_tax y no hay tax_type_id, aplicar el valor por defecto
-                let newTaxTypeId = checked ? formData.tax_type_id : ""
-                if (checked && !formData.tax_type_id && taxTypes.length > 0) {
-                  const defaultTaxType = taxTypes.find((t: ConfigurationValue) => t.is_default === true)
-                  if (defaultTaxType) {
-                    newTaxTypeId = defaultTaxType.id
-                  }
-                }
-                setFormData({ 
-                  ...formData, 
-                  apply_tax: checked as boolean,
-                  tax_type_id: newTaxTypeId
+            if (onSave) {
+                await onSave(channelData as CreateSalesChannelData)
+            } else {
+                const url = channel ? `/api/sales-channels/${channel.id}` : "/api/sales-channels"
+                const method = channel ? "PUT" : "POST"
+                const response = await fetch(url, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(channelData),
                 })
-              }}
-            />
-            <div className="space-y-1">
-              <Label htmlFor="apply_tax" className="cursor-pointer">
-                Aplicar IVA sobre las comisiones
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Si está marcado, se aplicará el impuesto seleccionado sobre las comisiones de venta y cobro
-              </p>
-            </div>
-          </div>
-
-          {formData.apply_tax && (
-            <div className="space-y-2">
-              <Label htmlFor="tax_type_id">
-                Tipo de Impuesto <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.tax_type_id || undefined}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, tax_type_id: value })
-                }
-              >
-                <SelectTrigger id="tax_type_id">
-                  <SelectValue placeholder="Seleccione un tipo de impuesto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {loadingTaxTypes ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      Cargando tipos de impuesto...
-                    </div>
-                  ) : taxTypes.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                      No hay tipos de impuesto configurados. Configúralos en el módulo de configuración.
-                    </div>
-                  ) : (
-                    taxTypes.map((taxType) => {
-                      const percentage = taxType.description ? parseFloat(taxType.description) : 0
-                      return (
-                        <SelectItem key={taxType.id} value={taxType.id}>
-                          {taxType.label} ({percentage}%)
-                        </SelectItem>
-                      )
-                    })
-                  )}
-                </SelectContent>
-              </Select>
-              {errors.tax_type_id && (
-                <p className="text-sm text-red-500">{errors.tax_type_id}</p>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between space-x-2 pt-4 border-t">
-            <div className="space-y-0.5">
-              <Label htmlFor="is_active">Estado del Canal</Label>
-              <p className="text-sm text-muted-foreground">
-                {formData.is_active 
-                  ? "El canal está activo y disponible para usar en reservas" 
-                  : "El canal está inactivo y no aparecerá en las opciones de reservas"}
-              </p>
-            </div>
-            <Switch
-              id="is_active"
-              checked={formData.is_active}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, is_active: checked })
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between space-x-2 pt-4 border-t">
-            <div className="space-y-0.5">
-              <Label htmlFor="is_own_channel">Canal Propio</Label>
-              <p className="text-sm text-muted-foreground">
-                {formData.is_own_channel 
-                  ? "Este canal se usará automáticamente para reservas creadas desde la landing pública" 
-                  : "Este canal no se usará automáticamente para reservas de la landing"}
-              </p>
-            </div>
-            <Switch
-              id="is_own_channel"
-              checked={formData.is_own_channel}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, is_own_channel: checked })
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Notas</CardTitle>
-          <CardDescription>Información adicional sobre el canal</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            id="notes"
-            value={formData.notes ?? ""}
-            onChange={(e) =>
-              setFormData({ ...formData, notes: e.target.value })
+                if (!response.ok) throw new Error("Error al guardar")
             }
-            placeholder="Notas adicionales sobre el canal..."
-            rows={4}
-          />
-        </CardContent>
-      </Card>
+            toast({ title: channel ? "Actualizado" : "Creado" })
+            router.push("/dashboard/sales-channels")
+            router.refresh()
+        } catch (error: any) {
+            toast({ title: "Error", description: error.message, variant: "destructive" })
+        } finally {
+            setLoading(false)
+        }
+    }
 
-      <div className="flex justify-end gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              {channel ? "Actualizar" : "Crear"} Canal
-            </>
-          )}
-        </Button>
-      </div>
-    </form>
-  )
+    return (
+        <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
+            {/* FIXED HEADER - Unified with PropertyForm style */}
+            <div className="px-8 pt-8 pb-6 shrink-0 bg-white border-b border-slate-100 shadow-sm z-50">
+                <div className="flex items-center gap-6 max-w-[1600px] mx-auto">
+                    <Link href="/dashboard/sales-channels">
+                        <Button variant="outline" size="icon" className="h-12 w-12 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                    </Link>
+                    <div className="flex-1">
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
+                            {title}
+                        </h1>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
+                            {subtitle}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-4 bg-slate-50 px-5 py-2.5 rounded-2xl border border-slate-100 shadow-inner">
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${formData.is_active ? "text-emerald-600" : "text-slate-400"}`}>
+                            {formData.is_active ? "Canal Activo" : "Canal Inactivo"}
+                        </span>
+                        <Switch
+                            checked={formData.is_active}
+                            onCheckedChange={(val) => handleFieldChange("is_active", val)}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-8">
+                <div className="max-w-[1600px] mx-auto">
+                    <form onSubmit={handleSubmit} id="sales-channel-form" className="grid grid-cols-1 xl:grid-cols-12 gap-8 pb-10">
+
+                        {/* Left Column: Identidad & Contacto (8 cols) */}
+                        <div className="xl:col-span-8 space-y-8">
+                            <Card className="rounded-[2.5rem] border-none shadow-[0_8px_40px_rgb(0,0,0,0.03)] bg-white overflow-hidden">
+                                <div className="bg-slate-50/30 px-10 py-6 border-b border-slate-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                                            <Globe className="w-5 h-5 text-indigo-500" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-black text-slate-900 tracking-tighter uppercase text-sm">Información Corporativa</h3>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Identidad y contacto del canal</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <CardContent className="p-10 space-y-10">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="space-y-3">
+                                            <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Nombre Comercial</Label>
+                                            <div className="relative">
+                                                <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                                                <Input
+                                                    value={formData.full_name}
+                                                    onChange={(e) => handleFieldChange("full_name", e.target.value)}
+                                                    placeholder="Booking.com, Airbnb, etc."
+                                                    className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold text-lg pl-14"
+                                                />
+                                            </div>
+                                            {errors.full_name && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-1">{errors.full_name}</p>}
+                                        </div>
+                                        <div className="space-y-3">
+                                            <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Teléfono Directo</Label>
+                                            <div className="relative">
+                                                <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                                                <Input
+                                                    value={formData.phone}
+                                                    onChange={(e) => handleFieldChange("phone", e.target.value)}
+                                                    className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold text-lg pl-14"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                        <div className="space-y-3">
+                                            <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Email de Operaciones</Label>
+                                            <div className="relative">
+                                                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                                                <Input
+                                                    type="email"
+                                                    value={formData.email}
+                                                    onChange={(e) => handleFieldChange("email", e.target.value)}
+                                                    className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold pl-14"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Tipo de Documento</Label>
+                                            <div className="relative">
+                                                <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                                                <Input
+                                                    value={formData.document_type}
+                                                    onChange={(e) => handleFieldChange("document_type", e.target.value)}
+                                                    placeholder="CIF / NIF"
+                                                    className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold pl-14 uppercase"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Nº Identificación</Label>
+                                            <Input
+                                                value={formData.document_number}
+                                                onChange={(e) => handleFieldChange("document_number", e.target.value)}
+                                                className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold px-6"
+                                            />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="rounded-[2.5rem] border-none shadow-[0_8px_40px_rgb(0,0,0,0.03)] bg-white overflow-hidden">
+                                <div className="bg-slate-50/30 px-10 py-6 border-b border-slate-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 bg-emerald-50 rounded-2xl flex items-center justify-center">
+                                            <Calculator className="w-5 h-5 text-emerald-500" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-black text-slate-900 tracking-tighter uppercase text-sm">Finanzas e Impuestos</h3>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Cálculo de comisiones y tasas</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <CardContent className="p-10 space-y-10">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+                                        <div className="space-y-3">
+                                            <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Comisión Venta (%)</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    type="number"
+                                                    value={formData.sales_commission}
+                                                    onChange={(e) => handleFieldChange("sales_commission", parseFloat(e.target.value) || 0)}
+                                                    className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold text-lg px-6 pr-12"
+                                                />
+                                                <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">%</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Comisión Cobro (%)</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    type="number"
+                                                    value={formData.collection_commission}
+                                                    onChange={(e) => handleFieldChange("collection_commission", parseFloat(e.target.value) || 0)}
+                                                    className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold text-lg px-6 pr-12"
+                                                />
+                                                <span className="absolute right-6 top-1/2 -translate-y-1/2 font-black text-slate-300">%</span>
+                                            </div>
+                                        </div>
+                                        <div className="md:col-span-2 space-y-3">
+                                            <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Impuesto Aplicable</Label>
+                                            <div className="flex h-14 items-center justify-between gap-6 px-6 bg-slate-50 border border-slate-100 rounded-2xl transition-all">
+                                                <div className="flex items-center gap-3">
+                                                    <Checkbox
+                                                        id="apply_tax"
+                                                        checked={formData.apply_tax}
+                                                        onCheckedChange={(checked) => handleFieldChange("apply_tax", checked as boolean)}
+                                                        className="rounded-md h-5 w-5 border-slate-300"
+                                                    />
+                                                    <Label htmlFor="apply_tax" className="text-xs font-black text-slate-500 uppercase tracking-tight cursor-pointer">Cargar IVA sobre comisiones</Label>
+                                                </div>
+                                                {formData.apply_tax && (
+                                                    <div className="flex-1 animate-in fade-in slide-in-from-right-4 duration-500">
+                                                        <Select
+                                                            value={formData.tax_type_id}
+                                                            onValueChange={(val) => handleFieldChange("tax_type_id", val)}
+                                                        >
+                                                            <SelectTrigger className="rounded-xl h-10 border-slate-200 bg-white shadow-sm font-bold text-slate-700 px-4">
+                                                                <SelectValue placeholder="Impuesto..." />
+                                                            </SelectTrigger>
+                                                            <SelectContent className="rounded-xl border-slate-200 shadow-xl bg-white">
+                                                                {taxTypes.map(t => (
+                                                                    <SelectItem key={t.id} value={t.id} className="font-bold text-slate-700">
+                                                                        {t.label} ({t.description}%)
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Right Column: Assets & Config (4 cols) */}
+                        <div className="xl:col-span-4 space-y-8">
+                            <Card className="rounded-[2.5rem] border-none shadow-[0_8px_30px_rgb(0,0,0,0.03)] bg-white overflow-hidden text-center">
+                                <div className="bg-slate-50/30 px-8 py-5 border-b border-slate-100 flex items-center justify-center gap-2">
+                                    <h3 className="font-black text-slate-900 tracking-tighter uppercase text-[11px] tracking-widest">Logo del Canal</h3>
+                                </div>
+                                <CardContent className="p-10 space-y-6">
+                                    <div className="relative mx-auto h-40 w-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] flex items-center justify-center overflow-hidden group hover:border-indigo-300 transition-colors">
+                                        {logoPreview ? (
+                                            <>
+                                                <Image src={logoPreview} alt="Logo" fill className="object-contain p-8" />
+                                                <button onClick={handleRemoveLogo} className="absolute top-3 right-3 p-2 bg-white shadow-lg rounded-full text-slate-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100">
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <Upload className="w-10 h-10 text-slate-200" />
+                                        )}
+                                    </div>
+                                    <div className="relative">
+                                        <input id="logo" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                                        <Button asChild variant="outline" className="w-full rounded-2xl h-12 border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 shadow-sm">
+                                            <label htmlFor="logo" className="cursor-pointer">
+                                                {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                                                Cambiar Imagen
+                                            </label>
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="rounded-[2.5rem] border-none shadow-[0_8px_30px_rgb(0,0,0,0.03)] bg-white overflow-hidden">
+                                <div className="bg-slate-50/30 px-8 py-5 border-b border-slate-100">
+                                    <h3 className="font-black text-slate-900 tracking-tighter uppercase text-[11px] tracking-widest">Configuraciones</h3>
+                                </div>
+                                <CardContent className="p-8 space-y-6">
+                                    <div className="flex items-center justify-between p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100 transition-all hover:bg-white hover:border-indigo-100 group">
+                                        <div>
+                                            <p className="text-xs font-black text-slate-800 uppercase tracking-tight group-hover:text-indigo-600 transition-colors">Venta Directa Motor</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">En Landing Propia</p>
+                                        </div>
+                                        <Switch checked={formData.is_own_channel} onCheckedChange={(val) => handleFieldChange("is_own_channel", val)} />
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Anotaciones</Label>
+                                        <Textarea
+                                            value={formData.notes || ""}
+                                            onChange={(e) => handleFieldChange("notes", e.target.value)}
+                                            className="min-h-[140px] rounded-[1.5rem] border-none bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/10 font-medium text-sm p-6 transition-all"
+                                            placeholder="..."
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {/* FIXED FOOTER ACTIONS - Unified with PropertyForm style */}
+            <div className="px-8 py-6 bg-white border-t border-slate-100 shrink-0 z-50">
+                <div className="max-w-[1600px] mx-auto flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">
+                    <div className="hidden sm:block">
+                        <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em]">
+                            {isDirty ? "Cambios no guardados" : "Datos actualizados"}
+                        </p>
+                    </div>
+                    <div className="flex gap-4 w-full sm:w-auto">
+                        <Link href="/dashboard/sales-channels" className="flex-1 sm:flex-initial">
+                            <Button
+                                variant="outline"
+                                className="w-full sm:px-10 h-12 rounded-2xl font-black uppercase text-[11px] tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50"
+                                type="button"
+                                disabled={loading}
+                            >
+                                Cancelar
+                            </Button>
+                        </Link>
+                        <Button
+                            form="sales-channel-form"
+                            type="submit"
+                            disabled={loading}
+                            className="flex-1 sm:flex-initial sm:px-14 h-12 rounded-2xl font-black uppercase text-[11px] tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-3"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Procesando...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="h-4 w-4" />
+                                    <span>{channel ? "Actualizar Canal" : "Crear Canal"}</span>
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
 }
-

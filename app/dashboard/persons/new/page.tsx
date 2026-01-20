@@ -51,24 +51,13 @@ export default async function NewPersonPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/persons">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Nueva Persona</h1>
-          <p className="text-muted-foreground">
-            Crea una nueva persona en el sistema (huésped, propietario, contacto, proveedor, etc.)
-          </p>
-        </div>
-      </div>
-
-      <PersonForm tenantId={tenantId} onSave={handleSave} />
+    <div className="h-full">
+      <PersonForm
+        tenantId={tenantId}
+        onSave={handleSave}
+        title="Nueva Persona"
+        subtitle="Registra un nuevo huésped, propietario o proveedor"
+      />
     </div>
   )
 }
-

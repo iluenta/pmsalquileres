@@ -14,10 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Save, Upload, X, User, Wrench } from "lucide-react"
+import { Loader2, Save, Upload, X, User, Wrench, ArrowLeft, ShieldCheck, Mail, Phone, FileText, Globe } from "lucide-react"
+import Link from "next/link"
 import Image from "next/image"
 import type { ServiceProviderWithDetails, CreateServiceProviderData, UpdateServiceProviderData } from "@/types/service-providers"
 import { ServiceProviderServicesManager } from "./ServiceProviderServicesManager"
@@ -26,16 +27,21 @@ interface ServiceProviderFormProps {
   provider?: ServiceProviderWithDetails
   tenantId: string
   onSave?: (data: CreateServiceProviderData | UpdateServiceProviderData) => Promise<boolean>
+  title: string
+  subtitle: string
 }
 
 export function ServiceProviderForm({
   provider,
   tenantId,
   onSave,
+  title,
+  subtitle,
 }: ServiceProviderFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -108,7 +114,7 @@ export function ServiceProviderForm({
       const { url } = await response.json()
       setFormData((prev) => ({ ...prev, logo_url: url }))
       setLogoPreview(url)
-      
+
       toast({
         title: "Logo subido",
         description: "El logo se ha subido correctamente",
@@ -129,8 +135,13 @@ export function ServiceProviderForm({
     setLogoPreview(null)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleFieldChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    setIsDirty(true)
+  }
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
 
     if (!validateForm()) {
       toast({
@@ -201,218 +212,263 @@ export function ServiceProviderForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{provider ? "Editar Proveedor" : "Nuevo Proveedor"}</CardTitle>
-          <CardDescription>Complete la información del proveedor en las siguientes pestañas</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
+      {/* FIXED HEADER */}
+      <div className="px-12 pt-10 pb-8 shrink-0 bg-white border-b border-slate-100 shadow-sm z-50">
+        <div className="flex items-center gap-8 max-w-[1600px] mx-auto">
+          <Link href="/dashboard/service-providers">
+            <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
+              {title}
+            </h1>
+            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
+              {subtitle}
+            </p>
+          </div>
+          <div className="flex items-center gap-4 bg-slate-50 px-5 py-2.5 rounded-2xl border border-slate-100 shadow-inner">
+            <span className={`text-[10px] font-black uppercase tracking-widest ${formData.is_active ? "text-emerald-600" : "text-slate-400"}`}>
+              {formData.is_active ? "Proveedor Activo" : "Proveedor Inactivo"}
+            </span>
+            <Switch
+              checked={formData.is_active}
+              onCheckedChange={(val) => handleFieldChange("is_active", val)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable Body */}
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-[1600px] mx-auto pb-10">
           <Tabs defaultValue="provider" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="provider" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Datos del Proveedor</span>
-              </TabsTrigger>
-              {provider && (
-                <TabsTrigger value="services" className="flex items-center gap-2">
-                  <Wrench className="h-4 w-4" />
-                  <span className="hidden sm:inline">Servicios</span>
+            <div className="flex justify-center mb-8">
+              <TabsList className="bg-slate-100 p-1.5 rounded-2xl h-14 w-full max-w-md shadow-inner border border-slate-200">
+                <TabsTrigger value="provider" className="rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all flex-1 h-full">
+                  <User className="h-4 w-4" />
+                  Perfil
                 </TabsTrigger>
-              )}
-            </TabsList>
+                {provider && (
+                  <TabsTrigger value="services" className="rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all flex-1 h-full">
+                    <Wrench className="h-4 w-4" />
+                    Servicios
+                  </TabsTrigger>
+                )}
+              </TabsList>
+            </div>
 
-            {/* Pestaña: Datos del Proveedor */}
-            <TabsContent value="provider" className="space-y-4 mt-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Información del Proveedor</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Datos básicos del proveedor de servicios
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="full_name">
-                    Nombre del Proveedor <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="full_name"
-                    value={formData.full_name ?? ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, full_name: e.target.value })
-                    }
-                    placeholder="Ej: Limpiezas ABC, Mantenimientos XYZ"
-                  />
-                  {errors.full_name && (
-                    <p className="text-sm text-red-500">{errors.full_name}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="document_type">Tipo de Documento</Label>
-                    <Input
-                      id="document_type"
-                      value={formData.document_type ?? ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, document_type: e.target.value })
-                      }
-                      placeholder="CIF, NIF, etc."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="document_number">Número de Documento</Label>
-                    <Input
-                      id="document_number"
-                      value={formData.document_number ?? ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, document_number: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email ?? ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      placeholder="email@ejemplo.com"
-                    />
-                    {errors.email && (
-                      <p className="text-sm text-red-500">{errors.email}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={formData.phone ?? ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
-                      placeholder="+34 600 000 000"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="logo">Logo del Proveedor</Label>
-                  <div className="flex items-center gap-4">
-                    {logoPreview && (
-                      <div className="relative h-20 w-20 border rounded">
-                        <Image
-                          src={logoPreview}
-                          alt="Logo preview"
-                          fill
-                          className="object-contain p-2"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                          onClick={handleRemoveLogo}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <Input
-                        id="logo"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        disabled={uploadingLogo}
-                        className="cursor-pointer"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Formatos: JPEG, PNG, WebP, GIF. Máximo 5MB
-                      </p>
+            <TabsContent value="provider" className="mt-0 outline-none">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Logo & Status Column */}
+                <div className="lg:col-span-1 space-y-8">
+                  <Card className="rounded-[2.5rem] border-none shadow-[0_8px_40px_rgb(0,0,0,0.03)] bg-white overflow-hidden">
+                    <div className="bg-slate-50/30 px-8 py-5 border-b border-slate-100">
+                      <h3 className="font-black text-slate-900 tracking-tighter uppercase text-xs">Imagen del Proveedor</h3>
                     </div>
-                  </div>
-                  {uploadingLogo && (
-                    <p className="text-sm text-muted-foreground">Subiendo logo...</p>
-                  )}
+                    <CardContent className="p-8">
+                      <div className="flex flex-col items-center gap-6">
+                        <div className="relative group">
+                          {logoPreview ? (
+                            <div className="relative h-40 w-40 rounded-[2rem] overflow-hidden border-2 border-slate-100 bg-white shadow-xl transition-all group-hover:shadow-indigo-100 group-hover:border-indigo-100">
+                              <Image
+                                src={logoPreview}
+                                alt="Logo preview"
+                                fill
+                                className="object-contain p-4"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-10 w-10 rounded-full bg-white text-red-600 hover:bg-red-50"
+                                  onClick={handleRemoveLogo}
+                                >
+                                  <X className="h-5 w-5" />
+                                </Button>
+                                <label className="h-10 w-10 rounded-full bg-white text-indigo-600 hover:bg-indigo-50 cursor-pointer flex items-center justify-center">
+                                  <Upload className="h-5 w-5" />
+                                  <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                                </label>
+                              </div>
+                            </div>
+                          ) : (
+                            <label className="relative h-40 w-40 rounded-[2rem] border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center gap-3 cursor-pointer group hover:border-indigo-400 hover:bg-indigo-50/30 transition-all">
+                              <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-500 group-hover:scale-110 transition-all">
+                                <Upload className="h-6 w-6" />
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-indigo-500 transition-colors px-4 text-center">Subir Logo comercial</span>
+                              <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                            </label>
+                          )}
+                          {uploadingLogo && (
+                            <div className="absolute inset-0 bg-white/80 rounded-[2rem] flex items-center justify-center z-10">
+                              <Loader2 className="h-8 w-8 text-indigo-500 animate-spin" />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center px-4">
+                          JPEG, PNG, WebP. Máx 5MB
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notas</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes ?? ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, notes: e.target.value })
-                    }
-                    placeholder="Notas adicionales sobre el proveedor..."
-                    rows={4}
-                  />
-                </div>
+                {/* Info Column */}
+                <div className="lg:col-span-2 space-y-8">
+                  <Card className="rounded-[2.5rem] border-none shadow-[0_8px_40_rgb(0,0,0,0.03)] bg-white overflow-hidden">
+                    <div className="bg-slate-50/30 px-10 py-6 border-b border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                          <User className="w-5 h-5 text-indigo-500" />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-slate-900 tracking-tighter uppercase text-sm">Información Principal</h3>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Identificación del proveedor</p>
+                        </div>
+                      </div>
+                    </div>
+                    <CardContent className="p-10 space-y-10">
+                      <div className="space-y-4">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Nombre Comercial</Label>
+                        <div className="relative">
+                          <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                          <Input
+                            value={formData.full_name ?? ""}
+                            onChange={(e) => handleFieldChange("full_name", e.target.value)}
+                            className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold text-lg pl-14"
+                            placeholder="Ej: Mantenimientos Global"
+                          />
+                        </div>
+                        {errors.full_name && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-1">{errors.full_name}</p>}
+                      </div>
 
-                <div className="flex items-center justify-between space-x-2 pt-4 border-t">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="is_active">Estado del Proveedor</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {formData.is_active
-                        ? "El proveedor está activo y disponible para usar"
-                        : "El proveedor está inactivo y no aparecerá en las opciones"}
-                    </p>
-                  </div>
-                  <Switch
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_active: checked })
-                    }
-                  />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Principal</Label>
+                          <div className="relative">
+                            <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                            <Input
+                              type="email"
+                              value={formData.email ?? ""}
+                              onChange={(e) => handleFieldChange("email", e.target.value)}
+                              className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold pl-14"
+                              placeholder="proveedor@empresa.com"
+                            />
+                          </div>
+                          {errors.email && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-1">{errors.email}</p>}
+                        </div>
+                        <div className="space-y-4">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Teléfono Directo</Label>
+                          <div className="relative">
+                            <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                            <Input
+                              type="tel"
+                              value={formData.phone ?? ""}
+                              onChange={(e) => handleFieldChange("phone", e.target.value)}
+                              className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold pl-14"
+                              placeholder="+34 600 000 000"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-slate-50">
+                        <div className="space-y-4">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Tipo de Doc.</Label>
+                          <Input
+                            value={formData.document_type ?? ""}
+                            onChange={(e) => handleFieldChange("document_type", e.target.value)}
+                            placeholder="CIF / NIF"
+                            className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold px-6 uppercase"
+                          />
+                        </div>
+                        <div className="space-y-4">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Nº Documento</Label>
+                          <Input
+                            value={formData.document_number ?? ""}
+                            onChange={(e) => handleFieldChange("document_number", e.target.value)}
+                            className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold px-6"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 pt-6 border-t border-slate-50">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Observaciones / Notas Internas</Label>
+                        <div className="relative">
+                          <FileText className="absolute left-5 top-6 w-5 h-5 text-slate-300" />
+                          <Textarea
+                            value={formData.notes ?? ""}
+                            onChange={(e) => handleFieldChange("notes", e.target.value)}
+                            className="min-h-[140px] rounded-[1.5rem] border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-medium text-sm p-6 pl-14"
+                            placeholder="Información adicional sobre contratos, horarios o condiciones..."
+                            rows={4}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </TabsContent>
 
-            {/* Pestaña: Servicios */}
             {provider && (
-              <TabsContent value="services" className="space-y-4 mt-6">
-                <ServiceProviderServicesManager
-                  serviceProviderId={provider.id}
-                  tenantId={tenantId}
-                />
+              <TabsContent value="services" className="mt-0 outline-none">
+                <div className="rounded-[2.5rem] border-none shadow-[0_8px_40px_rgb(0,0,0,0.03)] bg-white overflow-hidden p-10">
+                  <ServiceProviderServicesManager
+                    serviceProviderId={provider.id}
+                    tenantId={tenantId}
+                  />
+                </div>
               </TabsContent>
             )}
           </Tabs>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              {provider ? "Actualizar" : "Crear"} Proveedor
-            </>
-          )}
-        </Button>
+        </div>
       </div>
-    </form>
+
+      {/* FIXED FOOTER */}
+      <div className="px-12 py-8 bg-white border-t border-slate-100 shrink-0 z-50">
+        <div className="max-w-[1600px] mx-auto flex flex-col-reverse sm:flex-row gap-6 justify-between items-center">
+          <div className="hidden sm:block">
+            <p className="text-xs font-black text-slate-300 uppercase tracking-[0.2em]">
+              {isDirty ? "Cambios no guardados" : "Datos actualizados"}
+            </p>
+          </div>
+          <div className="flex gap-4 w-full sm:w-auto min-w-[320px]">
+            <Button
+              variant="outline"
+              className="flex-1 sm:flex-initial sm:px-12 h-14 rounded-2xl font-black uppercase text-xs tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50"
+              type="button"
+              disabled={loading}
+              onClick={() => router.back()}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => handleSubmit()}
+              disabled={loading}
+              className="flex-1 sm:flex-initial sm:px-16 h-14 rounded-2xl font-black uppercase text-xs tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-3"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Guardando...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-5 w-5" />
+                  <span>{provider ? "Actualizar" : "Crear"} Proveedor</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -59,14 +59,14 @@ export function DashboardContent({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 overflow-y-auto p-8 md:p-10 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Resumen de tu negocio de alquileres vacacionales</p>
+        <h1 className="text-4xl font-black tracking-tighter text-slate-900">Dashboard</h1>
+        <p className="text-lg text-slate-500 font-medium">Resumen de tu negocio de alquileres vacacionales</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <StatCard title="Propiedades Activas" value={stats.totalProperties} icon={Building2} />
         <StatCard title="Reservas Activas" value={stats.activeBookings} icon={Calendar} />
         <StatCard title="Total Huéspedes" value={stats.totalGuests} icon={Users} />

@@ -116,35 +116,35 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
     <>
       {/* Mobile View: Cards */}
       <div className="block md:hidden space-y-4">
-        {providers.map((provider) => (
+        {paginatedProviders.map((provider) => (
           <ServiceProviderCard key={provider.id} provider={provider} onDelete={() => router.refresh()} />
         ))}
       </div>
 
       {/* Desktop View: Table */}
       <div className="hidden md:block">
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4 px-2">
           <p>
             Mostrando {startIndex + 1} - {Math.min(endIndex, providers.length)} de {providers.length} proveedor{providers.length !== 1 ? "es" : ""}
           </p>
         </div>
-        <div className="rounded-md border">
+        <div className="rounded-[2rem] border-none shadow-[0_8px_40px_rgb(0,0,0,0.03)] bg-white overflow-hidden border border-slate-100">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Logo</TableHead>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Teléfono</TableHead>
-                <TableHead>Servicios</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+            <TableHeader className="bg-slate-50/50">
+              <TableRow className="hover:bg-transparent border-slate-100">
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Logo</TableHead>
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Nombre</TableHead>
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Email</TableHead>
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Teléfono</TableHead>
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Servicios</TableHead>
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Estado</TableHead>
+                <TableHead className="py-5 px-6 text-right font-black text-[10px] uppercase tracking-widest text-slate-400">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedProviders.map((provider) => (
-                <TableRow key={provider.id}>
-                  <TableCell>
+                <TableRow key={provider.id} className="group hover:bg-slate-50/50 border-slate-50 transition-colors">
+                  <TableCell className="py-4 px-6">
                     {provider.logo_url ? (
                       <div className="relative h-10 w-10">
                         <Image
@@ -162,10 +162,10 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="font-medium">{provider.person.full_name}</TableCell>
-                  <TableCell>{provider.person.email || "-"}</TableCell>
-                  <TableCell>{provider.person.phone || "-"}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-medium py-4 px-6">{provider.person.full_name}</TableCell>
+                  <TableCell className="py-4 px-6">{provider.person.email || "-"}</TableCell>
+                  <TableCell className="py-4 px-6">{provider.person.phone || "-"}</TableCell>
+                  <TableCell className="py-4 px-6">
                     {provider.services && provider.services.length > 0 ? (
                       <HoverCard>
                         <HoverCardTrigger asChild>
@@ -249,12 +249,12 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
                       <span className="text-muted-foreground text-sm">Sin servicios</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-4 px-6">
                     <Badge variant={provider.is_active ? "default" : "secondary"}>
                       {provider.is_active ? "Activo" : "Inactivo"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="py-4 px-6 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -269,7 +269,10 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => setDeleteDialogOpen(true)}
+                          onClick={() => {
+                            setDeletingId(provider.id)
+                            setDeleteDialogOpen(true)
+                          }}
                           className="text-destructive"
                           disabled={deletingId === provider.id}
                         >
@@ -284,34 +287,38 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
             </TableBody>
           </Table>
         </div>
+      </div>
 
-        {/* Pagination Controls for Desktop */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-end space-x-2 py-4">
+      {/* Pagination Controls - Shared for Mobile and Desktop */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between sm:justify-end space-x-2 mt-8 mb-12 py-6 px-4 border-t border-slate-100 bg-white/50 rounded-b-[2rem] shadow-sm">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest sm:mr-6">
+            Página {currentPage} de {totalPages}
+          </div>
+          <div className="flex gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={handlePreviousPage}
               disabled={currentPage === 1}
+              className="h-10 px-4 rounded-xl border-slate-200 font-black uppercase text-[10px] tracking-widest text-slate-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Anterior
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Anterior</span>
             </Button>
-            <div className="text-sm font-medium">
-              Página {currentPage} de {totalPages}
-            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
+              className="h-10 px-4 rounded-xl border-slate-200 font-black uppercase text-[10px] tracking-widest text-slate-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
             >
-              Siguiente
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <span className="hidden sm:inline">Siguiente</span>
+              <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -325,9 +332,8 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                const providerToDelete = providers.find((p) => deletingId === p.id)
-                if (providerToDelete) {
-                  handleDelete(providerToDelete.id)
+                if (deletingId) {
+                  handleDelete(deletingId)
                 }
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -340,4 +346,3 @@ export function ServiceProvidersTable({ providers }: ServiceProvidersTableProps)
     </>
   )
 }
-

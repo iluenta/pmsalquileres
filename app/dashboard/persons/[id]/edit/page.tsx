@@ -57,25 +57,14 @@ export default async function EditPersonPage({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/persons">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Editar Persona: {getPersonDisplayName()}
-          </h1>
-          <p className="text-muted-foreground">
-            Modifica los datos de la persona
-          </p>
-        </div>
-      </div>
-
-      <PersonForm person={person} tenantId={tenantId} onSave={handleSave} />
+    <div className="h-full">
+      <PersonForm
+        person={person}
+        tenantId={tenantId}
+        onSave={handleSave}
+        title={`Editar ${getPersonDisplayName()}`}
+        subtitle="Modifica los datos del perfil y sus contactos"
+      />
     </div>
   )
 }

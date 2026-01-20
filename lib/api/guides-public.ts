@@ -118,75 +118,88 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
       houseRules,
       houseGuideItems,
       tips,
+      guideSections,
       contactInfo,
       practicalInfo
     ] = await Promise.all([
-      // Secciones del apartamento - usar la tabla específica apartment_sections
+      // 1. Apartment sections
       supabasePublic
         .from('apartment_sections')
         .select('*')
         .eq('guide_id', guide.id)
         .order('order_index', { ascending: true }),
 
-      // Playas
+      // 2. Playas
       supabasePublic
         .from('guide_places')
         .select('*')
         .eq('guide_id', guide.id)
         .eq('place_type', 'beach'),
 
-      // Restaurantes
+      // 3. Restaurantes
       supabasePublic
         .from('guide_places')
         .select('*')
         .eq('guide_id', guide.id)
         .eq('place_type', 'restaurant'),
 
-      // Compras
+      // 4. Compras
       supabasePublic
         .from('guide_places')
         .select('*')
         .eq('guide_id', guide.id)
-        .eq('place_type', 'shopping')
-        .order('order_index', { ascending: true }),
+        .eq('place_type', 'shopping'),
 
-      // Actividades
+      // 5. Actividades
       supabasePublic
         .from('guide_places')
         .select('*')
         .eq('guide_id', guide.id)
         .eq('place_type', 'activity'),
 
-      // Normas de la casa
+      // 6. Normas
       supabasePublic
         .from('house_rules')
         .select('*')
-        .eq('guide_id', guide.id),
+        .eq('guide_id', guide.id)
+        .order('order_index', { ascending: true }),
 
-      // Elementos de la guía de la casa
+      // 7. Guía de la casa (electrodomésticos, etc)
       supabasePublic
         .from('house_guide_items')
         .select('*')
-        .eq('guide_id', guide.id),
+        .eq('guide_id', guide.id)
+        .order('order_index', { ascending: true }),
 
-      // Consejos
+      // 8. Consejos (específicos)
       supabasePublic
         .from('guide_sections')
         .select('*')
         .eq('guide_id', guide.id)
-        .eq('section_type', 'tips'),
+        .eq('section_type', 'tips')
+        .order('order_index', { ascending: true }),
 
-      // Información de contacto
+      // 9. Secciones personalizadas generales (todas)
+      supabasePublic
+        .from('guide_sections')
+        .select('*')
+        .eq('guide_id', guide.id)
+        .order('order_index', { ascending: true }),
+
+      // 10. Información de contacto
       supabasePublic
         .from('guide_contact_info')
         .select('*')
-        .eq('guide_id', guide.id),
+        .eq('guide_id', guide.id)
+        .maybeSingle(),
 
-      // Información práctica
+      // 11. Información práctica
       supabasePublic
-        .from('practical_info')
+        .from('guide_sections')
         .select('*')
         .eq('guide_id', guide.id)
+        .eq('section_type', 'practical')
+        .order('order_index', { ascending: true }),
     ])
 
     console.log('[v0] Apartment sections data:', apartmentSections.data)
@@ -240,7 +253,7 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
     const result = {
       property,
       guide,
-      sections: [],
+      sections: guideSections.data || [],
       apartment_sections: apartmentSections.data || [],
       beaches: beaches.data || [],
       restaurants: restaurants.data || [],

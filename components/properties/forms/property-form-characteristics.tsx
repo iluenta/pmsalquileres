@@ -22,14 +22,11 @@ export function PropertyFormCharacteristics({
     <div className="space-y-6">
       {/* Characteristics Section */}
       <div>
-        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-          <span className="text-lg">🏠</span> Detalles de la Propiedad
-        </h3>
-        <div className="bg-muted/30 p-4 md:p-6 rounded-lg border border-border space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
             <div>
-              <Label htmlFor="bedrooms" className="text-sm font-medium">
-                Habitaciones
+              <Label htmlFor="bedrooms" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
+                Dormitorios
               </Label>
               <Input
                 id="bedrooms"
@@ -37,11 +34,11 @@ export function PropertyFormCharacteristics({
                 min="0"
                 value={formData.bedrooms || 0}
                 onChange={(e) => onFieldChange("bedrooms", parseInt(e.target.value) || 0)}
-                className="mt-2 bg-background"
+                className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-center"
               />
             </div>
             <div>
-              <Label htmlFor="bathrooms" className="text-sm font-medium">
+              <Label htmlFor="bathrooms" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
                 Baños
               </Label>
               <Input
@@ -50,12 +47,12 @@ export function PropertyFormCharacteristics({
                 min="0"
                 value={formData.bathrooms || 0}
                 onChange={(e) => onFieldChange("bathrooms", parseInt(e.target.value) || 0)}
-                className="mt-2 bg-background"
+                className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-center"
               />
             </div>
             <div>
-              <Label htmlFor="max_guests" className="text-sm font-medium">
-                Huéspedes Máx.
+              <Label htmlFor="max_guests" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
+                Huéspedes
               </Label>
               <Input
                 id="max_guests"
@@ -63,12 +60,12 @@ export function PropertyFormCharacteristics({
                 min="0"
                 value={formData.max_guests || 0}
                 onChange={(e) => onFieldChange("max_guests", parseInt(e.target.value) || 0)}
-                className="mt-2 bg-background"
+                className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-center text-indigo-600"
               />
             </div>
             <div>
-              <Label htmlFor="square_meters" className="text-sm font-medium">
-                Metros²
+              <Label htmlFor="square_meters" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
+                M²
               </Label>
               <Input
                 id="square_meters"
@@ -77,28 +74,24 @@ export function PropertyFormCharacteristics({
                 placeholder="0"
                 value={formData.square_meters || 0}
                 onChange={(e) => onFieldChange("square_meters", parseInt(e.target.value) || 0)}
-                className="mt-2 bg-background"
+                className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-center"
               />
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="min_nights" className="text-sm font-medium">
-              Noches Mínimas <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="min_nights"
-              type="number"
-              min="1"
-              placeholder="Número mínimo de noches"
-              value={formData.min_nights || 1}
-              onChange={(e) => onFieldChange("min_nights", parseInt(e.target.value) || 1)}
-              className="mt-2 bg-background"
-              required
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Número mínimo de noches requeridas para reservas comerciales
-            </p>
+            <div>
+              <Label htmlFor="min_nights" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
+                Mín. Noches <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="min_nights"
+                type="number"
+                min="1"
+                placeholder="1"
+                value={formData.min_nights || 1}
+                onChange={(e) => onFieldChange("min_nights", parseInt(e.target.value) || 1)}
+                className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-center"
+                required
+              />
+            </div>
           </div>
         </div>
       </div>

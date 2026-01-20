@@ -32,6 +32,7 @@ export const ICON_REGISTRY: Record<string, IconDefinition[]> = {
         { name: "Camera", label: "Cámara", component: LucideIcons.Camera },
         { name: "Luggage", label: "Maleta", component: LucideIcons.Luggage },
         { name: "Sun", label: "Sol", component: LucideIcons.Sun },
+        { name: "CloudSun", label: "Clima", component: LucideIcons.CloudSun },
         { name: "Umbrella", label: "Paraguas", component: LucideIcons.Umbrella },
     ],
     Transporte: [

@@ -1,9 +1,7 @@
 "use client"
 
-import { format, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns"
-import { es } from "date-fns/locale"
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, addDays, subDays } from "date-fns"
 import { cn } from "@/lib/utils"
-import { Card } from "@/components/ui/card"
 import type { CalendarDay } from "@/lib/api/calendar"
 
 interface MonthCalendarProps {
@@ -17,108 +15,130 @@ export function MonthCalendar({ month, days, onDayClick }: MonthCalendarProps) {
   const monthEnd = endOfMonth(month)
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
 
-  // Obtener el primer día de la semana del mes (0 = domingo, 1 = lunes, etc.)
   const firstDayOfWeek = monthStart.getDay()
-  // Ajustar para que la semana empiece en lunes (0 = lunes)
   const adjustedFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1
-
-  // Crear array de días vacíos al inicio
   const emptyDays = Array(adjustedFirstDay).fill(null)
 
-  // Crear mapa de días para acceso rápido
   const daysMap = new Map<string, CalendarDay>()
   days.forEach(day => {
-    const dateKey = format(day.date, 'yyyy-MM-dd')
+    const d = day.date instanceof Date ? day.date : new Date(day.date)
+    const dateKey = format(d, 'yyyy-MM-dd')
     daysMap.set(dateKey, day)
   })
 
-  const getStatusColor = (day: CalendarDay | null): string => {
-    if (!day) {
-      return "bg-emerald-50 dark:bg-emerald-950 text-foreground hover:bg-emerald-100 dark:hover:bg-emerald-900"
-    }
-    
-    if (day.isAvailable) {
-      return "bg-emerald-50 dark:bg-emerald-950 text-foreground hover:bg-emerald-100 dark:hover:bg-emerald-900"
-    }
-    
-    if (day.bookingType === 'closed_period') {
-      return "bg-amber-500 dark:bg-amber-600 text-white dark:text-white"
-    }
-    
-    // Reserva comercial
-    return "bg-rose-500 dark:bg-rose-600 text-white dark:text-white"
+  // Lógica para determinar el estilo de "Cinta" profesional continua
+  const getBookingStyles = (day: CalendarDay, date: Date) => {
+    if (day.isAvailable || (!day.booking && day.bookingType !== 'closed_period')) return ""
+
+    const bookingId = day.booking?.id || 'closed'
+    const prevDateKey = format(subDays(date, 1), 'yyyy-MM-dd')
+    const nextDateKey = format(addDays(date, 1), 'yyyy-MM-dd')
+
+    const isContinuationFromPrev = daysMap.get(prevDateKey)?.booking?.id === bookingId || (day.bookingType === 'closed_period' && daysMap.get(prevDateKey)?.bookingType === 'closed_period')
+    const isContinuationToNext = daysMap.get(nextDateKey)?.booking?.id === bookingId || (day.bookingType === 'closed_period' && daysMap.get(nextDateKey)?.bookingType === 'closed_period')
+
+    const isStart = !isContinuationFromPrev
+    const isEnd = !isContinuationToNext
+
+    return cn(
+      "absolute inset-x-0 h-10 flex items-center z-20 transition-all top-1/2 -translate-y-1/2 shadow-none",
+      day.bookingType === 'closed_period'
+        ? "bg-slate-100 text-slate-400 after:absolute after:inset-0 after:opacity-5 after:[background-image:linear-gradient(45deg,#000_25%,transparent_25%,transparent_50%,#000_50%,#000_75%,transparent_75%,transparent)] after:[background-size:4px_4px]"
+        : "bg-indigo-600 text-white font-bold",
+      isStart ? "rounded-l ml-1.5" : "-ml-px",
+      isEnd ? "rounded-r mr-1.5" : "-mr-px"
+    )
   }
 
-  const monthName = month.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+  const monthName = month.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }).toUpperCase()
 
   return (
-    <Card className="overflow-hidden border-border">
-      <div className="bg-gradient-to-r from-muted/50 to-muted/30 dark:from-muted/30 dark:to-muted/20 p-4">
-        <h3 className="text-center font-semibold text-foreground text-pretty capitalize">
+    <div className="w-full bg-white animate-in fade-in duration-300">
+      <div className="py-4 px-1">
+        <h3 className="text-[14px] font-black text-slate-900 tracking-tighter">
           {monthName}
         </h3>
       </div>
 
-      <div className="p-4">
-        {/* Day headers */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day) => (
+      <div className="grid grid-cols-7 border-t border-l border-slate-200">
+        {['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'].map((day) => (
+          <div
+            key={day}
+            className="text-center text-[10px] font-black text-slate-400 py-3 border-r border-b border-slate-200 bg-white"
+          >
+            {day}
+          </div>
+        ))}
+
+        {emptyDays.map((_, i) => (
+          <div key={`empty-${i}`} className="aspect-[4/3] border-r border-b border-slate-200 bg-slate-50/10" />
+        ))}
+
+        {monthDays.map((date) => {
+          const dateKey = format(date, 'yyyy-MM-dd')
+          const day = daysMap.get(dateKey) || null
+          const isReserved = day && !day.isAvailable
+          const isWeekend = date.getDay() === 0 || date.getDay() === 6
+
+          const prevDateKey = format(subDays(date, 1), 'yyyy-MM-dd')
+          const isFirstDayOfSegment = isReserved && (
+            !daysMap.get(prevDateKey)?.booking ||
+            daysMap.get(prevDateKey)?.booking?.id !== day.booking?.id ||
+            date.getDay() === 1
+          )
+
+          // Datos técnicos (Precios y Restricciones)
+          const price = "145€"
+          const minStay = "Min 3"
+          const hasRestriction = true // Simulado
+
+          return (
             <div
-              key={day}
-              className="text-center text-xs font-semibold text-muted-foreground py-2"
+              key={dateKey}
+              className={cn(
+                "relative aspect-[4/3] transition-colors border-r border-b border-slate-200 cursor-pointer overflow-hidden",
+                isWeekend ? "bg-slate-50/50" : "bg-white",
+                "hover:bg-slate-50"
+              )}
+              onClick={() => day && onDayClick?.(day)}
             >
-              {day}
-            </div>
-          ))}
-        </div>
+              {/* Hierarquía Triángulo: Día (Top-Left), Precio (Center), Mínimo (Bottom-Right) */}
+              <div className="flex flex-col h-full p-2.5 justify-between relative z-10 w-full">
+                <span className="text-[10px] font-bold text-slate-400 leading-none">
+                  {format(date, "d")}
+                </span>
 
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {/* Empty cells for days before month starts */}
-          {emptyDays.map((_, i) => (
-            <div key={`empty-${i}`} className="aspect-square" />
-          ))}
-
-          {/* Days */}
-          {monthDays.map((date) => {
-            const dateKey = format(date, 'yyyy-MM-dd')
-            const day = daysMap.get(dateKey) || null
-            const isReserved = day && !day.isAvailable
-            const statusColor = getStatusColor(day)
-
-            return (
-              <div
-                key={dateKey}
-                className={cn(
-                  "aspect-square rounded-md border border-border flex flex-col items-center justify-center p-1 text-xs transition-colors cursor-pointer",
-                  statusColor
+                {!isReserved && (
+                  <div className="flex-1 flex items-center justify-center">
+                    <span className="text-sm font-black text-slate-900 leading-none tracking-tight">
+                      {price}
+                    </span>
+                  </div>
                 )}
-                title={
-                  isReserved && day.booking
-                    ? `${day.guestName || 'Reserva'} (${format(day.date, 'dd/MM/yyyy')})`
-                    : day?.bookingType === 'closed_period'
-                    ? 'Período Cerrado'
-                    : 'Disponible'
-                }
-                onClick={() => day && onDayClick?.(day)}
-              >
-                <span className="font-semibold">{format(date, "d")}</span>
-                {isReserved && day.guestName && (
-                  <span className="text-xs font-medium leading-tight text-center line-clamp-2">
-                    {day.guestName}
-                  </span>
-                )}
-                {day?.bookingType === 'closed_period' && (
-                  <span className="text-xs font-medium leading-tight text-center line-clamp-2">
-                    Período Cerrado
-                  </span>
+
+                {!isReserved && hasRestriction && (
+                  <div className="flex justify-end w-full">
+                    <span className="text-[9px] font-black text-amber-600 uppercase tracking-tighter">
+                      {minStay}
+                    </span>
+                  </div>
                 )}
               </div>
-            )
-          })}
-        </div>
+
+              {/* Cintas de Reserva Continuas (On top of grid) */}
+              {isReserved && (
+                <div className={getBookingStyles(day!, date)}>
+                  {isFirstDayOfSegment && day.guestName && day.bookingType !== 'closed_period' && (
+                    <span className="absolute left-3 w-max max-w-full text-[10px] font-black uppercase text-white tracking-widest px-1 truncate z-30">
+                      {day.guestName}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
-    </Card>
+    </div>
   )
 }
-

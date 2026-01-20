@@ -237,18 +237,20 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         if (!data) return
 
         // Calcular tabs dentro del effect
+        // Calcular tabs disponibles basados en la visibilidad de las secciones
+        // Calcular tabs disponibles basados en la presencia de secciones registradas
         const tabs = [
-            { id: "bienvenida", label: "Bienvenida", icon: getIconByName("Sparkles"), show: !!data.guide.welcome_message },
-            { id: "apartamento", label: "Apartamento", icon: getIconByName("Home"), show: data.apartment_sections?.length > 0 },
-            { id: "tiempo", label: "Tiempo actual", icon: getIconByName("CloudSun"), show: !!(data.guide.latitude && data.guide.longitude) },
-            { id: "normas", label: "Normas", icon: getIconByName("ClipboardList"), show: data.house_rules?.length > 0 },
-            { id: "guia-casa", label: "Guía Casa", icon: getIconByName("Book"), show: data.house_guide_items?.length > 0 },
-            { id: "consejos", label: "Consejos", icon: getIconByName("Lightbulb"), show: data.tips?.length > 0 },
-            { id: "compras", label: "Compras", icon: getIconByName("ShoppingBag"), show: data.shopping?.length > 0 },
-            { id: "playas", label: "Playas", icon: getIconByName("Umbrella"), show: data.beaches?.length > 0 },
-            { id: "restaurantes", label: "Restaurantes", icon: getIconByName("Utensils"), show: data.restaurants?.length > 0 },
-            { id: "actividades", label: "Actividades", icon: getIconByName("Mountain"), show: data.activities?.length > 0 },
-            { id: "contacto", label: "Contacto", icon: getIconByName("Phone"), show: !!data.contact_info },
+            { id: "bienvenida", label: t.welcome, icon: getIconByName("Sparkles"), show: !!data.guide.welcome_message },
+            { id: "apartamento", label: t.apartment, icon: getIconByName(data.sections?.find(s => s.section_type === 'apartment')?.icon || "Home"), show: data.sections?.some(s => s.section_type === 'apartment') },
+            { id: "tiempo", label: t.weather_now, icon: getIconByName("CloudSun"), show: !!(data.guide.latitude && data.guide.longitude) },
+            { id: "normas", label: t.house_rules, icon: getIconByName(data.sections?.find(s => s.section_type === 'rules')?.icon || "ClipboardList"), show: data.sections?.some(s => s.section_type === 'rules') },
+            { id: "guia-casa", label: t.house_guide, icon: getIconByName(data.sections?.find(s => s.section_type === 'house_guide')?.icon || "Book"), show: data.sections?.some(s => s.section_type === 'house_guide') },
+            { id: "consejos", label: t.tips, icon: getIconByName(data.sections?.find(s => s.section_type === 'tips')?.icon || "Lightbulb"), show: data.sections?.some(s => s.section_type === 'tips') },
+            { id: "compras", label: t.shopping, icon: getIconByName(data.sections?.find(s => s.section_type === 'shopping')?.icon || "ShoppingBag"), show: data.sections?.some(s => s.section_type === 'shopping') },
+            { id: "playas", label: t.beaches, icon: getIconByName(data.sections?.find(s => s.section_type === 'beaches')?.icon || "Umbrella"), show: data.sections?.some(s => s.section_type === 'beaches') },
+            { id: "restaurantes", label: t.restaurants, icon: getIconByName(data.sections?.find(s => s.section_type === 'restaurants')?.icon || "Utensils"), show: data.sections?.some(s => s.section_type === 'restaurants') },
+            { id: "actividades", label: t.activities, icon: getIconByName(data.sections?.find(s => s.section_type === 'activities')?.icon || "Mountain"), show: data.sections?.some(s => s.section_type === 'activities') },
+            { id: "contacto", label: t.contact, icon: getIconByName(data.sections?.find(s => s.section_type === 'contact')?.icon || "Phone"), show: data.sections?.some(s => s.section_type === 'contact') },
         ].filter(tab => tab.show)
 
         if (tabs.length === 0) return
@@ -307,18 +309,19 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
         if (!data) return
 
         // Calcular tabs dentro del effect
+        // Usar la misma lógica de visibilidad que en el IntersectionObserver (presencia de secciones)
         const tabs = [
-            { id: "bienvenida", label: "Bienvenida", icon: Sparkles, show: !!data.guide.welcome_message },
-            { id: "apartamento", label: "Apartamento", icon: Home, show: data.apartment_sections?.length > 0 },
-            { id: "tiempo", label: "Tiempo actual", icon: CloudSun, show: !!(data.guide.latitude && data.guide.longitude) },
-            { id: "normas", label: "Normas", icon: ClipboardList, show: data.house_rules?.length > 0 },
-            { id: "guia-casa", label: "Guía Casa", icon: Book, show: data.house_guide_items?.length > 0 },
-            { id: "consejos", label: "Consejos", icon: Lightbulb, show: data.tips?.length > 0 },
-            { id: "compras", label: "Compras", icon: ShoppingBag, show: data.shopping?.length > 0 && data.sections.some(s => s.section_type === 'shopping') },
-            { id: "playas", label: "Playas", icon: Umbrella, show: data.beaches?.length > 0 && data.sections.some(s => s.section_type === 'beaches') },
-            { id: "restaurantes", label: "Restaurantes", icon: Utensils, show: data.restaurants?.length > 0 && data.sections.some(s => s.section_type === 'restaurants') },
-            { id: "actividades", label: "Actividades", icon: Mountain, show: data.activities?.length > 0 && data.sections.some(s => s.section_type === 'activities') },
-            { id: "contacto", label: "Contacto", icon: Phone, show: !!data.contact_info },
+            { id: "bienvenida", show: !!data.guide.welcome_message },
+            { id: "apartamento", show: data.sections?.some(s => s.section_type === 'apartment') },
+            { id: "tiempo", show: !!(data.guide.latitude && data.guide.longitude) },
+            { id: "normas", show: data.sections?.some(s => s.section_type === 'rules') },
+            { id: "guia-casa", show: data.sections?.some(s => s.section_type === 'house_guide') },
+            { id: "consejos", show: data.sections?.some(s => s.section_type === 'tips') },
+            { id: "compras", show: data.sections?.some(s => s.section_type === 'shopping') },
+            { id: "playas", show: data.sections?.some(s => s.section_type === 'beaches') },
+            { id: "restaurantes", show: data.sections?.some(s => s.section_type === 'restaurants') },
+            { id: "actividades", show: data.sections?.some(s => s.section_type === 'activities') },
+            { id: "contacto", show: data.sections?.some(s => s.section_type === 'contact') },
         ].filter(tab => tab.show)
 
         if (tabs.length === 0) return
@@ -413,19 +416,19 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
     const t = uiTranslations[currentLanguage] || uiTranslations["es"]
 
-    // Definición de tabs basada en disponibilidad de datos
+    // Definición de tabs basada únicamente en la presencia de secciones guía (excepto bienvenida y tiempo)
     const tabs = [
         { id: "bienvenida", label: t.welcome, icon: getIconByName("Sparkles"), show: !!data.guide.welcome_message },
-        { id: "apartamento", label: t.apartment, icon: getIconByName("Home"), show: data.apartment_sections?.length > 0 },
-        { id: "normas", label: t.house_rules, icon: getIconByName("ClipboardList"), show: data.house_rules?.length > 0 },
-        { id: "tiempo", label: t.today, icon: getIconByName("CloudSun"), show: !!(data.guide.latitude && data.guide.longitude) },
-        { id: "guia-casa", label: t.house_guide, icon: getIconByName("Book"), show: data.house_guide_items?.length > 0 },
-        { id: "consejos", label: t.tips, icon: getIconByName("Lightbulb"), show: data.tips?.length > 0 },
-        { id: "compras", label: t.shopping, icon: getIconByName("ShoppingBag"), show: data.shopping?.length > 0 && data.sections.some(s => s.section_type === 'shopping') },
-        { id: "playas", label: t.beaches, icon: getIconByName("Umbrella"), show: data.beaches?.length > 0 && data.sections.some(s => s.section_type === 'beaches') },
-        { id: "restaurantes", label: t.restaurants, icon: getIconByName("Utensils"), show: data.restaurants?.length > 0 && data.sections.some(s => s.section_type === 'restaurants') },
-        { id: "actividades", label: t.activities, icon: getIconByName("Mountain"), show: data.activities?.length > 0 && data.sections.some(s => s.section_type === 'activities') },
-        { id: "contacto", label: t.contact, icon: getIconByName("Phone"), show: !!data.contact_info },
+        { id: "apartamento", label: t.apartment, icon: getIconByName(data.sections?.find(s => s.section_type === 'apartment')?.icon || "Home"), show: data.sections?.some(s => s.section_type === 'apartment') },
+        { id: "normas", label: t.house_rules, icon: getIconByName(data.sections?.find(s => s.section_type === 'rules')?.icon || "ClipboardList"), show: data.sections?.some(s => s.section_type === 'rules') },
+        { id: "tiempo", label: t.weather_now, icon: getIconByName("CloudSun"), show: !!(data.guide.latitude && data.guide.longitude) },
+        { id: "guia-casa", label: t.house_guide, icon: getIconByName(data.sections?.find(s => s.section_type === 'house_guide')?.icon || "Book"), show: data.sections?.some(s => s.section_type === 'house_guide') },
+        { id: "consejos", label: t.tips, icon: getIconByName(data.sections?.find(s => s.section_type === 'tips')?.icon || "Lightbulb"), show: data.sections?.some(s => s.section_type === 'tips') },
+        { id: "compras", label: t.shopping, icon: getIconByName(data.sections?.find(s => s.section_type === 'shopping')?.icon || "ShoppingBag"), show: data.sections?.some(s => s.section_type === 'shopping') },
+        { id: "playas", label: t.beaches, icon: getIconByName(data.sections?.find(s => s.section_type === 'beaches')?.icon || "Umbrella"), show: data.sections?.some(s => s.section_type === 'beaches') },
+        { id: "restaurantes", label: t.restaurants, icon: getIconByName(data.sections?.find(s => s.section_type === 'restaurants')?.icon || "Utensils"), show: data.sections?.some(s => s.section_type === 'restaurants') },
+        { id: "actividades", label: t.activities, icon: getIconByName(data.sections?.find(s => s.section_type === 'activities')?.icon || "Mountain"), show: data.sections?.some(s => s.section_type === 'activities') },
+        { id: "contacto", label: t.contact, icon: getIconByName(data.sections?.find(s => s.section_type === 'contact')?.icon || "Phone"), show: data.sections?.some(s => s.section_type === 'contact') },
     ].filter(tab => tab.show)
 
     // Función para renderizar todas las secciones con IDs únicos
@@ -456,7 +459,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
         // Apartamento
         if (tabs.find(t => t.id === "apartamento")) {
-            const apartmentIntro = data.sections.find(s => s.section_type === "apartment")
+            const apartmentIntro = data.sections?.find(s => s.section_type === "apartment")
             sections.push(
                 <section key="apartamento" data-section-id="apartamento" ref={(el) => { sectionRefs.current["apartamento"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <ApartmentSection
@@ -471,7 +474,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
         // Normas
         if (tabs.find(t => t.id === "normas")) {
-            const rulesIntro = data.sections.find(s => s.section_type === "rules")
+            const rulesIntro = data.sections?.find(s => s.section_type === "rules")
             sections.push(
                 <section key="normas" data-section-id="normas" ref={(el) => { sectionRefs.current["normas"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <HouseRulesSection rules={data.house_rules} introSection={rulesIntro} currentLanguage={currentLanguage} />
@@ -496,7 +499,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
         // Guía Casa
         if (tabs.find(t => t.id === "guia-casa")) {
-            const houseGuideIntro = data.sections.find(s => s.section_type === "house_guide")
+            const houseGuideIntro = data.sections?.find(s => s.section_type === "house_guide")
             sections.push(
                 <section key="guia-casa" data-section-id="guia-casa" ref={(el) => { sectionRefs.current["guia-casa"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <HouseGuideSection items={data.house_guide_items} introSection={houseGuideIntro} currentLanguage={currentLanguage} />
@@ -506,7 +509,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
         // Consejos
         if (tabs.find(t => t.id === "consejos")) {
-            const tipsIntro = data.sections.find(s => s.section_type === "tips")
+            const tipsIntro = data.sections?.find(s => s.section_type === "tips")
             sections.push(
                 <section key="consejos" data-section-id="consejos" ref={(el) => { sectionRefs.current["consejos"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <TipsSection tips={data.tips} introSection={tipsIntro} currentLanguage={currentLanguage} />
@@ -516,7 +519,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
         // Compras
         if (tabs.find(t => t.id === "compras")) {
-            const shoppingIntro = data.sections.find(s => s.section_type === "shopping")
+            const shoppingIntro = data.sections?.find(s => s.section_type === "shopping")
             sections.push(
                 <section key="compras" data-section-id="compras" ref={(el) => { sectionRefs.current["compras"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <ShoppingSection shopping={data.shopping} introSection={shoppingIntro} currentLanguage={currentLanguage} />
@@ -526,7 +529,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
         // Playas
         if (tabs.find(t => t.id === "playas")) {
-            const beachesIntro = data.sections.find(s => s.section_type === "beaches")
+            const beachesIntro = data.sections?.find(s => s.section_type === "beaches")
             sections.push(
                 <section key="playas" data-section-id="playas" ref={(el) => { sectionRefs.current["playas"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <BeachesSection beaches={data.beaches} introSection={beachesIntro} currentLanguage={currentLanguage} />
@@ -536,7 +539,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
         // Restaurantes
         if (tabs.find(t => t.id === "restaurantes")) {
-            const restaurantsIntro = data.sections.find(s => s.section_type === "restaurants")
+            const restaurantsIntro = data.sections?.find(s => s.section_type === "restaurants")
             sections.push(
                 <section key="restaurantes" data-section-id="restaurantes" ref={(el) => { sectionRefs.current["restaurantes"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <RestaurantsSection restaurants={data.restaurants} introSection={restaurantsIntro} currentLanguage={currentLanguage} />
@@ -546,7 +549,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
         // Actividades
         if (tabs.find(t => t.id === "actividades")) {
-            const activitiesIntro = data.sections.find(s => s.section_type === "activities")
+            const activitiesIntro = data.sections?.find(s => s.section_type === "activities")
             sections.push(
                 <section key="actividades" data-section-id="actividades" ref={(el) => { sectionRefs.current["actividades"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <ActivitiesSection activities={data.activities} introSection={activitiesIntro} currentLanguage={currentLanguage} />
@@ -556,7 +559,7 @@ export function PropertyGuideV2({ propertyId, booking, initialLanguage }: Proper
 
         // Contacto
         if (tabs.find(t => t.id === "contacto") && data.contact_info) {
-            const contactIntro = data.sections.find(s => s.section_type === "contact")
+            const contactIntro = data.sections?.find(s => s.section_type === "contact")
             sections.push(
                 <section key="contacto" data-section-id="contacto" ref={(el) => { sectionRefs.current["contacto"] = el }} className="scroll-mt-[80px] md:scroll-mt-[170px]">
                     <ContactSection contactInfo={data.contact_info} introSection={contactIntro} currentLanguage={currentLanguage} />

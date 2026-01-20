@@ -300,16 +300,19 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold">Galería de Imágenes</h3>
-            <p className="text-sm text-muted-foreground">
-              Sube hasta 20 imágenes. Una de ellas será la portada.
-            </p>
+      <div className="bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center rotate-3">
+              <Upload className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-900 tracking-tighter">Galería de Imágenes</h3>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sube hasta 20 fotos profesionales</p>
+            </div>
           </div>
-          <div className="relative">
-            <Input
+          <div className="relative w-full sm:w-auto">
+            <input
               ref={fileInputRef}
               type="file"
               accept="image/jpeg,image/jpg,image/png,image/webp"
@@ -320,9 +323,8 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
             />
             <Button
               type="button"
-              variant="outline"
               disabled={uploading || images.length >= 20}
-              className="gap-2"
+              className="w-full sm:w-auto gap-2 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold px-6 shadow-lg shadow-indigo-100 transition-all"
               onClick={() => fileInputRef.current?.click()}
             >
               {uploading ? (
@@ -341,21 +343,23 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
         </div>
 
         {images.length === 0 ? (
-          <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-12 text-center">
-            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              No hay imágenes. Sube la primera imagen para comenzar.
+          <div className="border-2 border-dashed border-slate-100 bg-slate-50/50 rounded-[2rem] p-16 text-center">
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mx-auto mb-4 -rotate-6">
+              <Upload className="h-8 w-8 text-slate-300" />
+            </div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest max-w-[200px] mx-auto leading-loose">
+              No hay imágenes todavía. Sube la primera para comenzar.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {images.map((image) => (
               <div
                 key={image.id}
-                className="group relative border rounded-lg overflow-hidden bg-card hover:shadow-lg transition"
+                className="group relative bg-white border border-slate-100 rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 transition-all duration-300"
               >
                 {/* Imagen */}
-                <div className="relative aspect-video bg-muted">
+                <div className="relative aspect-[4/3] bg-slate-50">
                   <Image
                     src={image.image_url}
                     alt={image.title}
@@ -366,60 +370,59 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
 
                   {/* Badge de portada */}
                   {image.is_cover && (
-                    <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 z-10">
-                      <Star className="h-3 w-3 fill-current" />
+                    <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-indigo-600 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 z-10 shadow-sm">
+                      <Star className="h-3 w-3 fill-indigo-600" />
                       Portada
                     </div>
                   )}
 
-                  {/* Menú de acciones - Siempre visible en móvil, hover en desktop */}
-                  <div className="absolute top-2 right-2 z-10">
+                  {/* Menú de acciones */}
+                  <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           type="button"
                           size="icon"
-                          variant="secondary"
-                          className="h-8 w-8 bg-black/60 hover:bg-black/80 text-white backdrop-blur-sm"
+                          className="h-8 w-8 bg-white/90 backdrop-blur-md hover:bg-white text-slate-600 rounded-lg shadow-sm"
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <Edit2 className="h-3.5 w-3.5" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(image)}>
-                          <Edit2 className="h-4 w-4 mr-2" />
+                      <DropdownMenuContent align="end" className="rounded-xl border-slate-100 p-1">
+                        <DropdownMenuItem onClick={() => handleEdit(image)} className="rounded-lg text-xs font-bold uppercase tracking-wider text-slate-600">
+                          <Edit2 className="h-3.5 w-3.5 mr-2" />
                           Editar título
                         </DropdownMenuItem>
                         {!image.is_cover && (
-                          <DropdownMenuItem onClick={() => handleSetCover(image.id)}>
-                            <Star className="h-4 w-4 mr-2" />
-                            Marcar como portada
+                          <DropdownMenuItem onClick={() => handleSetCover(image.id)} className="rounded-lg text-xs font-bold uppercase tracking-wider text-indigo-600">
+                            <Star className="h-3.5 w-3.5 mr-2" />
+                            Marcar portada
                           </DropdownMenuItem>
                         )}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <DropdownMenuItem
                               onSelect={(e) => e.preventDefault()}
-                              className="text-destructive focus:text-destructive"
+                              className="rounded-lg text-xs font-bold uppercase tracking-wider text-red-600 focus:text-red-700"
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />
+                              <Trash2 className="h-3.5 w-3.5 mr-2" />
                               Eliminar
                             </DropdownMenuItem>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent className="rounded-[2rem] border-none shadow-2xl">
                             <AlertDialogHeader>
-                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción eliminará de forma permanente esta imagen.
+                              <AlertDialogTitle className="font-black text-xl tracking-tighter">¿Eliminar esta imagen?</AlertDialogTitle>
+                              <AlertDialogDescription className="text-sm font-medium text-slate-500">
+                                Esta acción es permanente y no se puede deshacer.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogFooter className="gap-2">
+                              <AlertDialogCancel className="rounded-xl border-slate-100 font-bold uppercase text-[10px] tracking-widest mt-0">Cancelar</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleDelete(image.id)}
-                                className="bg-red-600 hover:bg-red-700"
+                                className="rounded-xl bg-red-600 hover:bg-red-700 font-bold uppercase text-[10px] tracking-widest"
                               >
-                                Eliminar
+                                Eliminar ahora
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -427,70 +430,17 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-
-                  {/* Overlay con botones grandes - Solo visible en hover en desktop */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex items-center justify-center gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleEdit(image)}
-                    >
-                      <Edit2 className="h-4 w-4 mr-1" />
-                      Editar
-                    </Button>
-                    {!image.is_cover && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleSetCover(image.id)}
-                      >
-                        <Star className="h-4 w-4 mr-1" />
-                        Portada
-                      </Button>
-                    )}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Eliminar
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta acción eliminará de forma permanente esta imagen.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(image.id)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
                 </div>
 
                 {/* Título y orden */}
-                <div className="p-3">
+                <div className="p-4 bg-white border-t border-slate-50">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium truncate" title={image.title}>
+                    <p className="text-[11px] font-black text-slate-900 uppercase tracking-tighter truncate" title={image.title}>
                       {image.title}
                     </p>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      Orden: {image.sort_order}
-                    </span>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] text-slate-400 font-black">#{image.sort_order}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -498,41 +448,40 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
           </div>
         )}
 
-        {images.length > 0 && images.length < 20 && (
-          <div className="text-center text-sm text-muted-foreground">
-            {images.length} de 20 imágenes
+        <div className="mt-8 flex items-center justify-center gap-4">
+          <div className="h-px bg-slate-100 flex-1" />
+          <div className="px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-full">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              {images.length} de 20 imágenes {images.length >= 20 && " (Límite alcanzado)"}
+            </p>
           </div>
-        )}
-
-        {images.length >= 20 && (
-          <div className="text-center text-sm text-amber-600 dark:text-amber-500">
-            Has alcanzado el límite de 20 imágenes
-          </div>
-        )}
+          <div className="h-px bg-slate-100 flex-1" />
+        </div>
       </div>
 
       {/* Dialog para editar título y orden */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Imagen</DialogTitle>
-            <DialogDescription>
-              Modifica el título y el orden de visualización de la imagen
+        <DialogContent className="rounded-[2.5rem] border-none shadow-2xl max-w-md p-8">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-2xl font-black tracking-tighter text-slate-900">Editar Detalle</DialogTitle>
+            <DialogDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              Personaliza el título y orden de la imagen
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <Label htmlFor="edit-title">Título</Label>
+              <Label htmlFor="edit-title" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">Título de la imagen</Label>
               <Input
                 id="edit-title"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 placeholder="Ej: Vista del salón principal"
                 maxLength={255}
+                className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-indigo-600"
               />
             </div>
             <div>
-              <Label htmlFor="edit-sort-order">Orden de Visualización</Label>
+              <Label htmlFor="edit-sort-order" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">Orden de Visualización</Label>
               <Input
                 id="edit-sort-order"
                 type="number"
@@ -550,16 +499,18 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
                     }
                   }
                 }}
+                className="h-12 bg-slate-50 border-slate-100 rounded-xl font-black"
                 placeholder="0"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                El orden determina cómo se muestran las imágenes en la landing (0 = primera, 1 = segunda, etc.)
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-3 italic">
+                Determina el orden en la landing (0 es primero).
               </p>
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex gap-3 pt-2">
               <Button
                 type="button"
                 variant="outline"
+                className="flex-1 h-12 rounded-xl border-slate-200 font-black uppercase text-[11px] tracking-widest"
                 onClick={() => {
                   setIsEditDialogOpen(false)
                   setEditingImage(null)
@@ -571,10 +522,11 @@ export function PropertyImageGallery({ propertyId, tenantId }: PropertyImageGall
               </Button>
               <Button
                 type="button"
+                className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[11px] tracking-widest shadow-lg shadow-indigo-100"
                 onClick={handleSaveEdit}
                 disabled={!editTitle.trim()}
               >
-                Guardar
+                Guardar Cambios
               </Button>
             </div>
           </div>

@@ -17,8 +17,7 @@ import type { ConfigurationValue } from "@/lib/api/configuration"
 
 export interface BookingsFiltersState {
   propertyId: string // "all" para todas las propiedades
-  guestName: string
-  phone: string
+  search: string
   statusId: string // "all" para todos los estados
   bookingTypeId: string // "all" para todos los tipos
   dateRange: string
@@ -50,8 +49,7 @@ export function BookingsFilters({
 }: BookingsFiltersProps) {
   const hasActiveFilters =
     filters.propertyId !== "all" ||
-    filters.guestName !== "" ||
-    filters.phone !== "" ||
+    filters.search !== "" ||
     filters.statusId !== "all" ||
     filters.bookingTypeId !== "all" ||
     filters.dateRange !== "all"
@@ -66,8 +64,7 @@ export function BookingsFilters({
   const clearFilters = () => {
     onFiltersChange({
       propertyId: "all",
-      guestName: "",
-      phone: "",
+      search: "",
       statusId: "all",
       bookingTypeId: "all",
       dateRange: "all",
@@ -75,138 +72,139 @@ export function BookingsFilters({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtros de Búsqueda
-          </CardTitle>
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="h-8"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Limpiar filtros
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-          {/* Filtro por Propiedad */}
-          <div className="space-y-2">
-            <Label htmlFor="filter-property">Propiedad</Label>
-            <Select
-              value={filters.propertyId}
-              onValueChange={(value) => handleFilterChange("propertyId", value)}
-            >
-              <SelectTrigger id="filter-property" className="w-full">
-                <SelectValue placeholder="Todas las propiedades" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las propiedades</SelectItem>
-                {properties.map((property) => (
-                  <SelectItem key={property.id} value={property.id}>
-                    {property.name} ({property.property_code})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <div className="bg-white p-6 md:p-6 rounded-[2rem] border border-slate-200 shadow-[0_4px_20px_rgb(0,0,0,0.03)] overflow-hidden">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center rotate-3 border border-indigo-100">
+            <Filter className="w-5 h-5 text-indigo-600" />
           </div>
-
-          {/* Filtro por Nombre del Huésped */}
-          <div className="space-y-2">
-            <Label htmlFor="filter-guest-name">Nombre del Huésped</Label>
-            <Input
-              id="filter-guest-name"
-              placeholder="Buscar por nombre..."
-              value={filters.guestName}
-              onChange={(e) => handleFilterChange("guestName", e.target.value)}
-              className="w-full"
-            />
-          </div>
-
-          {/* Filtro por Teléfono */}
-          <div className="space-y-2">
-            <Label htmlFor="filter-phone">Teléfono</Label>
-            <Input
-              id="filter-phone"
-              placeholder="Buscar por teléfono..."
-              value={filters.phone}
-              onChange={(e) => handleFilterChange("phone", e.target.value)}
-              className="w-full"
-            />
-          </div>
-
-          {/* Filtro por Estado */}
-          <div className="space-y-2">
-            <Label htmlFor="filter-status">Estado</Label>
-            <Select
-              value={filters.statusId}
-              onValueChange={(value) => handleFilterChange("statusId", value)}
-            >
-              <SelectTrigger id="filter-status" className="w-full">
-                <SelectValue placeholder="Todos los estados" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                {bookingStatuses.map((status) => (
-                  <SelectItem key={status.id} value={status.id}>
-                    {status.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Filtro por Tipo de Reserva */}
-          <div className="space-y-2">
-            <Label htmlFor="filter-booking-type">Tipo de Reserva</Label>
-            <Select
-              value={filters.bookingTypeId}
-              onValueChange={(value) => handleFilterChange("bookingTypeId", value)}
-              disabled={!bookingTypes || bookingTypes.length === 0}
-            >
-              <SelectTrigger id="filter-booking-type" className="w-full">
-                <SelectValue placeholder="Todos los tipos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los tipos</SelectItem>
-                {bookingTypes && bookingTypes.length > 0 && bookingTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Filtro Temporal */}
-          <div className="space-y-2">
-            <Label htmlFor="filter-date-range">Período</Label>
-            <Select
-              value={filters.dateRange}
-              onValueChange={(value) => handleFilterChange("dateRange", value)}
-            >
-              <SelectTrigger id="filter-date-range" className="w-full">
-                <SelectValue placeholder="Seleccionar período" />
-              </SelectTrigger>
-              <SelectContent>
-                {DATE_RANGE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div>
+            <h3 className="text-lg font-black text-slate-900 tracking-tighter">Filtros de Búsqueda</h3>
+            <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">Encuentra reservas rápidamente</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-10 rounded-xl px-4 font-bold text-red-500 hover:text-red-600 hover:bg-red-50 transition-all"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Limpiar filtros
+          </Button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+        {/* Filtro por Propiedad */}
+        <div className="space-y-2">
+          <Label htmlFor="filter-property" className="text-[10px] font-black uppercase tracking-widest text-slate-700 ml-1">
+            Propiedad
+          </Label>
+          <Select
+            value={filters.propertyId}
+            onValueChange={(value) => handleFilterChange("propertyId", value)}
+          >
+            <SelectTrigger id="filter-property" className="h-11 bg-slate-50 border-slate-100 rounded-xl font-bold focus:ring-indigo-500">
+              <SelectValue placeholder="Todas las propiedades" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-slate-200 shadow-xl bg-white">
+              <SelectItem value="all" className="font-bold">Todas las propiedades</SelectItem>
+              {properties.map((property) => (
+                <SelectItem key={property.id} value={property.id} className="font-medium">
+                  {property.name} <span className="text-[10px] text-slate-400 ml-1">({property.property_code})</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Búsqueda Global (Nombre, Teléfono, Email, Localizador) */}
+        <div className="md:col-span-2 space-y-2">
+          <Label htmlFor="filter-search" className="text-[10px] font-black uppercase tracking-widest text-slate-700 ml-1">
+            Búsqueda Rápida
+          </Label>
+          <Input
+            id="filter-search"
+            placeholder="Buscar por nombre, teléfono, email o localizador..."
+            value={filters.search}
+            onChange={(e) => handleFilterChange("search", e.target.value)}
+            className="h-11 bg-slate-50 border-slate-100 rounded-xl font-bold focus:ring-indigo-500 placeholder:text-slate-400"
+          />
+        </div>
+
+        {/* Filtro por Estado */}
+        <div className="space-y-2">
+          <Label htmlFor="filter-status" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+            Estado
+          </Label>
+          <Select
+            value={filters.statusId}
+            onValueChange={(value) => handleFilterChange("statusId", value)}
+          >
+            <SelectTrigger id="filter-status" className="h-11 bg-slate-50 border-slate-100 rounded-xl font-bold focus:ring-indigo-500">
+              <SelectValue placeholder="Todos los estados" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-slate-200 shadow-xl bg-white">
+              <SelectItem value="all" className="font-bold">Todos los estados</SelectItem>
+              {bookingStatuses.map((status) => (
+                <SelectItem key={status.id} value={status.id} className="font-medium">
+                  {status.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Filtro por Tipo de Reserva */}
+        <div className="space-y-2">
+          <Label htmlFor="filter-booking-type" className="text-[10px] font-black uppercase tracking-widest text-slate-700 ml-1">
+            Tipo de Reserva
+          </Label>
+          <Select
+            value={filters.bookingTypeId}
+            onValueChange={(value) => handleFilterChange("bookingTypeId", value)}
+            disabled={!bookingTypes || bookingTypes.length === 0}
+          >
+            <SelectTrigger id="filter-booking-type" className="h-11 bg-slate-50 border-slate-100 rounded-xl font-bold focus:ring-indigo-500">
+              <SelectValue placeholder="Todos los tipos" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-slate-200 shadow-xl bg-white">
+              <SelectItem value="all" className="font-bold">Todos los tipos</SelectItem>
+              {bookingTypes && bookingTypes.length > 0 && bookingTypes.map((type) => (
+                <SelectItem key={type.id} value={type.id} className="font-medium">
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Filtro Temporal */}
+        <div className="space-y-2">
+          <Label htmlFor="filter-date-range" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+            Período
+          </Label>
+          <Select
+            value={filters.dateRange}
+            onValueChange={(value) => handleFilterChange("dateRange", value)}
+          >
+            <SelectTrigger id="filter-date-range" className="h-11 bg-slate-50 border-slate-100 rounded-xl font-bold focus:ring-indigo-500">
+              <SelectValue placeholder="Seleccionar" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-slate-200 shadow-xl bg-white">
+              {DATE_RANGE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="font-medium">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
   )
 }
 

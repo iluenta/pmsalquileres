@@ -20,14 +20,14 @@ export default function PersonsPage() {
   const [personTypes, setPersonTypes] = useState<ConfigurationValue[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPersonType, setSelectedPersonType] = useState<string | null>(null)
-  
+
   // Filtros
   const [searchName, setSearchName] = useState("")
   const [searchDocument, setSearchDocument] = useState("")
   const [searchEmail, setSearchEmail] = useState("")
   const [searchPhone, setSearchPhone] = useState("")
   const [isActive, setIsActive] = useState<boolean | null>(true)
-  
+
   const searchTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   // Cargar tipos de persona
@@ -51,7 +51,7 @@ export default function PersonsPage() {
             }
           )
           setPersonTypes(filteredTypes)
-          
+
           // Establecer "Huésped" como tipo seleccionado por defecto
           const guestType = filteredTypes.find(
             (type: ConfigurationValue) => {
@@ -65,7 +65,7 @@ export default function PersonsPage() {
               )
             }
           )
-          
+
           if (guestType) {
             setSelectedPersonType(guestType.id)
           } else if (filteredTypes.length > 0) {
@@ -85,27 +85,27 @@ export default function PersonsPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      
+
       if (selectedPersonType) {
         params.append("personType", selectedPersonType)
       }
-      
+
       if (searchName.trim()) {
         params.append("searchName", searchName.trim())
       }
-      
+
       if (searchDocument.trim()) {
         params.append("searchDocument", searchDocument.trim())
       }
-      
+
       if (searchEmail.trim()) {
         params.append("searchEmail", searchEmail.trim())
       }
-      
+
       if (searchPhone.trim()) {
         params.append("searchPhone", searchPhone.trim())
       }
-      
+
       if (isActive !== null) {
         params.append("isActive", isActive.toString())
       }
@@ -136,11 +136,11 @@ export default function PersonsPage() {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
-    
+
     searchTimeoutRef.current = setTimeout(() => {
       loadPersons()
     }, 500)
-    
+
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current)
@@ -170,7 +170,7 @@ export default function PersonsPage() {
     setSelectedPersonType(guestType?.id || personTypes[0]?.id || null)
   }
 
-  const hasActiveFilters = 
+  const hasActiveFilters =
     searchName.trim() !== "" ||
     searchDocument.trim() !== "" ||
     searchEmail.trim() !== "" ||
@@ -183,18 +183,18 @@ export default function PersonsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
+    <div className="space-y-8 pb-20">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 px-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Personas</h1>
-          <p className="text-sm md:text-base text-muted-foreground">
-            Gestiona todas las personas del sistema (huéspedes, propietarios, contactos, proveedores, etc.)
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Directorio</h1>
+          <p className="text-slate-500 font-medium mt-1">
+            Gestiona huéspedes, propietarios y contactos externos
           </p>
         </div>
-        <Button asChild className="w-full md:w-auto">
+        <Button asChild className="w-full md:w-auto h-12 px-8 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-xs shadow-lg shadow-indigo-200 transition-all hover:scale-[1.02] active:scale-[0.98]">
           <Link href="/dashboard/persons/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Persona
+            <Plus className="mr-2 h-5 w-5 stroke-[3]" />
+            Nuevo Registro
           </Link>
         </Button>
       </div>
@@ -217,7 +217,7 @@ export default function PersonsPage() {
                 </Button>
               )}
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="searchName">Nombre</Label>
@@ -351,7 +351,7 @@ export default function PersonsPage() {
                 <p className="text-muted-foreground">No se encontraron personas con los filtros aplicados</p>
               </div>
             ) : (
-              <PersonsTable 
+              <PersonsTable
                 persons={
                   selectedPersonType
                     ? persons.filter((p) => p.person_type === selectedPersonType)
@@ -374,7 +374,7 @@ export default function PersonsPage() {
               <p className="text-muted-foreground">No se encontraron personas con los filtros aplicados</p>
             </div>
           ) : (
-            <PersonsTable 
+            <PersonsTable
               persons={persons}
               onPersonDeleted={handlePersonDeleted}
             />

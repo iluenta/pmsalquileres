@@ -60,7 +60,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
+    <header className="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-slate-100 bg-white/70 backdrop-blur-xl px-8">
       {/* Menú Hamburguesa (solo móvil) y Tenant Info */}
       <div className="flex items-center gap-3">
         {/* Botón hamburguesa - solo visible en móvil */}
@@ -76,11 +76,11 @@ export function Header() {
             <MobileSidebar />
           </SheetContent>
         </Sheet>
-        <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-1.5">
-          <Building2 className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold text-primary">{tenantName || "Cargando..."}</span>
+        <div className="flex items-center gap-3 rounded-2xl bg-indigo-50 px-4 py-2 border border-indigo-100/50">
+          <Building2 className="h-5 w-5 text-indigo-600" />
+          <span className="text-sm font-bold text-indigo-900">{tenantName || "Cargando..."}</span>
         </div>
-        
+
         {/* Selector de Año/Temporada */}
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -140,15 +140,15 @@ export function Header() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 gap-2 px-2">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+            <Button variant="ghost" className="relative h-12 gap-3 px-3 hover:bg-slate-50 rounded-2xl transition-all">
+              <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
+                <AvatarFallback className="bg-indigo-600 text-white text-xs font-black">
                   {userInfo?.full_name ? getInitials(userInfo.full_name) : "U"}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex flex-col items-start text-left">
-                <span className="text-sm font-medium leading-none">{userInfo?.full_name || "Usuario"}</span>
-                <span className="text-xs text-muted-foreground leading-none mt-1">{user?.email}</span>
+              <div className="hidden sm:flex flex-col items-start text-left">
+                <span className="text-sm font-bold text-slate-900 leading-none">{userInfo?.full_name || "Usuario"}</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase mt-1">{userInfo?.roles?.[0] || "Admin"}</span>
               </div>
             </Button>
           </DropdownMenuTrigger>

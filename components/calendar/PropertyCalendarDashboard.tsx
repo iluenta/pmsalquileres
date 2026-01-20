@@ -7,9 +7,11 @@ import { PropertySelector } from "./PropertySelector"
 import { CalendarView } from "./CalendarView"
 import { QuickCheckForm } from "./QuickCheckForm"
 import { AvailablePeriods } from "./AvailablePeriods"
-import { addMonths, startOfMonth, endOfMonth } from "date-fns"
+import { startOfMonth, endOfMonth, addMonths } from "date-fns"
 import type { CalendarDay } from "@/lib/api/calendar"
 import type { Property } from "@/lib/api/properties"
+import { Button } from "@/components/ui/button"
+import { Calendar, Search, Building2, LayoutGrid } from "lucide-react"
 
 interface PropertyCalendarDashboardProps {
   properties: Property[]
@@ -22,7 +24,6 @@ export function PropertyCalendarDashboard({ properties, tenantId }: PropertyCale
   const [days, setDays] = useState<CalendarDay[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Seleccionar automáticamente la primera propiedad activa cuando se cargan las propiedades
   useEffect(() => {
     if (properties.length > 0 && !selectedPropertyId) {
       const firstActiveProperty = properties.find(p => p.is_active) || properties[0]
@@ -32,7 +33,6 @@ export function PropertyCalendarDashboard({ properties, tenantId }: PropertyCale
     }
   }, [properties.length, selectedPropertyId])
 
-  // Cargar disponibilidad cuando cambia la propiedad o el mes
   useEffect(() => {
     if (!selectedPropertyId) {
       setDays([])
@@ -42,10 +42,9 @@ export function PropertyCalendarDashboard({ properties, tenantId }: PropertyCale
     const loadAvailability = async () => {
       setLoading(true)
       try {
-        // Asegurar que currentMonth es un Date válido
         const monthDate = currentMonth instanceof Date ? currentMonth : new Date(currentMonth)
-        
-        // Cargar 3 meses: mes actual + 2 siguientes
+
+        // Cargar 3 meses para el Yield Management Dashboard
         const startDate = startOfMonth(monthDate)
         const endDate = endOfMonth(addMonths(monthDate, 2))
 
@@ -56,8 +55,6 @@ export function PropertyCalendarDashboard({ properties, tenantId }: PropertyCale
         if (response.ok) {
           const data = await response.json()
           setDays(data)
-        } else {
-          console.error("Error loading availability")
         }
       } catch (error) {
         console.error("Error loading availability:", error)
@@ -71,77 +68,73 @@ export function PropertyCalendarDashboard({ properties, tenantId }: PropertyCale
 
   const handleDayClick = (day: CalendarDay) => {
     if (day.booking) {
-      // Navegar a la vista de reserva
       window.location.href = `/dashboard/bookings/${day.booking.id}`
     }
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card sticky top-0 z-40">
-        <div className="px-6 py-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-foreground">Calendario de Disponibilidad</h1>
-              <p className="text-sm text-muted-foreground">
-                Visualiza la disponibilidad de las propiedades y verifica disponibilidad rápida
-              </p>
+    <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
+      {/* 1. FIXED HEADER Area - Optimized for Pro Users */}
+      <div className="px-6 pt-6 pb-5 shrink-0 bg-white border-b border-slate-200 shadow-sm z-30">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between w-full">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tighter flex items-center gap-3">
+              <LayoutGrid className="w-7 h-7 text-indigo-600" />
+              Yield Management Dashboard
+            </h1>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+              Control de Ingresos, Disponibilidad y Restricciones
+            </p>
+          </div>
+
+          <PropertySelector
+            selectedProperty={selectedPropertyId}
+            onPropertyChange={(id) => {
+              setSelectedPropertyId(id)
+              setCurrentMonth(startOfMonth(new Date()))
+            }}
+            properties={properties}
+            compact={true}
+          />
+        </div>
+      </div>
+
+      {/* 2. MAIN WORKSPACE */}
+      {selectedPropertyId ? (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* 3. SCROLLABLE CONTENT Area - Expanded for data density */}
+          <div className="flex-1 overflow-y-auto px-4 py-8 min-h-0 scrollbar-hide bg-[#F8FAFC]">
+            <div className="w-full max-w-full pb-20">
+              {currentMonth && (
+                <CalendarView
+                  propertyId={selectedPropertyId}
+                  currentMonth={currentMonth}
+                  onMonthChange={(date) => setCurrentMonth(startOfMonth(date))}
+                  days={days}
+                  onDayClick={handleDayClick}
+                  loading={loading}
+                />
+              )}
             </div>
-            <PropertySelector 
-              selectedProperty={selectedPropertyId}
-              onPropertyChange={setSelectedPropertyId}
-              properties={properties}
-              compact={true}
-            />
           </div>
         </div>
-      </header>
-      
-      <main className="p-6">
-        {selectedPropertyId ? (
-          <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:w-auto">
-            <TabsTrigger value="calendar">Calendario</TabsTrigger>
-            <TabsTrigger value="quick-check">Verificación Rápida</TabsTrigger>
-          </TabsList>
-
-          {/* Calendar Tab */}
-          <TabsContent value="calendar" className="space-y-4 mt-6">
-            {currentMonth && (
-              <CalendarView 
-                propertyId={selectedPropertyId}
-                currentMonth={currentMonth}
-                onMonthChange={setCurrentMonth}
-                days={days}
-                onDayClick={handleDayClick}
-                loading={loading}
-              />
-            )}
-          </TabsContent>
-
-          {/* Quick Check Tab */}
-          <TabsContent value="quick-check" className="space-y-4 mt-6">
-            <div className="grid gap-6 lg:grid-cols-3">
-              <div className="lg:col-span-1">
-                <QuickCheckForm propertyId={selectedPropertyId} tenantId={tenantId} />
+      ) : (
+        <div className="p-12 flex-1 flex items-center justify-center">
+          <Card className="rounded-[3rem] border-none shadow-[0_20px_50px_rgb(0,0,0,0.06)] bg-white p-24 text-center max-w-3xl">
+            <div className="flex flex-col items-center gap-8">
+              <div className="h-24 w-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center shadow-inner">
+                <Building2 className="w-12 h-12 text-slate-300" />
               </div>
-              <div className="lg:col-span-2">
-                <AvailablePeriods propertyId={selectedPropertyId} />
+              <div className="space-y-4">
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Potencia tu Estrategia de Precios</h2>
+                <p className="text-slate-400 font-bold max-w-md mx-auto uppercase text-[11px] tracking-widest leading-relaxed">
+                  Selecciona una propiedad para acceder al panel de control de ingresos y optimizar tu rentabilidad por noche.
+                </p>
               </div>
-            </div>
-          </TabsContent>
-          </Tabs>
-        ) : (
-          <Card>
-            <div className="p-6">
-              <p className="text-center text-muted-foreground">
-                Seleccione una propiedad para ver el calendario de disponibilidad
-              </p>
             </div>
           </Card>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   )
 }
-

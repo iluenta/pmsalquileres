@@ -14,10 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Save, User, Phone, MapPin } from "lucide-react"
+import { Loader2, Save, User, Phone, MapPin, ShieldCheck, Mail, Globe, ArrowLeft, Calendar, FileText, Activity } from "lucide-react"
+import Link from "next/link"
 import type { PersonWithDetails, CreatePersonData, UpdatePersonData } from "@/types/persons"
 import type { ConfigurationValue } from "@/lib/api/configuration"
 import { PersonContactsManager } from "./PersonContactsManager"
@@ -27,16 +28,21 @@ interface PersonFormProps {
   person?: PersonWithDetails
   tenantId: string
   onSave?: (data: CreatePersonData | UpdatePersonData) => Promise<boolean>
+  title: string
+  subtitle: string
 }
 
 export function PersonForm({
   person,
   tenantId,
   onSave,
+  title,
+  subtitle,
 }: PersonFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
   const [personTypes, setPersonTypes] = useState<ConfigurationValue[]>([])
   const [loadingTypes, setLoadingTypes] = useState(false)
 
@@ -63,7 +69,7 @@ export function PersonForm({
         if (response.ok) {
           const types = await response.json()
           setPersonTypes(types)
-          
+
           // Aplicar valor por defecto si no hay person y no hay tipo seleccionado
           if (!person && !formData.person_type && types.length > 0) {
             const defaultType = types.find((t: ConfigurationValue) => t.is_default === true)
@@ -86,12 +92,12 @@ export function PersonForm({
     const selectedType = personTypes.find((t) => t.id === formData.person_type)
     // Consideramos jurídicas si el tipo contiene palabras clave
     return selectedType?.value?.includes("company") ||
-           selectedType?.value?.includes("business") ||
-           selectedType?.value?.includes("juridical") ||
-           selectedType?.label?.toLowerCase().includes("jurídica") ||
-           selectedType?.label?.toLowerCase().includes("empresa") ||
-           selectedType?.label?.toLowerCase().includes("canal") ||
-           selectedType?.label?.toLowerCase().includes("proveedor")
+      selectedType?.value?.includes("business") ||
+      selectedType?.value?.includes("juridical") ||
+      selectedType?.label?.toLowerCase().includes("jurídica") ||
+      selectedType?.label?.toLowerCase().includes("empresa") ||
+      selectedType?.label?.toLowerCase().includes("canal") ||
+      selectedType?.label?.toLowerCase().includes("proveedor")
   }
 
   const validateForm = (): boolean => {
@@ -118,8 +124,13 @@ export function PersonForm({
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleFieldChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    setIsDirty(true)
+  }
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
 
     if (!validateForm()) {
       toast({
@@ -190,254 +201,259 @@ export function PersonForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{person ? "Editar Persona" : "Nueva Persona"}</CardTitle>
-          <CardDescription>Complete la información de la persona en las siguientes pestañas</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
+      {/* FIXED HEADER */}
+      <div className="px-12 pt-10 pb-8 shrink-0 bg-white border-b border-slate-100 shadow-sm z-50">
+        <div className="flex items-center gap-8 max-w-[1600px] mx-auto">
+          <Link href="/dashboard/persons">
+            <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
+              {title}
+            </h1>
+            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
+              {subtitle}
+            </p>
+          </div>
+          <div className="flex items-center gap-4 bg-slate-50 px-5 py-2.5 rounded-2xl border border-slate-100 shadow-inner">
+            <span className={`text-[10px] font-black uppercase tracking-widest ${formData.is_active ? "text-emerald-600" : "text-slate-400"}`}>
+              {formData.is_active ? "Persona Activa" : "Persona Inactiva"}
+            </span>
+            <Switch
+              checked={formData.is_active}
+              onCheckedChange={(val) => handleFieldChange("is_active", val)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable Body */}
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-[1600px] mx-auto pb-10">
           <Tabs defaultValue="data" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="data" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Datos</span>
-              </TabsTrigger>
-              {person && (
-                <>
-                  <TabsTrigger value="contacts" className="flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    <span className="hidden sm:inline">Contactos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="addresses" className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    <span className="hidden sm:inline">Direcciones</span>
-                  </TabsTrigger>
-                </>
-              )}
-            </TabsList>
+            <div className="flex justify-center mb-8">
+              <TabsList className="bg-slate-100 p-1.5 rounded-2xl h-14 w-full max-w-md shadow-inner border border-slate-200">
+                <TabsTrigger value="data" className="rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all flex-1 h-full">
+                  <User className="h-4 w-4" />
+                  Datos
+                </TabsTrigger>
+                {person && (
+                  <>
+                    <TabsTrigger value="contacts" className="rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all flex-1 h-full">
+                      <Phone className="h-4 w-4" />
+                      Contactos
+                    </TabsTrigger>
+                    <TabsTrigger value="addresses" className="rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 data-[state=active]:bg-white data-[state=active]:shadow-lg data-[state=active]:text-indigo-600 transition-all flex-1 h-full">
+                      <MapPin className="h-4 w-4" />
+                      Direcciones
+                    </TabsTrigger>
+                  </>
+                )}
+              </TabsList>
+            </div>
 
-            {/* Pestaña: Datos */}
-            <TabsContent value="data" className="space-y-4 mt-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Información de la Persona</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Datos básicos de la persona
-                  </p>
+            <TabsContent value="data" className="mt-0 outline-none">
+              <Card className="rounded-[2.5rem] border-none shadow-[0_8px_40px_rgb(0,0,0,0.03)] bg-white overflow-hidden">
+                <div className="bg-slate-50/30 px-10 py-6 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                      <User className="w-5 h-5 text-indigo-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-slate-900 tracking-tighter uppercase text-sm">Identidad Básica</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Información principal del perfil</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="person_type">
-                    Tipo de Persona <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={formData.person_type || undefined}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, person_type: value })
-                    }
-                    disabled={!!person}
-                  >
-                    <SelectTrigger id="person_type">
-                      <SelectValue placeholder="Selecciona un tipo de persona" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {loadingTypes ? (
-                        <SelectItem value="loading" disabled>
-                          Cargando tipos...
-                        </SelectItem>
-                      ) : (
-                        personTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.label}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {errors.person_type && (
-                    <p className="text-sm text-red-500">{errors.person_type}</p>
-                  )}
-                </div>
+                <CardContent className="p-10 space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Tipo de Persona</Label>
+                      <Select
+                        value={formData.person_type || undefined}
+                        onValueChange={(value) => handleFieldChange("person_type", value)}
+                        disabled={!!person}
+                      >
+                        <SelectTrigger className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold text-slate-700 px-6">
+                          <SelectValue placeholder="Selecciona un tipo" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-slate-100 shadow-xl bg-white p-2">
+                          {personTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id} className="rounded-xl font-bold py-3">
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.person_type && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-1">{errors.person_type}</p>}
+                    </div>
 
-                {isJuridicalPerson() ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name">
-                      Nombre Completo <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="full_name"
-                      value={formData.full_name ?? ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, full_name: e.target.value })
-                      }
-                      placeholder="Ej: Empresa ABC, S.L."
-                    />
-                    {errors.full_name && (
-                      <p className="text-sm text-red-500">{errors.full_name}</p>
+                    {isJuridicalPerson() ? (
+                      <div className="space-y-3">
+                        <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Razón Social</Label>
+                        <div className="relative">
+                          <Globe className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                          <Input
+                            value={formData.full_name ?? ""}
+                            onChange={(e) => handleFieldChange("full_name", e.target.value)}
+                            className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold text-lg pl-14"
+                            placeholder="Nombre corporativo"
+                          />
+                        </div>
+                        {errors.full_name && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-1">{errors.full_name}</p>}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Nombre</Label>
+                          <Input
+                            value={formData.first_name ?? ""}
+                            onChange={(e) => handleFieldChange("first_name", e.target.value)}
+                            className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold text-lg px-6"
+                          />
+                          {errors.first_name && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-1">{errors.first_name}</p>}
+                        </div>
+                        <div className="space-y-3">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Apellidos</Label>
+                          <Input
+                            value={formData.last_name ?? ""}
+                            onChange={(e) => handleFieldChange("last_name", e.target.value)}
+                            className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold text-lg px-6"
+                          />
+                          {errors.last_name && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-1">{errors.last_name}</p>}
+                        </div>
+                      </div>
                     )}
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="first_name">
-                        Nombre <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="first_name"
-                        value={formData.first_name ?? ""}
-                        onChange={(e) =>
-                          setFormData({ ...formData, first_name: e.target.value })
-                        }
-                        placeholder="Juan"
-                      />
-                      {errors.first_name && (
-                        <p className="text-sm text-red-500">{errors.first_name}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="last_name">
-                        Apellidos <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="last_name"
-                        value={formData.last_name ?? ""}
-                        onChange={(e) =>
-                          setFormData({ ...formData, last_name: e.target.value })
-                        }
-                        placeholder="García López"
-                      />
-                      {errors.last_name && (
-                        <p className="text-sm text-red-500">{errors.last_name}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="document_type">Tipo de Documento</Label>
-                    <Input
-                      id="document_type"
-                      value={formData.document_type ?? ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, document_type: e.target.value })
-                      }
-                      placeholder="DNI, NIE, CIF, etc."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="document_number">Número de Documento</Label>
-                    <Input
-                      id="document_number"
-                      value={formData.document_number ?? ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, document_number: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-
-                {!isJuridicalPerson() && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="birth_date">Fecha de Nacimiento</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-6 border-t border-slate-50">
+                    <div className="space-y-3">
+                      <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Tipo Doc.</Label>
+                      <div className="relative">
+                        <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                        <Input
+                          value={formData.document_type ?? ""}
+                          onChange={(e) => handleFieldChange("document_type", e.target.value)}
+                          placeholder="DNI/NIE"
+                          className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold pl-14 uppercase"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Nº Documento</Label>
                       <Input
-                        id="birth_date"
-                        type="date"
-                        value={formData.birth_date ?? ""}
-                        onChange={(e) =>
-                          setFormData({ ...formData, birth_date: e.target.value })
-                        }
+                        value={formData.document_number ?? ""}
+                        onChange={(e) => handleFieldChange("document_number", e.target.value)}
+                        className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold px-6"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="nationality">Nacionalidad</Label>
-                      <Input
-                        id="nationality"
-                        value={formData.nationality ?? ""}
-                        onChange={(e) =>
-                          setFormData({ ...formData, nationality: e.target.value })
-                        }
-                        placeholder="Española"
+                    {!isJuridicalPerson() && (
+                      <>
+                        <div className="space-y-3">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">F. Nacimiento</Label>
+                          <div className="relative">
+                            <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 pointer-events-none" />
+                            <Input
+                              type="date"
+                              value={formData.birth_date ?? ""}
+                              onChange={(e) => handleFieldChange("birth_date", e.target.value)}
+                              className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold pl-14"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Nacionalidad</Label>
+                          <div className="relative">
+                            <Globe className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+                            <Input
+                              value={formData.nationality ?? ""}
+                              onChange={(e) => handleFieldChange("nationality", e.target.value)}
+                              className="rounded-2xl h-14 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-bold pl-14"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="space-y-4 pt-6 border-t border-slate-50">
+                    <Label className="text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Observaciones / Notas Internas</Label>
+                    <div className="relative">
+                      <FileText className="absolute left-5 top-6 w-5 h-5 text-slate-300" />
+                      <Textarea
+                        value={formData.notes ?? ""}
+                        onChange={(e) => handleFieldChange("notes", e.target.value)}
+                        className="min-h-[140px] rounded-[1.5rem] border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 transition-all font-medium text-sm p-6 pl-14"
+                        placeholder="..."
+                        rows={4}
                       />
                     </div>
                   </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notas</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes ?? ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, notes: e.target.value })
-                    }
-                    placeholder="Notas adicionales sobre la persona..."
-                    rows={4}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between space-x-2 pt-4 border-t">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="is_active">Estado de la Persona</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {formData.is_active
-                        ? "La persona está activa y disponible para usar"
-                        : "La persona está inactiva y no aparecerá en las opciones"}
-                    </p>
-                  </div>
-                  <Switch
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) =>
-                      setFormData({ ...formData, is_active: checked })
-                    }
-                  />
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
-            {/* Pestaña: Contactos */}
             {person && (
-              <TabsContent value="contacts" className="space-y-4 mt-6">
-                <PersonContactsManager personId={person.id} tenantId={tenantId} />
-              </TabsContent>
-            )}
-
-            {/* Pestaña: Direcciones */}
-            {person && (
-              <TabsContent value="addresses" className="space-y-4 mt-6">
-                <PersonAddressesManager personId={person.id} tenantId={tenantId} />
-              </TabsContent>
+              <>
+                <TabsContent value="contacts" className="mt-0 outline-none">
+                  <div className="rounded-[2.5rem] border-none shadow-[0_8px_40px_rgb(0,0,0,0.03)] bg-white overflow-hidden p-10">
+                    <PersonContactsManager personId={person.id} tenantId={tenantId} />
+                  </div>
+                </TabsContent>
+                <TabsContent value="addresses" className="mt-0 outline-none">
+                  <div className="rounded-[2.5rem] border-none shadow-[0_8px_40px_rgb(0,0,0,0.03)] bg-white overflow-hidden p-10">
+                    <PersonAddressesManager personId={person.id} tenantId={tenantId} />
+                  </div>
+                </TabsContent>
+              </>
             )}
           </Tabs>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              {person ? "Actualizar" : "Crear"} Persona
-            </>
-          )}
-        </Button>
+        </div>
       </div>
-    </form>
+
+      {/* FIXED FOOTER */}
+      <div className="px-12 py-8 bg-white border-t border-slate-100 shrink-0 z-50">
+        <div className="max-w-[1600px] mx-auto flex flex-col-reverse sm:flex-row gap-6 justify-between items-center">
+          <div className="hidden sm:block">
+            <p className="text-xs font-black text-slate-300 uppercase tracking-[0.2em]">
+              {isDirty ? "Cambios no guardados" : "Datos actualizados"}
+            </p>
+          </div>
+          <div className="flex gap-4 w-full sm:w-auto min-w-[320px]">
+            <Button
+              variant="outline"
+              className="flex-1 sm:flex-initial sm:px-12 h-14 rounded-2xl font-black uppercase text-xs tracking-widest border-slate-200 text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50"
+              type="button"
+              disabled={loading}
+              onClick={() => router.back()}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => handleSubmit()}
+              disabled={loading}
+              className="flex-1 sm:flex-initial sm:px-16 h-14 rounded-2xl font-black uppercase text-xs tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-3"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Guardando...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-5 w-5" />
+                  <span>{person ? "Actualizar" : "Crear"} Persona</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -73,71 +73,121 @@ export function PropertyFormLanding({ formData, onFieldChange }: PropertyFormLan
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             {/* Hero Section */}
-            <Card className="p-6 border-2 border-neutral-100 shadow-sm">
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Info className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center rotate-3">
+                        <Info className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold">Sección Hero</h3>
-                        <p className="text-sm text-muted-foreground">Define el mensaje de bienvenida de tu landing</p>
+                        <h3 className="text-lg font-black text-slate-900 tracking-tighter">Sección Hero</h3>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Slogan y mensaje principal</p>
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="hero_subtitle">Mensaje de Slogan (Subtítulo)</Label>
+                <div>
+                    <Label htmlFor="hero_subtitle" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
+                        Mensaje de Slogan (Subtítulo)
+                    </Label>
+                    <Textarea
+                        id="hero_subtitle"
+                        placeholder="Ej: Lujo, comodidad y atención al detalle..."
+                        value={config.hero_subtitle || ""}
+                        onChange={(e) => updateConfig({ hero_subtitle: e.target.value })}
+                        className="min-h-[80px] bg-slate-50 border-slate-100 rounded-xl font-medium focus:ring-indigo-500"
+                    />
+                </div>
+            </div>
+
+            {/* Space Descriptions - Compact Grid */}
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center -rotate-3">
+                        <Utensils className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-black text-slate-900 tracking-tighter">Descripciones de Espacios</h3>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Textos descriptivos rápidos</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <Label htmlFor="desc_rooms" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
+                            Habitaciones
+                        </Label>
                         <Textarea
-                            id="hero_subtitle"
-                            placeholder="Ej: Lujo, comodidad y atención al detalle..."
-                            value={config.hero_subtitle || ""}
-                            onChange={(e) => updateConfig({ hero_subtitle: e.target.value })}
-                            className="min-h-[100px] resize-none border-neutral-200 focus:border-primary transition-all duration-300"
+                            id="desc_rooms"
+                            placeholder="Ej: Espacios amplios..."
+                            value={config.space_descriptions?.rooms || ""}
+                            onChange={(e) => updateSpaceDescription("rooms", e.target.value)}
+                            className="min-h-[70px] bg-slate-50 border-slate-100 rounded-xl text-sm font-medium focus:ring-indigo-500"
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor="desc_bathrooms" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
+                            Baños
+                        </Label>
+                        <Textarea
+                            id="desc_bathrooms"
+                            placeholder="Ej: Modernos y equipados..."
+                            value={config.space_descriptions?.bathrooms || ""}
+                            onChange={(e) => updateSpaceDescription("bathrooms", e.target.value)}
+                            className="min-h-[70px] bg-slate-50 border-slate-100 rounded-xl text-sm font-medium focus:ring-indigo-500"
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor="desc_kitchen" className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
+                            Cocina
+                        </Label>
+                        <Textarea
+                            id="desc_kitchen"
+                            placeholder="Ej: Totalmente equipada..."
+                            value={config.space_descriptions?.kitchen || ""}
+                            onChange={(e) => updateSpaceDescription("kitchen", e.target.value)}
+                            className="min-h-[70px] bg-slate-50 border-slate-100 rounded-xl text-sm font-medium focus:ring-indigo-500"
                         />
                     </div>
                 </div>
-            </Card>
+            </div>
 
             {/* Highlights Section */}
-            <Card className="p-6 border-2 border-neutral-100 shadow-sm">
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Plus className="w-5 h-5 text-primary" />
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center rotate-6">
+                            <Plus className="w-5 h-5 text-indigo-600" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold">Puntos Destacados (Highlights)</h3>
-                            <p className="text-sm text-muted-foreground">Gestiona las características principales que verá el usuario</p>
+                            <h3 className="text-lg font-black text-slate-900 tracking-tighter">Puntos Destacados</h3>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Características principales</p>
                         </div>
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={addHighlight} className="gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={addHighlight} className="gap-2 rounded-xl border-slate-200 hover:bg-slate-50 font-black uppercase text-[10px] tracking-widest">
                         <Plus className="w-4 h-4" />
-                        Añadir
+                        Añadir Highlight
                     </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {config.highlights?.map((highlight: any, idx: number) => (
-                        <Card key={idx} className="p-4 bg-muted/30 border-neutral-200 relative group">
-                            <Button
+                        <div key={idx} className="p-5 bg-slate-50 border border-slate-100 rounded-2xl relative group hover:border-indigo-200 transition-colors">
+                            <button
                                 type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute top-2 right-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute top-4 right-4 text-slate-300 hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
                                 onClick={() => removeHighlight(idx)}
                             >
                                 <Trash2 className="w-4 h-4" />
-                            </Button>
-                            <div className="space-y-3">
-                                <div className="grid gap-2">
-                                    <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground">Icono</Label>
+                            </button>
+                            <div className="space-y-4">
+                                <div>
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Icono</Label>
                                     <Select
                                         value={highlight.icon}
                                         onValueChange={(val) => updateHighlight(idx, "icon", val)}
                                     >
-                                        <SelectTrigger className="bg-background">
+                                        <SelectTrigger className="h-10 bg-white border-slate-100 rounded-xl font-medium focus:ring-indigo-500">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -152,73 +202,27 @@ export function PropertyFormLanding({ formData, onFieldChange }: PropertyFormLan
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground">Título</Label>
+                                <div>
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Título</Label>
                                     <Input
                                         value={highlight.title}
                                         onChange={(e) => updateHighlight(idx, "title", e.target.value)}
-                                        className="bg-background"
+                                        className="h-10 bg-white border-slate-100 rounded-xl font-bold text-indigo-600"
                                     />
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground">Descripción</Label>
+                                <div>
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">Descripción</Label>
                                     <Textarea
                                         value={highlight.description}
                                         onChange={(e) => updateHighlight(idx, "description", e.target.value)}
-                                        className="bg-background resize-none h-20"
+                                        className="min-h-[60px] bg-white border-slate-100 rounded-xl text-xs font-medium focus:ring-indigo-500"
                                     />
                                 </div>
                             </div>
-                        </Card>
+                        </div>
                     ))}
                 </div>
-            </Card>
-
-            {/* Space Descriptions */}
-            <Card className="p-6 border-2 border-neutral-100 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Utensils className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold">Descripciones de Espacios</h3>
-                        <p className="text-sm text-muted-foreground">Textos descriptivos para las áreas de la propiedad</p>
-                    </div>
-                </div>
-
-                <div className="space-y-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="desc_rooms">Habitaciones</Label>
-                        <Textarea
-                            id="desc_rooms"
-                            placeholder="Ej: Espacios amplios y confortables..."
-                            value={config.space_descriptions?.rooms || ""}
-                            onChange={(e) => updateSpaceDescription("rooms", e.target.value)}
-                            className="resize-none border-neutral-200"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="desc_bathrooms">Baños</Label>
-                        <Textarea
-                            id="desc_bathrooms"
-                            placeholder="Ej: Baños modernos y equipados..."
-                            value={config.space_descriptions?.bathrooms || ""}
-                            onChange={(e) => updateSpaceDescription("bathrooms", e.target.value)}
-                            className="resize-none border-neutral-200"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="desc_kitchen">Cocina</Label>
-                        <Textarea
-                            id="desc_kitchen"
-                            placeholder="Ej: Cocina totalmente equipada..."
-                            value={config.space_descriptions?.kitchen || ""}
-                            onChange={(e) => updateSpaceDescription("kitchen", e.target.value)}
-                            className="resize-none border-neutral-200"
-                        />
-                    </div>
-                </div>
-            </Card>
+            </div>
         </div>
     )
 }

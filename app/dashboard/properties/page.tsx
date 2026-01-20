@@ -29,17 +29,17 @@ export default async function PropertiesPage() {
   const properties = await getProperties(tenantId)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Propiedades</h1>
-          <p className="text-muted-foreground">
+    <div className="p-6 h-full overflow-y-auto space-y-6">
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between py-2">
+        <div className="flex-1">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Propiedades</h1>
+          <p className="text-sm font-bold text-slate-600 uppercase tracking-widest mt-2">
             Gestiona tu cartera de propiedades vacacionales
           </p>
         </div>
-        <Button asChild className="gap-2">
+        <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl h-12 px-8 font-black uppercase text-[11px] tracking-widest shadow-lg shadow-indigo-100 transition-all active:scale-95">
           <Link href="/dashboard/properties/new">
-            <Plus className="w-4 h-4" />
+            <Plus className="mr-2 h-4 w-4" />
             Nueva Propiedad
           </Link>
         </Button>

@@ -115,32 +115,8 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
 
   // Funciones para verificar si existe una sección de cada tipo
   const hasSectionType = (type: string) => {
-    // Si existe la sección general, la pestaña debe estar activa
-    if (sections.some(section => section.section_type === type)) {
-      return true
-    }
-
-    // Si no hay sección general, verificar si hay datos específicos en las tablas vinculadas
-    switch (type) {
-      case 'apartment':
-        return !!(data?.apartment_sections && data.apartment_sections.length > 0)
-      case 'rules':
-        return !!(data?.house_rules && data.house_rules.length > 0)
-      case 'house_guide':
-        return !!(data?.house_guide_items && data.house_guide_items.length > 0)
-      case 'tips':
-        return !!(data?.tips && data.tips.length > 0)
-      case 'contact':
-        return !!data?.contact_info
-      case 'beaches':
-      case 'restaurants':
-      case 'shopping':
-      case 'activities':
-        // Estas secciones solo se activan si se ha creado la sección correspondiente
-        return sections.some(section => section.section_type === type)
-      default:
-        return false
-    }
+    // La visibilidad está accionada estrictamente por la presencia de la sección en la lista de "Secciones de la Guía"
+    return sections.some(section => section.section_type === type)
   }
 
   const getSectionByType = (type: string): GuideSection | null => {
@@ -183,6 +159,11 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
       }
     } catch (error) {
       console.error('Error saving section:', error)
+      toast({
+        title: "Error al guardar",
+        description: "No se pudo guardar la sección.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -230,6 +211,11 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
       }
     } catch (error) {
       console.error('Error creating section:', error)
+      toast({
+        title: "Error",
+        description: "No se pudo crear la sección.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -277,6 +263,11 @@ export function PropertyGuideManager({ propertyId }: PropertyGuideManagerProps) 
       }
     } catch (error) {
       console.error('Error updating section:', error)
+      toast({
+        title: "Error al actualizar",
+        description: "No se pudo actualizar la sección.",
+        variant: "destructive",
+      })
     }
   }
 

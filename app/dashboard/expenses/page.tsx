@@ -24,13 +24,13 @@ export default function ExpensesPage() {
   const { selectedYear } = useSeason()
   const [allMovements, setAllMovements] = useState<MovementWithDetails[]>([])
   const [loading, setLoading] = useState(true)
-  
+
   // Filtros
   const [movementStatus, setMovementStatus] = useState<string>("all")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
   const [bookingSearch, setBookingSearch] = useState("")
-  
+
   // Datos de configuración
   const [movementTypes, setMovementTypes] = useState<ConfigurationValue[]>([])
   const [movementStatuses, setMovementStatuses] = useState<ConfigurationValue[]>([])
@@ -61,32 +61,32 @@ export default function ExpensesPage() {
       setLoading(false)
       return
     }
-    
+
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      
+
       // Añadir el año del contexto por defecto (solo si no es null)
       if (selectedYear !== null) {
         params.append("year", selectedYear.toString())
       }
-      
+
       // Filtrar por tipo de gasto - SIEMPRE debe aplicarse
       params.append("movementType", activeMovementTypeId)
-      
+
       if (movementStatus !== "all") {
         params.append("movementStatus", movementStatus)
       }
-      
+
       // Los filtros de fecha desde/hasta son para restringir más el rango
       if (dateFrom) {
         params.append("dateFrom", dateFrom)
       }
-      
+
       if (dateTo) {
         params.append("dateTo", dateTo)
       }
-      
+
       // Búsqueda por reserva
       if (bookingSearch) {
         params.append("bookingSearch", bookingSearch)
@@ -127,7 +127,7 @@ export default function ExpensesPage() {
       // Limpiar movimientos al iniciar la carga de configuración
       setAllMovements([])
       setLoading(true)
-      
+
       const [typesRes, statusesRes] = await Promise.all([
         fetch("/api/configuration/movement-types"),
         fetch("/api/configuration/movement-statuses"),
@@ -162,15 +162,15 @@ export default function ExpensesPage() {
     bookingSearch !== ""
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="p-6 h-full overflow-y-auto space-y-6">
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between py-2">
         <div className="flex-1">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Gastos</h1>
-          <p className="text-sm md:text-base text-muted-foreground">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Gastos</h1>
+          <p className="text-sm font-bold text-slate-600 uppercase tracking-widest mt-2">
             Gestiona los gastos (pagos a proveedores)
           </p>
         </div>
-        <Button asChild className="w-full md:w-auto">
+        <Button asChild className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl h-12 px-8 font-black uppercase text-[11px] tracking-widest shadow-lg shadow-indigo-100 transition-all active:scale-95">
           <Link href="/dashboard/expenses/new">
             <Plus className="mr-2 h-4 w-4" />
             Nuevo Gasto
@@ -239,7 +239,7 @@ export default function ExpensesPage() {
                   />
                 </div>
               </div>
-              
+
               {hasActiveFilters && (
                 <Button
                   type="button"

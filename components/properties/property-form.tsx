@@ -427,286 +427,189 @@ export function PropertyForm({ propertyTypes, tenantId, property }: PropertyForm
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-muted/20 to-background p-4 md:p-6 lg:p-8">
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Link href="/dashboard/properties">
-            <Button variant="ghost" size="sm" className="gap-2 p-1.5 hover:bg-muted rounded-lg transition" type="button">
-              <ArrowLeft className="w-5 h-5 text-foreground" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              {property ? "Editar Propiedad" : "Nueva Propiedad"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {property
-                ? "Actualiza la información de tu propiedad vacacional"
-                : "Crea una nueva propiedad vacacional"}
-            </p>
+    <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
+      {/* Fixed Header */}
+      <div className="px-8 pt-8 pb-4 shrink-0 bg-white border-b border-slate-100 shadow-sm z-50">
+        <div className="flex flex-col gap-6 max-w-[1600px] mx-auto">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard/properties">
+              <Button variant="ghost" size="sm" className="gap-2 p-2 hover:bg-slate-100 rounded-xl transition" type="button">
+                <ArrowLeft className="w-5 h-5 text-slate-600" />
+              </Button>
+            </Link>
+            <div className="flex-1">
+              <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
+                {property ? "Editar Propiedad" : "Nueva Propiedad"}
+              </h1>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
+                {property ? property.name : "Nueva propiedad vacacional"}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+              <span className={`text-[10px] font-black uppercase tracking-widest ${formData.is_active ? "text-emerald-600" : "text-slate-400"}`}>
+                {formData.is_active ? "Activa" : "Inactiva"}
+              </span>
+              <Switch
+                checked={formData.is_active}
+                onCheckedChange={(checked) => handleFieldChange("is_active", checked)}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Desktop Tabs */}
-        <div className="hidden md:block">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-7 bg-muted p-1 rounded-lg h-auto">
-              {TABS.map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="text-xs sm:text-sm py-2"
-                >
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Mobile Tab Selector */}
-        <div className="md:hidden">
-          <Select value={mobileTab} onValueChange={setMobileTab}>
-            <SelectTrigger className="w-full bg-background">
-              <SelectValue placeholder="Selecciona una sección" />
-            </SelectTrigger>
-            <SelectContent>
-              {TABS.map((tab) => (
-                <SelectItem key={tab.value} value={tab.value}>
-                  {tab.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Tabs - Now inside the fixed header */}
+          <div className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="flex bg-slate-100/50 p-1.5 rounded-2xl h-auto border border-slate-200/50 w-fit">
+                {TABS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <form onSubmit={handleSubmit} className="space-y-6 md:space-y-0">
-        <div className="hidden md:block">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsContent value="general" className="space-y-6 mt-0">
-              <PropertyFormGeneral
-                formData={{
-                  property_code: formData.property_code,
-                  name: formData.name,
-                  slug: formData.slug,
-                  description: formData.description,
-                  image_url: formData.image_url,
-                  property_type_id: formData.property_type_id,
-                  is_active: formData.is_active,
-                }}
-                propertyTypes={propertyTypes}
-                propertyId={property?.id}
-                slugError={slugError}
-                slugValidating={slugValidating}
-                autoGeneratingSlug={autoGeneratingSlug}
-                imagePreview={imagePreview}
-                uploadingImage={uploadingImage}
-                onFieldChange={handleFieldChange}
-                onSlugChange={handleSlugChange}
-                onImageUpload={handleImageUpload}
-                onRemoveImage={handleRemoveImage}
-              />
-            </TabsContent>
-
-            <TabsContent value="location" className="space-y-6 mt-0">
-              <PropertyFormLocation
-                formData={{
-                  street: formData.street,
-                  number: formData.number,
-                  city: formData.city,
-                  province: formData.province,
-                  postal_code: formData.postal_code,
-                  country: formData.country,
-                }}
-                onFieldChange={handleFieldChange}
-              />
-            </TabsContent>
-
-            <TabsContent value="characteristics" className="space-y-6 mt-0">
-              <PropertyFormCharacteristics
-                formData={{
-                  bedrooms: formData.bedrooms,
-                  bathrooms: formData.bathrooms,
-                  max_guests: formData.max_guests,
-                  square_meters: formData.square_meters,
-                  min_nights: formData.min_nights,
-                }}
-                onFieldChange={handleFieldChange}
-              />
-            </TabsContent>
-
-            <TabsContent value="pricing" className="space-y-6 mt-0">
-              <PropertyFormPricing
-                formData={{
-                  base_price_per_night: formData.base_price_per_night,
-                  cleaning_fee: formData.cleaning_fee,
-                  security_deposit: formData.security_deposit,
-                  check_in_time: formData.check_in_time,
-                  check_out_time: formData.check_out_time,
-                  check_in_instructions: formData.check_in_instructions,
-                  pricing_periods: formData.pricing_periods, // Pass pricing periods
-                }}
-                onFieldChange={handleFieldChange}
-              />
-            </TabsContent>
-
-            <TabsContent value="channels" className="space-y-6 mt-0">
-              <PropertyFormChannels
-                allChannels={allChannels}
-                selectedChannels={selectedChannels}
-                loadingChannels={loadingChannels}
-                onChannelToggle={handleChannelToggle}
-                landingConfig={formData.landing_config}
-                onLandingConfigChange={(config) => handleFieldChange("landing_config", config)}
-              />
-            </TabsContent>
-
-            <TabsContent value="landing" className="space-y-6 mt-0">
-              <PropertyFormLanding
-                formData={formData}
-                onFieldChange={handleFieldChange}
-              />
-            </TabsContent>
-
-            <TabsContent value="gallery" className="space-y-6 mt-0">
-              {property?.id ? (
-                <PropertyImageGallery
-                  propertyId={property.id}
-                  tenantId={tenantId}
+      {/* Scrollable Body */}
+      <div className="flex-1 overflow-y-auto px-8 pt-6 pb-20">
+        <div className="max-w-[1600px] mx-auto">
+          <form onSubmit={handleSubmit} id="property-form">
+            <Tabs value={activeTab} className="w-full">
+              <TabsContent value="general" className="mt-0">
+                <PropertyFormGeneral
+                  formData={{
+                    property_code: formData.property_code,
+                    name: formData.name,
+                    slug: formData.slug,
+                    description: formData.description,
+                    image_url: formData.image_url,
+                    property_type_id: formData.property_type_id,
+                    is_active: formData.is_active,
+                  }}
+                  propertyTypes={propertyTypes}
+                  propertyId={property?.id}
+                  slugError={slugError}
+                  slugValidating={slugValidating}
+                  autoGeneratingSlug={autoGeneratingSlug}
+                  imagePreview={imagePreview}
+                  uploadingImage={uploadingImage}
+                  onFieldChange={handleFieldChange}
+                  onSlugChange={handleSlugChange}
+                  onImageUpload={handleImageUpload}
+                  onRemoveImage={handleRemoveImage}
                 />
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>Guarda la propiedad primero para gestionar la galería de imágenes</p>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
+              </TabsContent>
 
-        {/* Mobile Content */}
-        <div className="md:hidden space-y-6">
-          {mobileTab === "general" && (
-            <PropertyFormGeneral
-              formData={{
-                property_code: formData.property_code,
-                name: formData.name,
-                slug: formData.slug,
-                description: formData.description,
-                image_url: formData.image_url,
-                property_type_id: formData.property_type_id,
-                is_active: formData.is_active,
-              }}
-              propertyTypes={propertyTypes}
-              propertyId={property?.id}
-              slugError={slugError}
-              slugValidating={slugValidating}
-              autoGeneratingSlug={autoGeneratingSlug}
-              imagePreview={imagePreview}
-              uploadingImage={uploadingImage}
-              onFieldChange={handleFieldChange}
-              onSlugChange={handleSlugChange}
-              onImageUpload={handleImageUpload}
-              onRemoveImage={handleRemoveImage}
-            />
-          )}
-          {mobileTab === "location" && (
-            <PropertyFormLocation
-              formData={{
-                street: formData.street,
-                number: formData.number,
-                city: formData.city,
-                province: formData.province,
-                postal_code: formData.postal_code,
-                country: formData.country,
-              }}
-              onFieldChange={handleFieldChange}
-            />
-          )}
-          {mobileTab === "characteristics" && (
-            <PropertyFormCharacteristics
-              formData={{
-                bedrooms: formData.bedrooms,
-                bathrooms: formData.bathrooms,
-                max_guests: formData.max_guests,
-                square_meters: formData.square_meters,
-                min_nights: formData.min_nights,
-              }}
-              onFieldChange={handleFieldChange}
-            />
-          )}
-          {mobileTab === "pricing" && (
-            <PropertyFormPricing
-              formData={{
-                base_price_per_night: formData.base_price_per_night,
-                cleaning_fee: formData.cleaning_fee,
-                security_deposit: formData.security_deposit,
-                check_in_time: formData.check_in_time,
-                check_out_time: formData.check_out_time,
-                check_in_instructions: formData.check_in_instructions,
-                pricing_periods: formData.pricing_periods,
-              }}
-              onFieldChange={handleFieldChange}
-            />
-          )}
-          {mobileTab === "channels" && (
-            <PropertyFormChannels
-              allChannels={allChannels}
-              selectedChannels={selectedChannels}
-              loadingChannels={loadingChannels}
-              onChannelToggle={handleChannelToggle}
-              landingConfig={formData.landing_config}
-              onLandingConfigChange={(config) => handleFieldChange("landing_config", config)}
-            />
-          )}
-          {mobileTab === "landing" && (
-            <PropertyFormLanding
-              formData={formData}
-              onFieldChange={handleFieldChange}
-            />
-          )}
-          {mobileTab === "gallery" && (
-            property?.id ? (
-              <PropertyImageGallery
-                propertyId={property.id}
-                tenantId={tenantId}
-              />
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>Guarda la propiedad primero para gestionar la galería de imágenes</p>
-              </div>
-            )
-          )}
-        </div>
+              <TabsContent value="location" className="mt-0">
+                <PropertyFormLocation
+                  formData={{
+                    street: formData.street,
+                    number: formData.number,
+                    city: formData.city,
+                    province: formData.province,
+                    postal_code: formData.postal_code,
+                    country: formData.country,
+                  }}
+                  onFieldChange={handleFieldChange}
+                />
+              </TabsContent>
 
-        {/* Footer Actions */}
-        <div className="border-t border-border bg-card sticky bottom-0 z-40 mt-8">
-          <div className="py-4">
-            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end">
-              <Link href="/dashboard/properties">
-                <Button variant="outline" className="w-full sm:w-auto" type="button" disabled={loading}>
-                  Cancelar
-                </Button>
-              </Link>
-              <Button type="submit" disabled={loading} className="w-full sm:w-auto bg-primary hover:bg-primary/90">
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Guardando...
-                  </>
+              <TabsContent value="characteristics" className="mt-0">
+                <PropertyFormCharacteristics
+                  formData={{
+                    bedrooms: formData.bedrooms,
+                    bathrooms: formData.bathrooms,
+                    max_guests: formData.max_guests,
+                    square_meters: formData.square_meters,
+                    min_nights: formData.min_nights,
+                  }}
+                  onFieldChange={handleFieldChange}
+                />
+              </TabsContent>
+
+              <TabsContent value="pricing" className="mt-0">
+                <PropertyFormPricing
+                  formData={{
+                    base_price_per_night: formData.base_price_per_night,
+                    cleaning_fee: formData.cleaning_fee,
+                    security_deposit: formData.security_deposit,
+                    check_in_time: formData.check_in_time,
+                    check_out_time: formData.check_out_time,
+                    check_in_instructions: formData.check_in_instructions,
+                    pricing_periods: formData.pricing_periods,
+                  }}
+                  onFieldChange={handleFieldChange}
+                />
+              </TabsContent>
+
+              <TabsContent value="channels" className="mt-0">
+                <PropertyFormChannels
+                  allChannels={allChannels}
+                  selectedChannels={selectedChannels}
+                  loadingChannels={loadingChannels}
+                  onChannelToggle={handleChannelToggle}
+                  landingConfig={formData.landing_config}
+                  onLandingConfigChange={(config) => handleFieldChange("landing_config", config)}
+                />
+              </TabsContent>
+
+              <TabsContent value="landing" className="mt-0">
+                <PropertyFormLanding
+                  formData={formData}
+                  onFieldChange={handleFieldChange}
+                />
+              </TabsContent>
+
+              <TabsContent value="gallery" className="mt-0">
+                {property?.id ? (
+                  <PropertyImageGallery
+                    propertyId={property.id}
+                    tenantId={tenantId}
+                  />
                 ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    {property ? "Actualizar Propiedad" : "Crear Propiedad"}
-                  </>
+                  <div className="bg-white rounded-[2rem] p-20 text-center border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                    <p className="text-xl font-bold text-slate-400">Guarda la propiedad primero para gestionar la galería</p>
+                  </div>
                 )}
+              </TabsContent>
+            </Tabs>
+          </form>
+        </div>
+      </div>
+
+      {/* Fixed Footer Actions */}
+      <div className="px-8 py-6 bg-white border-t border-slate-100 shrink-0 z-50">
+        <div className="max-w-[1600px] mx-auto flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">
+          <div className="hidden sm:block">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cambios no guardados</p>
+          </div>
+          <div className="flex gap-4 w-full sm:w-auto">
+            <Link href="/dashboard/properties" className="flex-1 sm:flex-initial">
+              <Button variant="outline" className="w-full sm:px-8 h-12 rounded-2xl font-bold border-slate-200 text-slate-600 hover:bg-slate-50 transition-all" type="button" disabled={loading}>
+                Cancelar
               </Button>
-            </div>
+            </Link>
+            <Button form="property-form" type="submit" disabled={loading} className="flex-1 sm:flex-initial sm:px-12 h-12 rounded-2xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100 transition-all">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  {property ? "Actualizar Propiedad" : "Crear Propiedad"}
+                </>
+              )}
+            </Button>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   )
 }

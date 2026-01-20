@@ -19,6 +19,7 @@ const GOOGLE_PLACES_BASE_URL = 'https://maps.googleapis.com/maps/api/place'
 export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
   try {
     const urlObj = new URL(url)
+    const pathname = urlObj.pathname
 
     // Formato 1: URL de búsqueda con parámetro 'q'
     const queryParam = urlObj.searchParams.get('q')
@@ -35,53 +36,45 @@ export function extractRestaurantNameFromGoogleUrl(url: string): string | null {
 
     // Formato 2: URL directa de Google Maps con /place/ en la ruta
     // Ejemplo: https://www.google.com/maps/place/Playa+de+M%C3%B3nsul/@36.7307815,-2.1558116
-    // Ejemplo: https://www.google.com/maps/place/El+Playazo/@37.2148849,-1.8061523
-    // Ejemplo: https://www.google.com/maps/place/Oasis+caf%C3%A9/@37.2204993,-1.812117
-    // Nota: El pathname puede venir parcialmente decodificado por el navegador
-    // Intentar primero con el pathname (puede estar decodificado)
-    const pathname = urlObj.pathname
     const placeMatch = pathname.match(/\/place\/([^/@]+)/)
-
     if (placeMatch && placeMatch[1]) {
       let encodedName = placeMatch[1]
-
-      // Reemplazar + por espacios
       encodedName = encodedName.replace(/\+/g, ' ')
 
-      // Si el nombre contiene caracteres codificados (%XX), decodificarlo
       if (encodedName.includes('%')) {
         try {
           return decodeURIComponent(encodedName)
-        } catch (decodeError: any) {
-          // Decodificar manualmente solo los caracteres %XX bien formados
+        } catch {
           return encodedName.replace(/%([0-9A-F]{2})/gi, (match, hex) => {
             return String.fromCharCode(parseInt(hex, 16))
           })
         }
-      } else {
-        // El nombre ya está decodificado, solo devolverlo
-        return encodedName
+      }
+      return encodedName
+    }
+
+    // Formato 3: URL de búsqueda con /search/ en la ruta
+    const searchMatch = pathname.match(/\/search\/([^/@?]+)/)
+    if (searchMatch && searchMatch[1]) {
+      return decodeURIComponent(searchMatch[1].replace(/\+/g, ' '))
+    }
+
+    // Fallback final: Intentar extraer de cualquier segmento que parezca un nombre antes de coordenadas o data
+    const segments = pathname.split('/')
+    for (const segment of segments) {
+      if (segment && !['maps', 'place', 'search', 'dir', 'data', 'preview'].includes(segment.toLowerCase()) && !segment.startsWith('@')) {
+        // Si el segmento tiene letras y no parece una terna de coordenadas/flags
+        if (/[a-zA-Z]/.test(segment) && !segment.includes('!') && !segment.includes(',')) {
+          return decodeURIComponent(segment.replace(/\+/g, ' '))
+        }
       }
     }
 
     // Fallback: Intentar extraer directamente de la URL string original
-    // Esto es útil si el navegador ha decodificado el pathname completamente
     const urlString = url.toString()
     const directMatch = urlString.match(/\/place\/([^/@]+)/)
     if (directMatch && directMatch[1]) {
-      let directName = directMatch[1]
-      directName = directName.replace(/\+/g, ' ')
-
-      if (directName.includes('%')) {
-        try {
-          return decodeURIComponent(directName)
-        } catch {
-          return directName.replace(/%([0-9A-F]{2})/gi, (match, hex) => {
-            return String.fromCharCode(parseInt(hex, 16))
-          })
-        }
-      }
-      return directName
+      return decodeURIComponent(directMatch[1].replace(/\+/g, ' '))
     }
 
     return null
@@ -410,12 +403,15 @@ async function getPlaceFromGoogleUrl<T>(
   const identifier = placeId || cid
 
   if (identifier) {
+    console.log(`[Google Places] Intentando obtener detalles para identificador: ${identifier}`)
     try {
       const placeDetails = await getPlaceDetails(identifier)
       if (placeDetails) {
         return mapper(placeDetails, propertyLat, propertyLng)
       }
+      console.warn(`[Google Places] No se pudieron obtener detalles para ${identifier}, intentando búsqueda por nombre...`)
     } catch (error: any) {
+      console.error(`[Google Places] Error obteniendo detalles para ${identifier}:`, error)
       // Continuar con otras estrategias
     }
   }

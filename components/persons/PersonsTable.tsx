@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { MoreHorizontal, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
+import Image from "next/image"
 import type { PersonWithDetails } from "@/types/persons"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -45,8 +46,16 @@ export function PersonsTable({ persons, onPersonDeleted }: PersonsTableProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+  const getPersonDisplayName = (p: PersonWithDetails) => {
+    if (p.full_name) return p.full_name
+    if (p.first_name || p.last_name) {
+      return `${p.first_name || ""} ${p.last_name || ""}`.trim()
+    }
+    return "Sin nombre"
+  }
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
@@ -58,7 +67,7 @@ export function PersonsTable({ persons, onPersonDeleted }: PersonsTableProps) {
       if (!response.ok) {
         const errorData = await response.json()
         const errorMessage = errorData.error || "Error al eliminar la persona"
-        
+
         toast({
           title: "No se puede eliminar",
           description: errorMessage,
@@ -88,16 +97,6 @@ export function PersonsTable({ persons, onPersonDeleted }: PersonsTableProps) {
       setDeletingId(null)
       setDeleteDialogOpen(false)
     }
-  }
-
-  const getPersonDisplayName = (person: PersonWithDetails) => {
-    if (person.full_name) {
-      return person.full_name
-    }
-    if (person.first_name || person.last_name) {
-      return `${person.first_name || ""} ${person.last_name || ""}`.trim()
-    }
-    return "Sin nombre"
   }
 
   // Pagination logic
@@ -133,130 +132,144 @@ export function PersonsTable({ persons, onPersonDeleted }: PersonsTableProps) {
     <>
       {/* Mobile View: Cards */}
       <div className="block md:hidden space-y-4">
-        {persons.map((person) => (
+        {paginatedPersons.map((person) => (
           <PersonCard key={person.id} person={person} onDelete={onPersonDeleted} />
         ))}
       </div>
 
       {/* Desktop View: Table */}
       <div className="hidden md:block">
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+        <div className="flex items-center justify-between text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-2">
           <p>
-            Mostrando {startIndex + 1} - {Math.min(endIndex, persons.length)} de {persons.length} persona{persons.length !== 1 ? "s" : ""}
+            {startIndex + 1} - {Math.min(endIndex, persons.length)} de {persons.length} registros
           </p>
         </div>
-        <div className="rounded-md border">
+        <div className="rounded-[2rem] border-none shadow-[0_8px_40px_rgb(0,0,0,0.03)] bg-white overflow-hidden">
           <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Documento</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Direcciones</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedPersons.map((person) => (
-              <TableRow key={person.id}>
-                <TableCell>
-                  <Badge variant="outline" className="text-xs">
-                    {person.person_type_value?.label || "N/A"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-medium">
-                  {getPersonDisplayName(person)}
-                </TableCell>
-                <TableCell>
-                  {person.document_type && person.document_number ? (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">{person.document_type}:</span>{" "}
-                      {person.document_number}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
-                  )}
-                </TableCell>
-                <TableCell>{person.email || "-"}</TableCell>
-                <TableCell>{person.phone || "-"}</TableCell>
-                <TableCell>
-                  {person.addresses && person.addresses.length > 0 ? (
-                    <Badge variant="outline" className="text-xs">
-                      {person.addresses.length} dirección{person.addresses.length !== 1 ? "es" : ""}
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={person.is_active ? "default" : "secondary"}>
-                    {person.is_active ? "Activo" : "Inactivo"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/dashboard/persons/${person.id}/edit`}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Editar
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setDeletingId(person.id)
-                          setDeleteDialogOpen(true)
-                        }}
-                        className="text-destructive"
-                        disabled={deletingId === person.id}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        {deletingId === person.id ? "Eliminando..." : "Eliminar"}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+            <TableHeader className="bg-slate-50/50">
+              <TableRow className="hover:bg-transparent border-slate-100">
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Nombre</TableHead>
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Contacto</TableHead>
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Documento</TableHead>
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Tipo</TableHead>
+                <TableHead className="py-5 px-6 font-black text-[10px] uppercase tracking-widest text-slate-400">Estado</TableHead>
+                <TableHead className="py-5 px-6 text-right font-black text-[10px] uppercase tracking-widest text-slate-400">Acciones</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {paginatedPersons.map((person) => (
+                <TableRow key={person.id} className="group hover:bg-slate-50/50 border-slate-50 transition-colors">
+                  <TableCell className="py-4 px-6">
+                    <div className="flex items-center gap-4">
+                      {person.profile_picture_url ? (
+                        <div className="relative h-11 w-11 rounded-xl overflow-hidden border border-slate-100 bg-white p-1 shadow-sm flex-shrink-0">
+                          <Image src={person.profile_picture_url} alt={getPersonDisplayName(person)} fill className="object-contain" />
+                        </div>
+                      ) : (
+                        <div className="h-11 w-11 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0 shadow-inner">
+                          <span className="text-sm font-black text-indigo-500">
+                            {getPersonDisplayName(person).charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <span className="font-bold text-slate-700">{getPersonDisplayName(person)}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-bold text-slate-600">{person.email || "Sin email"}</span>
+                      {person.phone && <span className="text-[10px] font-black text-slate-400 tracking-tight">{person.phone}</span>}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    {person.document_type && person.document_number ? (
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{person.document_type}</span>
+                        <span className="text-sm font-bold text-slate-600 tracking-tight">{person.document_number}</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-300">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <Badge variant="outline" className="bg-indigo-50/50 border-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-wider rounded-lg px-2">
+                      {person.person_type_value?.label || "N/A"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="py-4 px-6">
+                    <Badge
+                      variant="outline"
+                      className={`border-none text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${person.is_active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"
+                        }`}
+                    >
+                      {person.is_active ? "Activo" : "Inactivo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="py-4 px-6 text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-300 hover:text-indigo-600 hover:bg-white hover:shadow-sm transition-all">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="rounded-2xl border-slate-100 shadow-xl p-2">
+                        <DropdownMenuItem asChild className="rounded-xl focus:bg-indigo-50 focus:text-indigo-600 font-bold py-2.5">
+                          <Link href={`/dashboard/persons/${person.id}/edit`}>
+                            <Edit className="mr-3 h-4 w-4" />
+                            Editar Perfil
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setDeletingId(person.id)
+                            setDeleteDialogOpen(true)
+                          }}
+                          className="rounded-xl focus:bg-red-50 focus:text-red-600 text-red-600 font-bold py-2.5"
+                          disabled={deletingId === person.id}
+                        >
+                          <Trash2 className="mr-3 h-4 w-4" />
+                          {deletingId === person.id ? "Eliminando..." : "Eliminar Registro"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
+      </div>
 
-        {/* Pagination Controls for Desktop */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-end space-x-2 py-4">
+      {/* Pagination Controls - Shared for Mobile and Desktop */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between sm:justify-end space-x-2 mt-8 mb-12 py-6 px-4 border-t border-slate-100 bg-white/50 rounded-b-[2rem] shadow-sm">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest sm:mr-6">
+            Página {currentPage} de {totalPages}
+          </div>
+          <div className="flex gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={handlePreviousPage}
               disabled={currentPage === 1}
+              className="h-10 px-4 rounded-xl border-slate-200 font-black uppercase text-[10px] tracking-widest text-slate-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Anterior
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Anterior</span>
             </Button>
-            <div className="text-sm font-medium">
-              Página {currentPage} de {totalPages}
-            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
+              className="h-10 px-4 rounded-xl border-slate-200 font-black uppercase text-[10px] tracking-widest text-slate-600 hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
             >
-              Siguiente
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <span className="hidden sm:inline">Siguiente</span>
+              <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -285,4 +298,3 @@ export function PersonsTable({ persons, onPersonDeleted }: PersonsTableProps) {
     </>
   )
 }
-

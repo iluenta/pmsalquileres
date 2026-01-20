@@ -14,6 +14,7 @@ export interface Person {
   birth_date: string | null // Date como string ISO
   nationality: string | null
   notes: string | null
+  profile_picture_url?: string | null
   is_active: boolean
   created_at: string
   updated_at: string

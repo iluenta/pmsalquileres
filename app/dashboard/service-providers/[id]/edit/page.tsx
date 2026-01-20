@@ -47,25 +47,14 @@ export default async function EditServiceProviderPage({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/service-providers">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Editar Proveedor {provider.person.full_name}
-          </h1>
-          <p className="text-muted-foreground">
-            Modifica los datos del proveedor de servicios
-          </p>
-        </div>
-      </div>
-
-      <ServiceProviderForm provider={provider} tenantId={tenantId} onSave={handleSave} />
+    <div className="h-full">
+      <ServiceProviderForm
+        provider={provider}
+        tenantId={tenantId}
+        onSave={handleSave}
+        title={provider.person.full_name || "Editar Proveedor"}
+        subtitle="Gestión de perfil y servicios vinculados"
+      />
     </div>
   )
 }

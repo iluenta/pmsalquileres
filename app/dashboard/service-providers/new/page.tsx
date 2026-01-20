@@ -49,24 +49,13 @@ export default async function NewServiceProviderPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/service-providers">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Nuevo Proveedor de Servicios</h1>
-          <p className="text-muted-foreground">
-            Crea un nuevo proveedor de servicios (limpieza, mantenimiento, jardinería, etc.)
-          </p>
-        </div>
-      </div>
-
-      <ServiceProviderForm tenantId={tenantId} onSave={handleSave} />
+    <div className="h-full">
+      <ServiceProviderForm
+        tenantId={tenantId}
+        onSave={handleSave}
+        title="Nuevo Proveedor"
+        subtitle="Registra una nueva empresa o profesional de servicios"
+      />
     </div>
   )
 }
-

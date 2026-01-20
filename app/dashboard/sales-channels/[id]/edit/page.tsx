@@ -1,9 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { getSalesChannelById, updateSalesChannel } from "@/lib/api/sales-channels"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
 import { SalesChannelForm } from "@/components/sales-channels/SalesChannelForm"
 import type { UpdateSalesChannelData } from "@/types/sales-channels"
 
@@ -47,26 +44,14 @@ export default async function EditSalesChannelPage({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/dashboard/sales-channels">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Editar Canal {channel.person.full_name}
-          </h1>
-          <p className="text-muted-foreground">
-            Modifica los datos del canal de venta
-          </p>
-        </div>
-      </div>
-
-      <SalesChannelForm channel={channel} tenantId={tenantId} onSave={handleSave} />
+    <div className="h-full">
+      <SalesChannelForm
+        channel={channel}
+        tenantId={tenantId}
+        onSave={handleSave}
+        title={`Editar Canal ${channel.person.full_name}`}
+        subtitle="Modifica los datos del canal de venta y sus comisiones"
+      />
     </div>
   )
 }
-

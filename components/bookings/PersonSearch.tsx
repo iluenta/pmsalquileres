@@ -30,13 +30,13 @@ interface PersonSearchProps {
   required?: boolean
 }
 
-export function PersonSearch({ 
-  tenantId, 
-  value, 
-  onSelect, 
+export function PersonSearch({
+  tenantId,
+  value,
+  onSelect,
   onCreateNew,
   className,
-  required = false 
+  required = false
 }: PersonSearchProps) {
   const [open, setOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -63,12 +63,12 @@ export function PersonSearch({
     setSearchError(null)
     try {
       const response = await fetch(`/api/persons/search?tenantId=${tenantId}&search=${encodeURIComponent(term)}&category=guest`)
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || "Error al buscar huéspedes")
       }
-      
+
       const data = await response.json()
       setPersons(data || [])
     } catch (error: any) {
@@ -100,7 +100,7 @@ export function PersonSearch({
     }
 
     setCreateError(null)
-    
+
     if (!onCreateNew) {
       // Si no hay función de creación, crear mediante API
       try {
@@ -111,12 +111,12 @@ export function PersonSearch({
             ...newPersonData,
           }),
         })
-        
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
           throw new Error(errorData.error || "Error al crear huésped")
         }
-        
+
         const newPerson = await response.json()
         onSelect(newPerson)
         setOpen(false)
@@ -144,14 +144,14 @@ export function PersonSearch({
     }
   }
 
-  const displayValue = value 
+  const displayValue = value
     ? `${value.first_name} ${value.last_name}${value.email ? ` (${value.email})` : ""}`
     : "Buscar huésped..."
 
   return (
     <div className={cn("space-y-2", className)}>
-      <Label htmlFor="person-search">
-        Huésped {required && <span className="text-red-500">*</span>}
+      <Label htmlFor="person-search" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+        Huésped {required && <span className="text-indigo-600">*</span>}
       </Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -159,17 +159,17 @@ export function PersonSearch({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between"
+            className="w-full justify-between h-11 bg-slate-50 border-slate-100 rounded-xl font-bold focus:ring-indigo-500 shadow-none hover:bg-slate-100 hover:text-slate-900 transition-all text-left"
             id="person-search"
           >
             <span className="truncate">{displayValue}</span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 text-indigo-600" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0" align="start">
+        <PopoverContent className="w-[400px] p-0 rounded-2xl border-slate-100 shadow-2xl overflow-hidden" align="start">
           <Command shouldFilter={false}>
-            <CommandInput 
-              placeholder="Buscar por nombre, email o teléfono..." 
+            <CommandInput
+              placeholder="Buscar por nombre, email o teléfono..."
               value={searchTerm}
               onValueChange={setSearchTerm}
             />
@@ -213,7 +213,7 @@ export function PersonSearch({
                     if (!person.first_name || !person.last_name) {
                       return null
                     }
-                    
+
                     const personDisplayName = `${person.first_name} ${person.last_name}${person.email ? ` ${person.email}` : ''}${person.phone ? ` ${person.phone}` : ''}`
                     return (
                       <CommandItem
@@ -310,7 +310,7 @@ export function PersonSearch({
                         size="sm"
                         onClick={handleCreateNew}
                         disabled={!newPersonData.first_name.trim() || !newPersonData.last_name.trim()}
-                        className="flex-1"
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-500"
                       >
                         Crear
                       </Button>

@@ -20,6 +20,18 @@ const nextConfig = {
         pathname: '/storage/v1/object/public/**',
       },
       {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'upload.wikimedia.org',
+      },
+      {
         protocol: 'http',
         hostname: 'localhost',
       },

@@ -66,18 +66,24 @@ export function PropertyFormPricing({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Dynamic Pricing Table */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-foreground flex items-center gap-2 text-lg">
-            <span>📅</span> Tarifas Configurables por Temporada
-          </h3>
+      <div className="bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center rotate-3">
+              <CalendarIcon className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-900 tracking-tighter">Tarifas por Temporada</h3>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Configuración dinámica de precios</p>
+            </div>
+          </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-2 rounded-xl border-slate-200 hover:bg-slate-50 font-black uppercase text-[10px] tracking-widest"
             onClick={handleAddSeason}
           >
             <Plus className="w-4 h-4" />
@@ -85,133 +91,132 @@ export function PropertyFormPricing({
           </Button>
         </div>
 
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="rounded-2xl border border-slate-100 overflow-hidden">
           <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[200px]">Temporadas</TableHead>
-                <TableHead className="text-center w-[110px]">1 Noche</TableHead>
-                <TableHead className="text-center w-[110px]">Fin de Sem.</TableHead>
-                <TableHead className="text-center w-[110px]">1 Semana</TableHead>
-                <TableHead className="text-center w-[110px]">Quincena</TableHead>
-                <TableHead className="text-center w-[110px]">1 Mes</TableHead>
-                <TableHead className="text-center w-[110px]">Huesped Extra</TableHead>
-                <TableHead className="text-center w-[110px]">Mín. Noches</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+            <TableHeader className="bg-slate-50/50">
+              <TableRow className="hover:bg-transparent border-slate-100">
+                <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Temporadas</TableHead>
+                <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-[90px]">1 Noche</TableHead>
+                <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-[90px]">Finde</TableHead>
+                <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-[90px]">Semana</TableHead>
+                <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-[90px]">15 Días</TableHead>
+                <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-[90px]">Mes</TableHead>
+                <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-[90px]">Extra</TableHead>
+                <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-slate-400 w-[90px]">Min.</TableHead>
+                <TableHead className="w-[40px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pricingPeriods.map((period, index) => (
-                <TableRow key={index} className={period.is_base ? "bg-teal-50/30" : ""}>
-                  <TableCell className="font-medium">
+                <TableRow key={index} className={`hover:bg-slate-50/50 border-slate-100 transition-colors ${period.is_base ? "bg-indigo-50/20" : ""}`}>
+                  <TableCell className="py-3">
                     {period.is_base ? (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-teal-700 font-bold uppercase text-xs">Precios básicos</span>
-                        <span className="text-[10px] text-muted-foreground uppercase leading-tight">Resto del año</span>
+                      <div className="flex flex-col">
+                        <span className="text-indigo-600 font-black uppercase text-[10px] tracking-widest">Base</span>
+                        <span className="text-[9px] text-slate-400 font-bold uppercase">Resto del año</span>
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-1.5 min-w-[150px]">
                         <Input
-                          placeholder="Nombre (ej: Verano)"
+                          placeholder="Nombre"
                           value={period.season_name || ""}
                           onChange={(e) => handleUpdatePeriod(index, "season_name", e.target.value)}
-                          className="h-8 text-xs"
+                          className="h-7 text-xs bg-white border-slate-200 rounded-lg font-bold"
                         />
                         <div className="flex items-center gap-1">
                           <Input
                             type="date"
                             value={period.start_date || ""}
                             onChange={(e) => handleUpdatePeriod(index, "start_date", e.target.value)}
-                            className="h-8 text-[10px] px-1"
+                            className="h-7 text-[9px] px-1 bg-white border-slate-200 rounded-lg"
                           />
-                          <span className="text-muted-foreground">-</span>
                           <Input
                             type="date"
                             value={period.end_date || ""}
                             onChange={(e) => handleUpdatePeriod(index, "end_date", e.target.value)}
-                            className="h-8 text-[10px] px-1"
+                            className="h-7 text-[9px] px-1 bg-white border-slate-200 rounded-lg"
                           />
                         </div>
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-2">
                     <Input
                       type="number"
                       step="0.01"
-                      className="h-9 text-center"
+                      className="h-8 text-center bg-white border-slate-200 rounded-lg text-xs font-black"
                       value={period.price_night || 0}
                       onChange={(e) => handleUpdatePeriod(index, "price_night", parseFloat(e.target.value) || 0)}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-2">
                     <Input
                       type="number"
                       step="0.01"
                       placeholder="-"
-                      className="h-9 text-center"
+                      className="h-8 text-center bg-white border-slate-200 rounded-lg text-xs font-bold text-slate-500"
                       value={period.price_weekend || ""}
                       onChange={(e) => handleUpdatePeriod(index, "price_weekend", parseFloat(e.target.value) || null)}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-2">
                     <Input
                       type="number"
                       step="0.01"
                       placeholder="-"
-                      className="h-9 text-center"
+                      className="h-8 text-center bg-white border-slate-200 rounded-lg text-xs font-bold text-slate-500"
                       value={period.price_week || ""}
                       onChange={(e) => handleUpdatePeriod(index, "price_week", parseFloat(e.target.value) || null)}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-2">
                     <Input
                       type="number"
                       step="0.01"
                       placeholder="-"
-                      className="h-9 text-center"
+                      className="h-8 text-center bg-white border-slate-200 rounded-lg text-xs font-bold text-slate-500"
                       value={period.price_fortnight || ""}
                       onChange={(e) => handleUpdatePeriod(index, "price_fortnight", parseFloat(e.target.value) || null)}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-2">
                     <Input
                       type="number"
                       step="0.01"
                       placeholder="-"
-                      className="h-9 text-center"
+                      className="h-8 text-center bg-white border-slate-200 rounded-lg text-xs font-bold text-slate-500"
                       value={period.price_month || ""}
                       onChange={(e) => handleUpdatePeriod(index, "price_month", parseFloat(e.target.value) || null)}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-2">
                     <Input
                       type="number"
                       step="0.01"
                       placeholder="-"
-                      className="h-9 text-center"
+                      className="h-8 text-center bg-white border-slate-200 rounded-lg text-xs font-bold text-slate-500"
                       value={period.extra_guest_price || ""}
                       onChange={(e) => handleUpdatePeriod(index, "extra_guest_price", parseFloat(e.target.value) || null)}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-2">
                     <Input
                       type="number"
-                      className="h-9 text-center"
+                      className="h-8 text-center bg-white border-slate-200 rounded-lg text-xs font-black"
                       value={period.min_nights || 1}
                       onChange={(e) => handleUpdatePeriod(index, "min_nights", parseInt(e.target.value) || 1)}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="p-1">
                     {!period.is_base && (
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="text-destructive h-8 w-8 hover:bg-destructive/10"
+                        className="text-slate-300 hover:text-destructive h-7 w-7 transition-colors"
                         onClick={() => handleRemoveSeason(index)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     )}
                   </TableCell>
@@ -223,15 +228,18 @@ export function PropertyFormPricing({
       </div>
 
       {/* Other Costs & Instructions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-muted/30 p-4 md:p-6 rounded-xl border border-border space-y-4">
-          <h4 className="font-medium text-sm flex items-center gap-2">
-            <span>🛡️</span> Otros Cargos y Horarios
-          </h4>
-          <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-5 bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center -rotate-6">
+              <span className="text-indigo-600 text-sm">🛡️</span>
+            </div>
+            <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Cargos y Horarios</h4>
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             <div>
-              <Label htmlFor="cleaning_fee" className="text-xs font-medium">
-                Tarifa de Limpieza (€)
+              <Label htmlFor="cleaning_fee" className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">
+                Limpieza (€)
               </Label>
               <Input
                 id="cleaning_fee"
@@ -240,12 +248,12 @@ export function PropertyFormPricing({
                 min="0"
                 value={formData.cleaning_fee || 0}
                 onChange={(e) => onFieldChange("cleaning_fee", parseFloat(e.target.value) || 0)}
-                className="mt-1.5 bg-background h-9"
+                className="bg-slate-50 border-slate-100 h-10 rounded-xl font-bold"
               />
             </div>
             <div>
-              <Label htmlFor="security_deposit" className="text-xs font-medium">
-                Depósito de Seguridad (€)
+              <Label htmlFor="security_deposit" className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">
+                Fianza (€)
               </Label>
               <Input
                 id="security_deposit"
@@ -254,49 +262,54 @@ export function PropertyFormPricing({
                 min="0"
                 value={formData.security_deposit || 0}
                 onChange={(e) => onFieldChange("security_deposit", parseFloat(e.target.value) || 0)}
-                className="mt-1.5 bg-background h-9"
+                className="bg-slate-50 border-slate-100 h-10 rounded-xl font-bold"
               />
             </div>
             <div>
-              <Label htmlFor="check_in_time" className="text-xs font-medium">
-                Hora de Check-in
+              <Label htmlFor="check_in_time" className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">
+                Check-in
               </Label>
               <Input
                 id="check_in_time"
                 type="time"
                 value={formData.check_in_time || "15:00"}
                 onChange={(e) => onFieldChange("check_in_time", e.target.value)}
-                className="mt-1.5 bg-background h-9"
+                className="bg-slate-50 border-slate-100 h-10 rounded-xl font-black"
               />
             </div>
             <div>
-              <Label htmlFor="check_out_time" className="text-xs font-medium">
-                Hora de Check-out
+              <Label htmlFor="check_out_time" className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">
+                Check-out
               </Label>
               <Input
                 id="check_out_time"
                 type="time"
                 value={formData.check_out_time || "11:00"}
                 onChange={(e) => onFieldChange("check_out_time", e.target.value)}
-                className="mt-1.5 bg-background h-9"
+                className="bg-slate-50 border-slate-100 h-10 rounded-xl font-black"
               />
             </div>
           </div>
         </div>
 
-        <div className="bg-muted/30 p-4 md:p-6 rounded-xl border border-border space-y-4">
-          <Label htmlFor="check_in_instructions" className="text-sm font-medium flex items-center gap-2">
-            <span>ℹ️</span> Instrucciones de Check-in (Paso previo)
-          </Label>
+        <div className="lg:col-span-7 bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center rotate-6">
+              <span className="text-indigo-600 text-sm">ℹ️</span>
+            </div>
+            <Label htmlFor="check_in_instructions" className="text-sm font-black text-slate-900 uppercase tracking-widest">
+              Instrucciones de Check-in
+            </Label>
+          </div>
           <Textarea
             id="check_in_instructions"
-            placeholder="Ej: Por favor, tenga a mano su DNI para el escaneo..."
+            placeholder="Ej: Por favor, tenga a mano su DNI..."
             value={formData.check_in_instructions || ""}
             onChange={(e) => onFieldChange("check_in_instructions", e.target.value)}
-            className="bg-background min-h-[100px] text-sm"
+            className="bg-slate-50 border-slate-100 min-h-[120px] rounded-2xl text-sm font-medium focus:ring-indigo-500"
           />
-          <p className="text-[10px] text-muted-foreground italic">
-            Este texto se mostrará en un aviso antes de que el huésped acceda a la URL de registro.
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider italic">
+            Se mostrará al huésped antes del registro.
           </p>
         </div>
       </div>

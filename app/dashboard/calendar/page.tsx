@@ -2,7 +2,6 @@ import { getSupabaseServerClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { getProperties } from "@/lib/api/properties"
 import { PropertyCalendarDashboard } from "@/components/calendar/PropertyCalendarDashboard"
-import { PropertySelector } from "@/components/calendar/PropertySelector"
 
 export default async function CalendarPage() {
   const supabase = await getSupabaseServerClient()
@@ -30,9 +29,8 @@ export default async function CalendarPage() {
   const properties = allProperties.filter((p) => p.is_active)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-full overflow-hidden bg-slate-50/30">
       <PropertyCalendarDashboard properties={properties} tenantId={tenantId} />
     </div>
   )
 }
-

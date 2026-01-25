@@ -173,10 +173,9 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
 
       // 8. Consejos (específicos)
       supabasePublic
-        .from('guide_sections')
+        .from('tips')
         .select('*')
         .eq('guide_id', guide.id)
-        .eq('section_type', 'tips')
         .order('order_index', { ascending: true }),
 
       // 9. Secciones personalizadas generales (todas)
@@ -195,10 +194,9 @@ export async function getCompleteGuideDataPublic(propertyIdOrSlug: string) {
 
       // 11. Información práctica
       supabasePublic
-        .from('guide_sections')
+        .from('practical_info')
         .select('*')
         .eq('guide_id', guide.id)
-        .eq('section_type', 'practical')
         .order('order_index', { ascending: true }),
     ])
 

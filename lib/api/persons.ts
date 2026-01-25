@@ -48,10 +48,11 @@ export async function getPersons(
     const supabase = await getSupabaseServerClient()
     if (!supabase) return []
 
-    // 1. Filtrado por Email o Teléfono a nivel de BD si se solicitan
+    // 1. Filtrado por Email o Teléfono a nivel de BD si se solicitan específicamente
+    // o como parte de la búsqueda general
     let filteredPersonIds: string[] | null = null
 
-    if (options?.searchEmail || options?.searchPhone) {
+    if (options?.searchEmail || options?.searchPhone || options?.search) {
       let contactQuery = supabase
         .from('person_contact_infos')
         .select('person_id')
@@ -64,13 +65,23 @@ export async function getPersons(
         // Limpiar espacios para búsqueda de teléfono
         const phonePattern = `%${options.searchPhone.replace(/\s/g, '')}%`
         contactQuery = contactQuery.ilike('contact_value', phonePattern).eq('contact_type', 'phone')
+      } else if (options.search) {
+        // Búsqueda general en contactos (email o phone)
+        const searchPattern = `%${options.search.trim()}%`
+        contactQuery = contactQuery.ilike('contact_value', searchPattern)
       }
 
       const { data: contacts } = await contactQuery
-      filteredPersonIds = (contacts || []).map((c: any) => c.person_id)
 
-      // Si se buscó por contacto y no hay resultados, retornar vacío de inmediato
-      if (!filteredPersonIds || filteredPersonIds.length === 0) return []
+      if (contacts && contacts.length > 0) {
+        filteredPersonIds = Array.from(new Set(contacts.map((c: any) => c.person_id as string)))
+      }
+
+      // Si se buscó específicamente por contacto y no hay resultados, retornar vacío de inmediato
+      // (Si es búsqueda general, no retornamos vacío aún porque puede coincidir por nombre/documento)
+      if ((options.searchEmail || options.searchPhone) && (!filteredPersonIds || filteredPersonIds.length === 0)) {
+        return []
+      }
     }
 
     // 2. Query principal de personas
@@ -78,11 +89,6 @@ export async function getPersons(
       .from('persons')
       .select('*')
       .eq('tenant_id', tenantId)
-
-    // Filtro de IDs resultante de búsqueda por contactos
-    if (filteredPersonIds && filteredPersonIds.length > 0) {
-      query = query.in('id', filteredPersonIds)
-    }
 
     // Filtro de estado
     if (options?.isActive !== null && options?.isActive !== undefined) {
@@ -95,19 +101,25 @@ export async function getPersons(
       query = query.eq('person_type', options.personType)
     }
 
-    // Búsqueda general o específica por nombre/documento
+    // Búsqueda general: Nombre, Documento o IDs filtrados por contactos
     if (options?.search) {
-      const searchPattern = `%${options.search}%`
-      query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},full_name.ilike.${searchPattern},document_number.ilike.${searchPattern}`)
+      const searchPattern = `%${options.search.trim()}%`
+      let orCondition = `first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},full_name.ilike.${searchPattern},document_number.ilike.${searchPattern}`
+
+      if (filteredPersonIds && filteredPersonIds.length > 0) {
+        orCondition += `,id.in.(${filteredPersonIds.join(',')})`
+      }
+
+      query = query.or(orCondition)
     }
 
     if (options?.searchName) {
-      const searchPattern = `%${options.searchName}%`
+      const searchPattern = `%${options.searchName.trim()}%`
       query = query.or(`first_name.ilike.${searchPattern},last_name.ilike.${searchPattern},full_name.ilike.${searchPattern}`)
     }
 
     if (options?.searchDocument) {
-      const searchPattern = `%${options.searchDocument}%`
+      const searchPattern = `%${options.searchDocument.trim()}%`
       query = query.ilike('document_number', searchPattern)
     }
 
@@ -131,7 +143,7 @@ export async function getPersons(
 
     // 3. Enriquecimiento de datos (solo si se solicita o por defecto)
     const isEnriched = options?.enriched !== false
-    const personIds = persons.map((p: any) => p.id)
+    const personIds = persons.map((p: any) => p.id as string)
 
     // Obtener tipos de persona (siempre necesario para mostrar el label)
     const personTypeIds = [...new Set(persons.map((p: any) => p.person_type).filter(Boolean))]
